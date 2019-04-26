@@ -4,7 +4,6 @@
 .vs
 .realsync
 
-*.cmake
 CMakeCache.txt
 CMakeFiles
 Makefile
