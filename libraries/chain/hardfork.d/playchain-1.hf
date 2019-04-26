@@ -1,0 +1,11 @@
+// #playchain-1 Fix pending vote sticking with wrong invariant while game is starting
+#ifndef HARDFORK_PLAYCHAIN_1_TIME
+	#if defined(PLAYCHAIN_MAINNET)
+		#define HARDFORK_PLAYCHAIN_1_TIME (fc::time_point_sec( 1556096400 ))
+		#pragma message("PLAYCHAIN_MAINNET HARDFORK_PLAYCHAIN_1_TIME is defined")
+	#elif defined(PLAYCHAIN_TESTNET)
+		#define HARDFORK_PLAYCHAIN_1_TIME (fc::time_point_sec( 1554818400 ))
+		#pragma message("PLAYCHAIN_TESTNET HARDFORK_PLAYCHAIN_1_TIME is defined")
+	#endif
+#endif
+

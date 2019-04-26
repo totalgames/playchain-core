@@ -1,0 +1,3 @@
+[submodule "libraries/fc"]
+	path = libraries/fc
+	url = git@bitbucket.org:total-games/playchain-fc.git
