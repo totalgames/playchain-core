@@ -27,7 +27,7 @@ struct committee_fixture: public playchain_common::playchain_fixture
         try
         {
             actor(member1).supply(asset(rich_registrator_init_balance));
-                }FC_LOG_AND_RETHROW()
+        }FC_LOG_AND_RETHROW()
         actor(member2).supply(asset(rich_registrator_init_balance));
         actor(member3).supply(asset(rich_registrator_init_balance));
 
@@ -46,32 +46,16 @@ struct committee_fixture: public playchain_common::playchain_fixture
         fc::time_point_sec expiration_time;
     };
 
-    void shrink_committee(const Actor &member, uint32_t new_capacity = 1)
+    void shrink_committee(uint32_t new_capacity = 1)
     {
         idump((db.get_global_properties().active_committee_members));
 
-        const auto &new_member = create_committee_member(get_account(member));
-        auto new_member_id = new_member.id;
-        auto new_member_vote_id = new_member.vote_id;
+        Actor member{"init0", init_account_priv_key, init_account_priv_key.get_public_key()};
 
-        vote_for(new_member_vote_id, member1);
-        vote_for(new_member_vote_id, member2);
-        vote_for(new_member_vote_id, member3);
-
-        next_maintenance();
-
-        auto time = db.head_block_time();
+        actor(member).supply(asset(rich_registrator_init_balance));
 
         const chain_parameters& current_params = db.get_global_properties().parameters;
         chain_parameters new_params = current_params;
-
-        ilog("${l}; new ${i}", ("l", db.get_global_properties().active_committee_members)("i", committee_member_id_type{new_member_id}));
-
-        for(const auto &m: db.get_global_properties().active_committee_members)
-        {
-            const auto &cm = m(db);
-            idump((cm));
-        }
 
         new_params.maximum_committee_count = new_capacity;
 
@@ -81,7 +65,7 @@ struct committee_fixture: public playchain_common::playchain_fixture
         proposal_create_operation prop_op;
 
         prop_op.review_period_seconds = current_params.committee_proposal_review_period;
-        prop_op.expiration_time = time + current_params.committee_proposal_review_period + (uint32_t)fc::minutes(1).to_seconds();
+        prop_op.expiration_time = db.head_block_time() + current_params.committee_proposal_review_period + (uint32_t)fc::minutes(1).to_seconds();
         prop_op.fee_paying_account = get_account(member).id;
 
         prop_op.proposed_ops.emplace_back( update_op );
@@ -423,7 +407,7 @@ PLAYCHAIN_TEST_CASE(check_player_proposal_approve)
 
 PLAYCHAIN_TEST_CASE(check_change_committee_composition)
 {
-    shrink_committee(member1, 2);
+    shrink_committee(2);
 
     ilog("Playchain Commitee (0): ${l}", ("l", get_playchain_properties(db).active_games_committee_members));
 
@@ -438,7 +422,10 @@ PLAYCHAIN_TEST_CASE(check_change_committee_composition)
     ilog("Playchain Commitee (1): ${l}", ("l", get_playchain_properties(db).active_games_committee_members));
 
     create_witness(player1);
-    BOOST_CHECK_NO_THROW(playchain_committee_member_create(player1));
+    try
+    {
+        playchain_committee_member_create(player1);
+    }FC_LOG_AND_RETHROW();
 
     next_maintenance();
 

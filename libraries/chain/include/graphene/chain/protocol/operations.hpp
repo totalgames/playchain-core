@@ -38,6 +38,7 @@
 #include <graphene/chain/protocol/withdraw_permission.hpp>
 #include <graphene/chain/protocol/witness.hpp>
 #include <graphene/chain/protocol/worker.hpp>
+#include <graphene/chain/protocol/htlc.hpp>
 
 #include <playchain/chain/protocol/compatibility_with_core.hpp>
 #include <playchain/chain/protocol/buy_in_buy_out_operations.hpp>
@@ -107,16 +108,16 @@ namespace graphene { namespace chain {
             asset_claim_fees_operation,
             fba_distribute_operation,                               // VIRTUAL
             bid_collateral_operation,
-            execute_bid_operation,                                  // VIRTUAL <- 46
-            bitshares_dump_operation_1,
-            bitshares_dump_operation_2,
-            bitshares_dump_operation_3,
-            bitshares_dump_operation_4,
-            bitshares_dump_operation_5,
-            bitshares_dump_operation_6,
-            buy_in_operation, // <- 53 - !!! playchain operations start from here !!!
-            buy_out_operation,
-            game_operation,
+            execute_bid_operation,                                  // VIRTUAL
+            asset_claim_pool_operation,
+            asset_update_issuer_operation,
+            htlc_create_operation,
+            htlc_redeem_operation,
+            htlc_redeemed_operation,                                // VIRTUAL
+            htlc_extend_operation,
+            htlc_refund_operation,                                  // VIRTUAL <= 53
+            bitshares_dump_operation_8,
+            bitshares_dump_operation_9,
             player_invitation_create_operation, // <- 56
             player_invitation_resolve_operation,
             player_invitation_cancel_operation,
@@ -151,11 +152,11 @@ namespace graphene { namespace chain {
 
    /**
     *  Appends required authorites to the result vector.  The authorities appended are not the
-    *  same as those returned by get_required_auth
+    *  same as those returned by get_required_auth 
     *
     *  @return a set of required authorities for @ref op
     */
-   void operation_get_required_authorities( const operation& op,
+   void operation_get_required_authorities( const operation& op, 
                                             flat_set<account_id_type>& active,
                                             flat_set<account_id_type>& owner,
                                             vector<authority>&  other );

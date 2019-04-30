@@ -33,6 +33,7 @@ share_type transfer_operation::calculate_fee( const fee_parameters_type& schedul
    return core_fee_required;
 }
 
+
 void transfer_operation::validate()const
 {
    FC_ASSERT( fee.amount >= 0 );

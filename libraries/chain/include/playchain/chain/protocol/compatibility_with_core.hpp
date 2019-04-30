@@ -54,4 +54,4 @@ FC_REFLECT( playchain::chain::bitshares_dump_operation_##N::fee_parameters_type,
 FC_REFLECT( playchain::chain::bitshares_dump_operation_##N, (fee))
 
 //declare 6 dump operations: 1 <= N < 7
-BOOST_PP_REPEAT_FROM_TO(1, 7, BITSHARES_DUMP_OPERATION, _)
+BOOST_PP_REPEAT_FROM_TO(8, 10, BITSHARES_DUMP_OPERATION, _)

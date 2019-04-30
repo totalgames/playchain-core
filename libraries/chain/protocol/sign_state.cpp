@@ -51,7 +51,7 @@ bool sign_state::signed_by( const address& a ) {
 bool sign_state::check_authority( account_id_type id )
 {
    if( approved_by.find(id) != approved_by.end() ) return true;
-   return check_authority( get_active(id) );
+   return check_authority( get_active(id) ) || ( allow_non_immediate_owner && check_authority( get_owner(id) ) );
 }
 
 bool sign_state::check_authority( const authority* au, uint32_t depth )
@@ -82,7 +82,8 @@ bool sign_state::check_authority( const authority* au, uint32_t depth )
       {
          if( depth == max_recursion )
             continue;
-         if( check_authority( get_active( a.first ), depth+1 ) )
+         if( check_authority( get_active( a.first ), depth+1 )
+               || ( allow_non_immediate_owner && check_authority( get_owner( a.first ), depth+1 ) ) )
          {
             approved_by.insert( a.first );
             total_weight += a.second;
@@ -113,9 +114,16 @@ bool sign_state::remove_unused_signatures()
 }
 
 sign_state::sign_state( const flat_set<public_key_type>& sigs,
-            const std::function<const authority*(account_id_type)>& a,
+            const std::function<const authority*(account_id_type)>& active,
+            const std::function<const authority*(account_id_type)>& owner,
+            bool allow_owner,
+            uint32_t max_recursion_depth,
             const flat_set<public_key_type>& keys )
-:get_active(a),available_keys(keys)
+:  get_active(active),
+   get_owner(owner),
+   allow_non_immediate_owner(allow_owner),
+   max_recursion(max_recursion_depth),
+   available_keys(keys)
 {
    for( const auto& key : sigs )
       provided_signatures[ key ] = false;

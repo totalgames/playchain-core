@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 #include <graphene/chain/protocol/account.hpp>
+
 #include <graphene/chain/account_object.hpp>
 
 namespace graphene { namespace chain {
@@ -62,13 +63,11 @@ bool is_valid_name( const string& name )
 
     if( len < GRAPHENE_MIN_ACCOUNT_NAME_LENGTH )
     {
-          ilog( ".");
         return false;
     }
 
     if( len > GRAPHENE_MAX_ACCOUNT_NAME_LENGTH )
     {
-          ilog( ".");
         return false;
     }
 
@@ -80,7 +79,6 @@ bool is_valid_name( const string& name )
           end = len;
        if( (end - begin) < GRAPHENE_MIN_ACCOUNT_NAME_LENGTH )
        {
-          idump( (name) (end)(len)(begin)(GRAPHENE_MAX_ACCOUNT_NAME_LENGTH) );
           return false;
        }
        switch( name[begin] )
@@ -91,7 +89,6 @@ bool is_valid_name( const string& name )
           case 'y': case 'z':
              break;
           default:
-          ilog( ".");
              return false;
        }
        switch( name[end-1] )
@@ -104,7 +101,6 @@ bool is_valid_name( const string& name )
           case '8': case '9':
              break;
           default:
-          ilog( ".");
              return false;
        }
        for( size_t i=begin+1; i<end-1; i++ )
@@ -120,7 +116,6 @@ bool is_valid_name( const string& name )
              case '-':
                 break;
              default:
-          ilog( ".");
                 return false;
           }
        }
@@ -218,6 +213,9 @@ void account_create_operation::validate()const
       }
    }
 }
+
+
+
 
 share_type account_update_operation::calculate_fee( const fee_parameters_type& k )const
 {

@@ -184,7 +184,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_resolve)
 
     print_last_operations(actor(player1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(player1),
+    auto history = phistory_api->get_account_history(player1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -223,7 +223,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel)
 
     print_last_operations(actor(player1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(player1),
+    auto history = phistory_api->get_account_history(player1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -260,7 +260,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_expired)
 
     print_last_operations(actor(player1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(player1),
+    auto history = phistory_api->get_account_history(player1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -870,7 +870,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_expiration_for_buyin_with_pending_buyout)
 
 //    print_last_operations(actor(richregistrator), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator),
+    auto history = phistory_api->get_account_history(richregistrator.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1117,7 +1117,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_anf_free_tabl
 
     print_last_operations(actor(richregistrator), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator),
+    auto history = phistory_api->get_account_history(richregistrator.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1199,7 +1199,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_replace_allocation
 
     //TODO: replacement doesn't work for tables that are busy
 
-    auto history = phistory_api->get_account_history(actor(richregistrator),
+    auto history = phistory_api->get_account_history(richregistrator.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());

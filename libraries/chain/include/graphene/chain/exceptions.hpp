@@ -24,7 +24,7 @@
 #pragma once
 
 #include <fc/exception/exception.hpp>
-#include <graphene/chain/protocol/protocol.hpp>
+#include <graphene/chain/protocol/fee_schedule.hpp>
 
 #define GRAPHENE_ASSERT( expr, exc_type, FORMAT, ... )                \
    FC_MULTILINE_MACRO_BEGIN                                           \
@@ -75,28 +75,9 @@
       elog( "Caught plugin exception: ${e}", ("e", e.to_detail_string() ) );  \
       throw;                                                                  \
    }                                                                          \
-   catch( fc::exception& er )                                                 \
-   {                                                                          \
-      wlog( "Caught unexpected exception in plugin: ${details}",              \
-            ("details",er.to_detail_string()) );                              \
-   }                                                                          \
-   catch( const std::exception& e )                                           \
-   {                                                                          \
-      fc::exception fce(                                                      \
-                FC_LOG_MESSAGE( warn, "rethrow ${what}: ", ("what",e.what()) ), \
-                fc::std_exception_code,                                       \
-                typeid(e).name(),                                             \
-                e.what() ) ;                                                  \
-      wlog( "Caught unexpected exception in plugin: ${details}",              \
-            ("details",fce.to_detail_string()) );                             \
-   }                                                                          \
    catch( ... )                                                               \
    {                                                                          \
-      fc::unhandled_exception e(                                              \
-                FC_LOG_MESSAGE( warn, "rethrow"),                             \
-                std::current_exception() );                                   \
-      wlog( "Caught unexpected exception in plugin: ${details}",              \
-             ("details",e.to_detail_string()) );                              \
+      wlog( "Caught unexpected exception in plugin" );                        \
    }
 
 namespace graphene { namespace chain {

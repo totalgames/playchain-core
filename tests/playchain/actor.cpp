@@ -40,7 +40,7 @@ account_id_type ActorActions::create()
     const auto& idx = _fixture.db.get_index_type<account_index>().indices().get<by_name>();
     auto itF = idx.find(_actor);
     if(itF == idx.end())
-        return _fixture.create_account(_actor, _actor.public_key, false).get_id();
+        return _fixture.create_account(_actor, _actor.public_key).get_id();
 
     return itF->get_id();
 }

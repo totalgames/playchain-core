@@ -343,7 +343,7 @@ PLAYCHAIN_TEST_CASE(check_history_while_invitations_go)
 
     generate_blocks(created_time + fc::seconds(default_lifetime) + fc::minutes(INVITATIONS));
 
-    auto history = phistory_api->get_account_history(actor(richregistrator),
+    auto history = phistory_api->get_account_history(richregistrator.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());

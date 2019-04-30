@@ -86,6 +86,7 @@ namespace
            cashback_parent.balance,
            amount,
            d.get_global_properties().parameters.cashback_vesting_period_seconds,
+           vesting_balance_type::cashback,
            owner,
            true );
 

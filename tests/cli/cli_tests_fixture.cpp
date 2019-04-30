@@ -1,3 +1,5 @@
+#include <boost/test/unit_test.hpp>
+
 #include "cli_tests_fixture.hpp"
 
 namespace cli
@@ -57,4 +59,18 @@ fc::ecc::private_key cli_tests_fixture::create_private_key_from_password(const s
     return priv_key;
 }
 
+void cli_tests_fixture::create_new_account()
+{
+    graphene::wallet::brain_key_info bki = connection->api()->suggest_brain_key();
+    BOOST_CHECK(!bki.brain_priv_key.empty());
+    signed_transaction create_acct_tx = connection->api()->create_account_with_brain_key(bki.brain_priv_key, "alice",
+          "nathan", "nathan", true);
+    // save the private key for this new account in the wallet file
+    BOOST_CHECK(connection->api()->import_key("alice", bki.wif_priv_key));
+    connection->api()->save_wallet_file(connection->wallet_filename());
+    // attempt to give alice some bitsahres
+    BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to alice");
+    signed_transaction transfer_tx = connection->api()->transfer("nathan", "alice", "10000", "1.3.0",
+          "Here are some CORE token for your new account", true);
+}
 }

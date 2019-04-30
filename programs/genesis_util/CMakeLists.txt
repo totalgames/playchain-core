@@ -17,7 +17,6 @@ install( TARGETS
 
 add_executable( get_dev_key get_dev_key.cpp )
 
-
 target_link_libraries( get_dev_key
                        PRIVATE graphene_app graphene_chain graphene_egenesis_none graphene_utilities fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
 
@@ -28,21 +27,6 @@ install( TARGETS
    LIBRARY DESTINATION lib
    ARCHIVE DESTINATION lib
 )
-
-
-add_executable( gen_key gen_key.cpp )
-
-target_link_libraries( gen_key
-        PRIVATE graphene_app graphene_chain graphene_egenesis_none graphene_utilities fc ${CMAKE_DL_LIBS} ${PLATFORM_SPECIFIC_LIBS} )
-
-install( TARGETS
-        gen_key
-
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        )
-
 
 add_executable( convert_address convert_address.cpp )
 

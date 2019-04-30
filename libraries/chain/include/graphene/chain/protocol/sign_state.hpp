@@ -31,15 +31,21 @@ struct sign_state
       bool remove_unused_signatures();
 
       sign_state( const flat_set<public_key_type>& sigs,
-                  const std::function<const authority*(account_id_type)>& a,
+                  const std::function<const authority*(account_id_type)>& active,
+                  const std::function<const authority*(account_id_type)>& owner,
+                  bool allow_owner,
+                  uint32_t max_recursion_depth = GRAPHENE_MAX_SIG_CHECK_DEPTH,
                   const flat_set<public_key_type>& keys = empty_keyset );
 
       const std::function<const authority*(account_id_type)>& get_active;
-      const flat_set<public_key_type>&                        available_keys;
+      const std::function<const authority*(account_id_type)>& get_owner;
+
+      const bool                       allow_non_immediate_owner;
+      const uint32_t                   max_recursion = GRAPHENE_MAX_SIG_CHECK_DEPTH;
+      const flat_set<public_key_type>& available_keys;
 
       flat_map<public_key_type,bool>   provided_signatures;
       flat_set<account_id_type>        approved_by;
-      uint32_t                         max_recursion = GRAPHENE_MAX_SIG_CHECK_DEPTH;
 };
 
 }}

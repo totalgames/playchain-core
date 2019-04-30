@@ -31,32 +31,6 @@ namespace playchain { namespace chain {
 
     using namespace graphene::chain;
 
-    struct game_operation : public base_operation
-    {
-        struct fee_parameters_type {
-            uint64_t fee = 0;
-        };
-
-        asset                     fee;
-        account_id_type           table_owner;
-        vector<account_id_type>   players;
-        string                    game_log;
-        asset                     big_blind_price;
-        uint32_t                  chips_per_big_blind;
-
-        void get_required_active_authorities(flat_set<account_id_type>& a) const {
-            a.insert(table_owner);
-            //TODO: add authorities of players
-        }
-
-        account_id_type   fee_payer()const { return table_owner; }
-        void              validate()const { }
-    };
-
-    //^ legacy
-    //=====================================================
-    // playchain:
-
     struct game_start_playing_check_operation : public base_operation
     {
         struct fee_parameters_type {
@@ -119,12 +93,10 @@ namespace playchain { namespace chain {
     };
 }}
 
-FC_REFLECT( playchain::chain::game_operation::fee_parameters_type, (fee))
 FC_REFLECT( playchain::chain::game_start_playing_check_operation::fee_parameters_type, (fee)(price_per_kbyte))
 FC_REFLECT( playchain::chain::game_result_check_operation::fee_parameters_type, (fee)(price_per_kbyte))
 FC_REFLECT( playchain::chain::game_reset_operation::fee_parameters_type, (fee))
 
-FC_REFLECT( playchain::chain::game_operation, (fee)(table_owner)(players)(game_log)(big_blind_price)(chips_per_big_blind))
 FC_REFLECT( playchain::chain::game_start_playing_check_operation, (fee)(table)(table_owner)(voter)(initial_data))
 FC_REFLECT( playchain::chain::game_result_check_operation, (fee)(table)(table_owner)(voter)(result))
 FC_REFLECT( playchain::chain::game_reset_operation, (fee)(table)(table_owner)(rollback_table))

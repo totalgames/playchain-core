@@ -29,13 +29,19 @@ To build after all dependencies are installed:
     cmake ..
     make -j$(nproc)
 
-**NOTE:** BitShares requires an [OpenSSL](https://www.openssl.org/) version in the 1.0.x series. OpenSSL 1.1.0 and newer are NOT supported. If your system OpenSSL version is newer, then you will need to manually provide an older version of OpenSSL and specify it to CMake using `-DOPENSSL_INCLUDE_DIR`, `-DOPENSSL_SSL_LIBRARY`, and `-DOPENSSL_CRYPTO_LIBRARY`.
+**NOTE:** Versions of [Boost](http://www.boost.org/) 1.57 through 1.69 are supported. Newer versions may work, but
+have not been tested. If your system came pre-installed with a version of Boost that you do not wish to use, you may
+manually build your preferred version and use it with PlayChain by specifying it on the CMake command line.
 
-**NOTE:** BitShares requires a [Boost](http://www.boost.org/) version in the range [1.57, 1.63]. Versions earlier than
-1.57 or newer than 1.63 are NOT supported. If your system Boost version is newer, then you will need to manually build
-an older version of Boost and specify it to CMake using `DBOOST_ROOT`.
+Example: ``cmake -DBOOST_ROOT=/path/to/boost .``
 
-After building, the witness node can be launched with:
+**NOTE:** PlayChain requires a 64-bit operating system to build, and will not build on a 32-bit OS.
+
+**NOTE:** PlayChain now supports Ubuntu 18.04 LTS
+
+**NOTE:** PlayChain now supports OpenSSL 1.1.0
+
+**After Building**, the `witness_node` can be launched with:
 
     ./build/programs/playchaind/playchaind --plugins witness
 

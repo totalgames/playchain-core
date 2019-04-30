@@ -12,6 +12,8 @@ namespace cli
 
     bool generate_block(std::shared_ptr<graphene::app::application> app);
 
+    bool generate_block(std::shared_ptr<graphene::app::application> app, graphene::chain::signed_block &);
+
     bool generate_maintenance_block(std::shared_ptr<graphene::app::application> app);
 
     struct client_connection_impl;

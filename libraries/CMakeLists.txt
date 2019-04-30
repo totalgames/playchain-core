@@ -1,6 +1,5 @@
 add_subdirectory( fc )
 add_subdirectory( db )
-add_subdirectory( deterministic_openssl_rand )
 add_subdirectory( chain )
 add_subdirectory( egenesis )
 add_subdirectory( net )
@@ -8,4 +7,3 @@ add_subdirectory( utilities )
 add_subdirectory( app )
 add_subdirectory( plugins )
 add_subdirectory( wallet )
-

@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.9.19
+FROM phusion/baseimage:0.10.1
 MAINTAINER Total Games LLC and contributors
 
 ARG NODE
@@ -21,15 +21,25 @@ RUN \
       cmake \
       git \
       libbz2-dev \
-      libreadline-dev \
-      libboost-all-dev \
+      libcurl4-openssl-dev \
       libssl-dev \
       libncurses-dev \
+      libboost-thread-dev \
+      libboost-iostreams-dev \
+      libboost-date-time-dev \
+      libboost-system-dev \
+      libboost-filesystem-dev \
+      libboost-program-options-dev \
+      libboost-chrono-dev \
+      libboost-test-dev \
+      libboost-context-dev \
+      libboost-regex-dev \
+      libboost-coroutine-dev \
+      libtool \
       doxygen \
-      libcurl4-openssl-dev \
+      ca-certificates \
+      fish \
     && \
-    apt-get update -y && \
-    apt-get install -y fish && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -38,8 +48,14 @@ WORKDIR /playchain/src
 
 # Compile
 RUN \
-    mkdir build && \
-    cd build && \
+    ( git submodule sync --recursive || \
+      find `pwd`  -type f -name .git | \
+	while read f; do \
+	  rel="$(echo "${f#$PWD/}" | sed 's=[^/]*/=../=g')"; \
+	  sed -i "s=: .*/.git/=: $rel/=" "$f"; \
+	done && \
+      git submodule sync --recursive ) && \
+    git submodule update --init --recursive && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DGENESIS_TESTNET=${LIVE_TESTNET} \
@@ -75,6 +91,9 @@ ADD docker/mainnet_seeds.ini /etc/playchain/seeds.ini.mainnet
 ADD docker/testnet_seeds.ini /etc/playchain/seeds.ini.testnet
 ADD docker/playchainentry.sh /usr/local/bin/playchainentry.sh
 RUN chmod a+x /usr/local/bin/playchainentry.sh
+
+# Make Docker send SIGINT instead of SIGTERM to the daemon
+STOPSIGNAL SIGINT
 
 # default execute entry
 CMD ["/bin/bash", "/usr/local/bin/playchainentry.sh"]

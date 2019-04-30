@@ -18,6 +18,7 @@ namespace cli
         virtual ~cli_tests_fixture();
 
         fc::ecc::private_key create_private_key_from_password(const string &password, const string &salt);
+        void create_new_account();
 
         const std::string owner = "nathan";
         fc::ecc::private_key owner_key;

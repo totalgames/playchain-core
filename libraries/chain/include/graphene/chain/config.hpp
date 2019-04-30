@@ -33,7 +33,6 @@
 #define GRAPHENE_MAX_ASSET_SYMBOL_LENGTH 16
 
 #define GRAPHENE_MAX_SHARE_SUPPLY int64_t(1000000000000000ll)
-
 #define GRAPHENE_MAX_SIG_CHECK_DEPTH 2
 /**
  * Don't allow the committee_members to publish a limit that would
@@ -105,6 +104,7 @@
 
 #define GRAPHENE_MAX_URL_LENGTH                               127
 
+
 /**
  * every second, the fraction of burned core asset which cycles is
  * GRAPHENE_CORE_ASSET_CYCLE_RATE / (1 << GRAPHENE_CORE_ASSET_CYCLE_RATE_BITS)
@@ -121,8 +121,7 @@
 #define GRAPHENE_RECENTLY_MISSED_COUNT_INCREMENT             4
 #define GRAPHENE_RECENTLY_MISSED_COUNT_DECREMENT             3
 
-//TODO: change version when blockchain will restarted with new genesis
-#define GRAPHENE_CURRENT_DB_VERSION                          "BTS2.13"
+#define GRAPHENE_CURRENT_DB_VERSION                          "20190323"
 
 #define GRAPHENE_IRREVERSIBLE_THRESHOLD                      (70 * GRAPHENE_1_PERCENT)
 

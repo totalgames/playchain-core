@@ -58,6 +58,7 @@ struct worker_init_visitor
        w.balance = db.create<vesting_balance_object>([&](vesting_balance_object& b) {
          b.owner = worker.worker_account;
          b.balance = asset(0);
+         b.balance_type = vesting_balance_type::worker;
 
          cdd_vesting_policy policy;
          policy.vesting_seconds = fc::days(i.pay_vesting_period_days).to_seconds();
@@ -75,9 +76,12 @@ struct worker_init_visitor
    }
 };
 
+
+
+
+
 object_id_type worker_create_evaluator::do_apply(const worker_create_evaluator::operation_type& o)
-{
-   try {
+{ try {
    database& d = db();
    vote_id_type for_id, against_id;
    d.modify(d.get_global_properties(), [&for_id, &against_id](global_property_object& p) {
@@ -108,7 +112,7 @@ object_id_type worker_create_evaluator::do_apply(const worker_create_evaluator::
 void refund_worker_type::pay_worker(share_type pay, database& db)
 {
    total_burned += pay;
-   db.modify(db.get(asset_id_type()).dynamic_data(db), [pay](asset_dynamic_data_object& d) {
+   db.modify( db.get_core_dynamic_data(), [pay](asset_dynamic_data_object& d) {
       d.current_supply -= pay;
    });
 }

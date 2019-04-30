@@ -257,7 +257,7 @@ PLAYCHAIN_TEST_CASE(check_validated_with_one_fraud)
     generate_blocks(2);
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -323,7 +323,7 @@ PLAYCHAIN_TEST_CASE(check_game_roolback_by_vote_for_result)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -400,7 +400,7 @@ PLAYCHAIN_TEST_CASE(check_failed_consensus_to_start_playing)
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -457,7 +457,7 @@ PLAYCHAIN_TEST_CASE(check_consensus_with_game_witnesses)
 
 //     print_last_operations(actor(richregistrator1), next_history_record);
 
-     auto history = phistory_api->get_account_history(actor(richregistrator1),
+     auto history = phistory_api->get_account_history(richregistrator1.name,
                                                  next_history_record,
                                                  100,
                                                  operation_history_id_type());
@@ -521,7 +521,7 @@ PLAYCHAIN_TEST_CASE(check_game_lifetime_expiration_with_special_starting)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -588,7 +588,7 @@ PLAYCHAIN_TEST_CASE(check_game_start_playing_voting_expiration)
 
     //print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -660,7 +660,7 @@ PLAYCHAIN_TEST_CASE(check_game_result_voting_expiration)
 
     //print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -799,7 +799,7 @@ PLAYCHAIN_TEST_CASE(check_two_games_ok)
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -966,7 +966,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_special_when_playing)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1061,7 +1061,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_forbiddance_for_players_when_voting_for
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1147,7 +1147,7 @@ PLAYCHAIN_TEST_CASE(check_double_buy_out_for_pending)
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1253,7 +1253,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_for_free_players)
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1538,7 +1538,7 @@ PLAYCHAIN_TEST_CASE(check_game_reset_game)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1601,7 +1601,7 @@ PLAYCHAIN_TEST_CASE(check_game_reset_table)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1690,7 +1690,7 @@ PLAYCHAIN_TEST_CASE(check_game_result_voting_expiration_with_min_votes)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1805,7 +1805,7 @@ PLAYCHAIN_TEST_CASE(check_diff_playing_members_problem)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -1929,7 +1929,7 @@ PLAYCHAIN_TEST_CASE(check_pending_buy_out_while_diff_playing_members_problem)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -2038,7 +2038,7 @@ PLAYCHAIN_TEST_CASE(check_reset_game_by_voters)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -2367,7 +2367,7 @@ PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator1),
+    auto history = phistory_api->get_account_history(richregistrator1.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());

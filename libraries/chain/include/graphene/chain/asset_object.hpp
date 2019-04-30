@@ -145,7 +145,12 @@ namespace graphene { namespace chain {
 
          template<class DB>
          const asset_bitasset_data_object& bitasset_data(const DB& db)const
-         { assert(bitasset_data_id); return db.get(*bitasset_data_id); }
+         {
+            FC_ASSERT( bitasset_data_id.valid(),
+                       "Asset ${a} (${id}) is not a market issued asset.",
+                       ("a",this->symbol)("id",this->id) );
+            return db.get( *bitasset_data_id );
+         }
 
          template<class DB>
          const asset_dynamic_data_object& dynamic_data(const DB& db)const
@@ -171,6 +176,9 @@ namespace graphene { namespace chain {
          static constexpr uint8_t space_id = implementation_ids;
          static constexpr uint8_t type_id  = impl_asset_bitasset_data_type;
 
+         /// The asset this object belong to
+         asset_id_type asset_id;
+
          /// The tunable options for BitAssets are stored in this field.
          bitasset_options options;
 
@@ -183,6 +191,9 @@ namespace graphene { namespace chain {
          price_feed current_feed;
          /// This is the publication time of the oldest feed which was factored into current_feed.
          time_point_sec current_feed_publication_time;
+         /// Call orders with collateralization (aka collateral/debt) not greater than this value are in margin call territory.
+         /// This value is derived from @ref current_feed for better performance and should be kept consistent.
+         price current_maintenance_collateralization;
 
          /// True if this asset implements a @ref prediction_market
          bool is_prediction_market = false;
@@ -208,19 +219,74 @@ namespace graphene { namespace chain {
          share_type settlement_fund;
          ///@}
 
+         /// Track whether core_exchange_rate in corresponding asset_object has updated
+         bool asset_cer_updated = false;
+
+         /// Track whether core exchange rate in current feed has updated
+         bool feed_cer_updated = false;
+
+         /// Whether need to update core_exchange_rate in asset_object
+         bool need_to_update_cer() const
+         {
+            return ( ( feed_cer_updated || asset_cer_updated ) && !current_feed.core_exchange_rate.is_null() );
+         }
+
+         /// The time when @ref current_feed would expire
          time_point_sec feed_expiration_time()const
-         { return current_feed_publication_time + options.feed_lifetime_sec; }
+         {
+            uint32_t current_feed_seconds = current_feed_publication_time.sec_since_epoch();
+            if( std::numeric_limits<uint32_t>::max() - current_feed_seconds <= options.feed_lifetime_sec )
+               return time_point_sec::maximum();
+            else
+               return current_feed_publication_time + options.feed_lifetime_sec;
+         }
          bool feed_is_expired_before_hardfork_615(time_point_sec current_time)const
          { return feed_expiration_time() >= current_time; }
          bool feed_is_expired(time_point_sec current_time)const
          { return feed_expiration_time() <= current_time; }
-         void update_median_feeds(time_point_sec current_time);
+
+         /******
+          * @brief calculate the median feed
+          *
+          * This calculates the median feed from @ref feeds, feed_lifetime_sec
+          * in @ref options, and the given parameters.
+          * It may update the current_feed_publication_time, current_feed and
+          * current_maintenance_collateralization member variables.
+          *
+          * @param current_time the current time to use in the calculations
+          * @param next_maintenance_time the next chain maintenance time
+          */
+         void update_median_feeds(time_point_sec current_time, time_point_sec next_maintenance_time);
    };
+
+   // key extractor for short backing asset
+   struct bitasset_short_backing_asset_extractor
+   {
+      typedef asset_id_type result_type;
+      result_type operator() (const asset_bitasset_data_object& obj) const
+      {
+         return obj.options.short_backing_asset;
+      }
+   };
+
+   struct by_short_backing_asset;
+   struct by_feed_expiration;
+   struct by_cer_update;
 
    typedef multi_index_container<
       asset_bitasset_data_object,
       indexed_by<
-         ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >
+         ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
+         ordered_non_unique< tag<by_short_backing_asset>, bitasset_short_backing_asset_extractor >,
+         ordered_unique< tag<by_feed_expiration>,
+            composite_key< asset_bitasset_data_object,
+               const_mem_fun< asset_bitasset_data_object, time_point_sec, &asset_bitasset_data_object::feed_expiration_time >,
+               member< asset_bitasset_data_object, asset_id_type, &asset_bitasset_data_object::asset_id >
+            >
+         >,
+         ordered_non_unique< tag<by_cer_update>,
+                             const_mem_fun< asset_bitasset_data_object, bool, &asset_bitasset_data_object::need_to_update_cer >
+         >
       >
    > asset_bitasset_data_object_multi_index_type;
    typedef generic_index<asset_bitasset_data_object, asset_bitasset_data_object_multi_index_type> asset_bitasset_data_index;
@@ -250,14 +316,18 @@ FC_REFLECT_DERIVED( graphene::chain::asset_dynamic_data_object, (graphene::db::o
                     (current_supply)(confidential_supply)(accumulated_fees)(fee_pool) )
 
 FC_REFLECT_DERIVED( graphene::chain::asset_bitasset_data_object, (graphene::db::object),
+                    (asset_id)
                     (feeds)
                     (current_feed)
                     (current_feed_publication_time)
+                    (current_maintenance_collateralization)
                     (options)
                     (force_settled_volume)
                     (is_prediction_market)
                     (settlement_price)
                     (settlement_fund)
+                    (asset_cer_updated)
+                    (feed_cer_updated)
                   )
 
 FC_REFLECT_DERIVED( graphene::chain::asset_object, (graphene::db::object),

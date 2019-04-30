@@ -65,7 +65,7 @@ PLAYCHAIN_TEST_CASE(check_create_room_operation)
 
     generate_blocks(2);
 
-    auto history = phistory_api->get_account_history(actor(richregistrator),
+    auto history = phistory_api->get_account_history(richregistrator.name,
                                                 next_history_record,
                                                 100,
                                                 operation_history_id_type());
@@ -92,7 +92,7 @@ PLAYCHAIN_TEST_CASE(check_update_room_operation)
 
     account_id_type owner_id = actor(richregistrator);
 
-    auto history = phistory_api->get_account_history(owner_id, operation_history_id_type(), 1, operation_history_id_type());
+    auto history = phistory_api->get_account_history(id_to_string(owner_id), operation_history_id_type(), 1, operation_history_id_type());
 
     BOOST_CHECK_EQUAL(history.size(), 1u);
 

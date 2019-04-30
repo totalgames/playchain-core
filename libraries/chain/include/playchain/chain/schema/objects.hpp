@@ -45,6 +45,7 @@
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/witness_schedule_object.hpp>
 #include <graphene/chain/worker_object.hpp>
+#include <graphene/chain/htlc_object.hpp>
 
 #include <playchain/chain/schema/player_invitation_object.hpp>
 #include <playchain/chain/schema/player_object.hpp>

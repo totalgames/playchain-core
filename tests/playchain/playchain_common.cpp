@@ -95,7 +95,23 @@ void playchain_fixture::init_fees()
     fees.erase(graphene_witness_params);
     fees.insert(graphene_witness_params);
 
+    playchain_committee_member_create_operation::fee_parameters_type playchain_committee_member_params;
+    playchain_committee_member_params.fee = 0;
+    fees.erase(playchain_committee_member_params);
+    fees.insert(playchain_committee_member_params);
+
+    account_update_operation::fee_parameters_type account_update_params;
+    account_update_params.fee = 0;
+    fees.erase(account_update_params);
+    fees.insert(account_update_params);
+
     change_fees( fees );
+}
+
+std::string playchain_fixture::id_to_string(const Actor &a)
+{
+    account_id_type id = actor(a);
+    return this->id_to_string(id);
 }
 
 string playchain_fixture::to_string(const asset& a)
@@ -172,7 +188,7 @@ void playchain_fixture::print_block_operations()
 operation_history_id_type playchain_fixture::print_last_operations(const account_id_type& who,
                                                                    const operation_history_id_type &from)
 {
-    auto history = phistory_api->get_account_history(who,
+    auto history = phistory_api->get_account_history(id_to_string(who),
                                                 from,
                                                 100,
                                                 operation_history_id_type());
@@ -199,7 +215,7 @@ operation_history_id_type playchain_fixture::scroll_history_to_case_start_point(
     generate_blocks(2);
 
     //scroll history to test point
-    auto history = phistory_api->get_account_history(who,
+    auto history = phistory_api->get_account_history(id_to_string(who),
                                                 operation_history_id_type(),
                                                 100,
                                                 operation_history_id_type());
@@ -461,7 +477,7 @@ room_id_type playchain_fixture::create_new_room(const Actor& owner, const std::s
 
     account_id_type owner_id = actor(owner);
 
-    auto history = phistory_api->get_account_history(owner_id, operation_history_id_type(), 10, operation_history_id_type());
+    auto history = phistory_api->get_account_history(id_to_string(owner_id), operation_history_id_type(), 10, operation_history_id_type());
 
     object_id_type result;
     for(const auto &rec: history)
@@ -488,7 +504,7 @@ table_id_type playchain_fixture::create_new_table(const Actor& owner, const room
 
     account_id_type owner_id = actor(owner);
 
-    auto history = phistory_api->get_account_history(owner_id, operation_history_id_type(), 1, operation_history_id_type());
+    auto history = phistory_api->get_account_history(id_to_string(owner_id), operation_history_id_type(), 1, operation_history_id_type());
 
     BOOST_CHECK_EQUAL(history.size(), 1u);
 

@@ -25,9 +25,11 @@
 #include <boost/test/unit_test.hpp>
 
 #include <graphene/app/database_api.hpp>
+#include <graphene/chain/hardfork.hpp>
 
 #include <fc/crypto/digest.hpp>
 
+#include <fc/crypto/hex.hpp>
 #include "../common/database_fixture.hpp"
 
 using namespace graphene::chain;
@@ -35,7 +37,8 @@ using namespace graphene::chain::test;
 
 BOOST_FIXTURE_TEST_SUITE(database_api_tests, database_fixture)
 
-BOOST_AUTO_TEST_CASE(is_registered) {
+BOOST_AUTO_TEST_CASE(is_registered)
+{
    try {
       /***
        * Arrange
@@ -53,8 +56,8 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       /***
        * Act
        */
-      create_account("dan", dan_private_key.get_public_key()).id;
-      create_account("nathan", nathan_private_key.get_public_key()).id;
+      create_account("dan", dan_private_key.get_public_key());
+      create_account("nathan", nathan_private_key.get_public_key());
       // Unregistered key will not be registered with any account
 
 
@@ -70,7 +73,8 @@ BOOST_AUTO_TEST_CASE(is_registered) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active ) {
+BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active )
+{
    try {
       fc::ecc::private_key nathan_key1 = fc::ecc::private_key::regenerate(fc::digest("key1"));
       fc::ecc::private_key nathan_key2 = fc::ecc::private_key::regenerate(fc::digest("key2"));
@@ -86,8 +90,7 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active ) {
          trx.operations.push_back(op);
          sign(trx, nathan_key1);
          PUSH_TX( db, trx, database::skip_transaction_dupe_check );
-         trx.operations.clear();
-         trx.signatures.clear();
+         trx.clear();
       } FC_CAPTURE_AND_RETHROW ((nathan.active))
 
       // this op requires active
@@ -118,7 +121,151 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active ) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_AUTO_TEST_CASE( get_potential_signatures_other ) {
+/// Testing get_potential_signatures and get_required_signatures for non-immediate owner authority issue.
+/// https://github.com/bitshares/bitshares-core/issues/584
+BOOST_AUTO_TEST_CASE( get_signatures_non_immediate_owner )
+{
+   try {
+      fc::ecc::private_key nathan_key1 = fc::ecc::private_key::regenerate(fc::digest("key1"));
+      fc::ecc::private_key nathan_key2 = fc::ecc::private_key::regenerate(fc::digest("key2"));
+      fc::ecc::private_key ashley_key1 = fc::ecc::private_key::regenerate(fc::digest("akey1"));
+      fc::ecc::private_key ashley_key2 = fc::ecc::private_key::regenerate(fc::digest("akey2"));
+      fc::ecc::private_key oliver_key1 = fc::ecc::private_key::regenerate(fc::digest("okey1"));
+      fc::ecc::private_key oliver_key2 = fc::ecc::private_key::regenerate(fc::digest("okey2"));
+      public_key_type pub_key_active( nathan_key1.get_public_key() );
+      public_key_type pub_key_owner( nathan_key2.get_public_key() );
+      public_key_type a_pub_key_active( ashley_key1.get_public_key() );
+      public_key_type a_pub_key_owner( ashley_key2.get_public_key() );
+      public_key_type o_pub_key_active( oliver_key1.get_public_key() );
+      public_key_type o_pub_key_owner( oliver_key2.get_public_key() );
+      const account_object& nathan = create_account("nathan", nathan_key1.get_public_key() );
+      const account_object& ashley = create_account("ashley", ashley_key1.get_public_key() );
+      const account_object& oliver = create_account("oliver", oliver_key1.get_public_key() );
+      account_id_type nathan_id = nathan.id;
+      account_id_type ashley_id = ashley.id;
+      account_id_type oliver_id = oliver.id;
+
+      try {
+         account_update_operation op;
+         op.account = nathan_id;
+         op.active = authority(1, pub_key_active, 1, ashley_id, 1);
+         op.owner = authority(1, pub_key_owner, 1, oliver_id, 1);
+         trx.operations.push_back(op);
+         sign(trx, nathan_key1);
+         PUSH_TX( db, trx, database::skip_transaction_dupe_check );
+         trx.clear();
+
+         op.account = ashley_id;
+         op.active = authority(1, a_pub_key_active, 1);
+         op.owner = authority(1, a_pub_key_owner, 1);
+         trx.operations.push_back(op);
+         sign(trx, ashley_key1);
+         PUSH_TX( db, trx, database::skip_transaction_dupe_check );
+         trx.clear();
+
+         op.account = oliver_id;
+         op.active = authority(1, o_pub_key_active, 1);
+         op.owner = authority(1, o_pub_key_owner, 1);
+         trx.operations.push_back(op);
+         sign(trx, oliver_key1);
+         PUSH_TX( db, trx, database::skip_transaction_dupe_check );
+         trx.clear();
+      } FC_CAPTURE_AND_RETHROW ((nathan.active))
+
+      // this transaction requires active
+      signed_transaction trx_a;
+      transfer_operation op;
+      op.from = nathan_id;
+      op.to = account_id_type();
+      trx_a.operations.push_back(op);
+
+      // get potential signatures
+      graphene::app::database_api db_api(db);
+      set<public_key_type> pub_keys = db_api.get_potential_signatures( trx_a );
+
+      BOOST_CHECK( pub_keys.find( pub_key_active ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( pub_key_owner ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_active ) != pub_keys.end() );
+      // doesn't work due to https://github.com/bitshares/bitshares-core/issues/584
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) == pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_active ) != pub_keys.end() );
+      // doesn't work due to https://github.com/bitshares/bitshares-core/issues/584
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) == pub_keys.end() );
+
+      // get required signatures
+      pub_keys = db_api.get_required_signatures( trx_a, { a_pub_key_owner, o_pub_key_owner } );
+      BOOST_CHECK( pub_keys.empty() );
+
+      // this op requires owner
+      signed_transaction trx_o;
+      account_update_operation auop;
+      auop.account = nathan_id;
+      auop.owner = authority(1, pub_key_owner, 1);
+      trx_o.operations.push_back(auop);
+
+      // get potential signatures
+      pub_keys = db_api.get_potential_signatures( trx_o );
+
+      // active authorities doesn't help in this case
+      BOOST_CHECK( pub_keys.find( pub_key_active ) == pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_active ) == pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) == pub_keys.end() );
+
+      // owner authorities should be ok
+      BOOST_CHECK( pub_keys.find( pub_key_owner ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_active ) != pub_keys.end() );
+      // doesn't work due to https://github.com/bitshares/bitshares-core/issues/584
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) == pub_keys.end() );
+
+      // get required signatures
+      pub_keys = db_api.get_required_signatures( trx_o, { a_pub_key_owner, o_pub_key_owner } );
+      BOOST_CHECK( pub_keys.empty() );
+
+      // go beyond hard fork
+      generate_blocks( HARDFORK_CORE_584_TIME, true );
+
+      // for the transaction that requires active
+      // get potential signatures
+      pub_keys = db_api.get_potential_signatures( trx_a );
+
+      // all authorities should be ok
+      BOOST_CHECK( pub_keys.find( pub_key_active ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_active ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( pub_key_owner ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_active ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) != pub_keys.end() );
+
+      // get required signatures
+      pub_keys = db_api.get_required_signatures( trx_a, { a_pub_key_owner } );
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) != pub_keys.end() );
+      pub_keys = db_api.get_required_signatures( trx_a, { o_pub_key_owner } );
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) != pub_keys.end() );
+
+      // for the transaction that requires owner
+      // get potential signatures
+      pub_keys = db_api.get_potential_signatures( trx_o );
+
+      // active authorities doesn't help in this case
+      BOOST_CHECK( pub_keys.find( pub_key_active ) == pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_active ) == pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) == pub_keys.end() );
+
+      // owner authorities should help
+      BOOST_CHECK( pub_keys.find( pub_key_owner ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_active ) != pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) != pub_keys.end() );
+
+      // get required signatures
+      pub_keys = db_api.get_required_signatures( trx_o, { a_pub_key_owner, o_pub_key_owner } );
+      BOOST_CHECK( pub_keys.find( a_pub_key_owner ) == pub_keys.end() );
+      BOOST_CHECK( pub_keys.find( o_pub_key_owner ) != pub_keys.end() );
+
+   } FC_LOG_AND_RETHROW()
+}
+
+BOOST_AUTO_TEST_CASE( get_potential_signatures_other )
+{
    try {
       fc::ecc::private_key priv_key1 = fc::ecc::private_key::regenerate(fc::digest("key1"));
       public_key_type pub_key1( priv_key1.get_public_key() );
@@ -138,7 +285,8 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_other ) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_AUTO_TEST_CASE( get_required_signatures_owner_or_active ) {
+BOOST_AUTO_TEST_CASE( get_required_signatures_owner_or_active )
+{
    try {
       fc::ecc::private_key nathan_key1 = fc::ecc::private_key::regenerate(fc::digest("key1"));
       fc::ecc::private_key nathan_key2 = fc::ecc::private_key::regenerate(fc::digest("key2"));
@@ -154,8 +302,7 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_owner_or_active ) {
          trx.operations.push_back(op);
          sign(trx, nathan_key1);
          PUSH_TX( db, trx, database::skip_transaction_dupe_check );
-         trx.operations.clear();
-         trx.signatures.clear();
+         trx.clear();
       } FC_CAPTURE_AND_RETHROW ((nathan.active))
 
       graphene::app::database_api db_api(db);
@@ -212,7 +359,8 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_owner_or_active ) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not ) {
+BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not )
+{
    try {
       fc::ecc::private_key morgan_key = fc::ecc::private_key::regenerate(fc::digest("morgan_key"));
       fc::ecc::private_key nathan_key = fc::ecc::private_key::regenerate(fc::digest("nathan_key"));
@@ -309,7 +457,7 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not ) {
       BOOST_CHECK( pub_keys.find( pub_key_morgan ) != pub_keys.end() );
 
       // sign with m, should be enough
-      trx.signatures.clear();
+      trx.clear_signatures();
       sign(trx, morgan_key);
 
       // provides [], should return []
@@ -364,7 +512,7 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not ) {
       BOOST_CHECK( pub_keys.size() == 0 );
 
       // make a transaction that require 2 signatures (m+n)
-      trx.signatures.clear();
+      trx.clear_signatures();
       op.from = nathan.id;
       trx.operations.push_back(op);
 
@@ -491,7 +639,7 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not ) {
       BOOST_CHECK( pub_keys.find( pub_key_nathan ) != pub_keys.end() );
 
       // sign with m, but actually need m+n
-      trx.signatures.clear();
+      trx.clear_signatures();
       sign(trx, morgan_key);
 
       // provides [], should return []
@@ -603,7 +751,8 @@ BOOST_AUTO_TEST_CASE( get_required_signatures_partially_signed_or_not ) {
    } FC_LOG_AND_RETHROW()
 }
 
-BOOST_AUTO_TEST_CASE( set_subscribe_callback_disable_notify_all_test ) {
+BOOST_AUTO_TEST_CASE( set_subscribe_callback_disable_notify_all_test )
+{
    try {
       ACTORS( (alice) );
 
@@ -691,5 +840,255 @@ BOOST_AUTO_TEST_CASE( lookup_vote_ids )
    const auto results = db_api.lookup_vote_ids( votes );
 
 } FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE(get_account_limit_orders)
+{ try {
+
+   ACTORS((seller));
+
+   const auto& bitcny = create_bitasset("CNY");
+   const auto& core   = asset_id_type()(db);
+
+   int64_t init_balance(10000000);
+   transfer(committee_account, seller_id, asset(init_balance));
+   BOOST_CHECK_EQUAL( 10000000, get_balance(seller, core) );
+
+   /// Create 250 versatile orders
+   for (size_t i = 0 ; i < 50 ; ++i)
+   {
+      BOOST_CHECK(create_sell_order(seller, core.amount(100), bitcny.amount(250)));
+   }
+
+   for (size_t i = 1 ; i < 101 ; ++i)
+   {
+      BOOST_CHECK(create_sell_order(seller, core.amount(100), bitcny.amount(250 + i)));
+      BOOST_CHECK(create_sell_order(seller, core.amount(100), bitcny.amount(250 - i)));
+   }
+
+   graphene::app::database_api db_api(db);
+   std::vector<limit_order_object> results;
+   limit_order_object o;
+
+   // query with no constraint, expected:
+   // 1. up to 101 orders returned
+   // 2. orders were sorted by price desendingly
+   results = db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY");
+   BOOST_CHECK(results.size() == 101);
+   for (size_t i = 0 ; i < results.size() - 1 ; ++i)
+   {
+      BOOST_CHECK(results[i].sell_price >= results[i+1].sell_price);
+   }
+   BOOST_CHECK(results.front().sell_price == price(core.amount(100), bitcny.amount(150)));
+   BOOST_CHECK(results.back().sell_price == price(core.amount(100), bitcny.amount(250)));
+   results.clear();
+
+   // query with specified limit, expected:
+   // 1. up to specified amount of orders returned
+   // 2. orders were sorted by price desendingly
+   results = db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY", 50);
+   BOOST_CHECK(results.size() == 50);
+   for (size_t i = 0 ; i < results.size() - 1 ; ++i)
+   {
+      BOOST_CHECK(results[i].sell_price >= results[i+1].sell_price);
+   }
+   BOOST_CHECK(results.front().sell_price == price(core.amount(100), bitcny.amount(150)));
+   BOOST_CHECK(results.back().sell_price == price(core.amount(100), bitcny.amount(199)));
+
+   o = results.back();
+   results.clear();
+
+   // query with specified order id and limit, expected:
+   // same as before, but also the first order's id equal to specified
+   results = db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY", 80,
+       limit_order_id_type(o.id));
+   BOOST_CHECK(results.size() == 80);
+   BOOST_CHECK(results.front().id == o.id);
+   for (size_t i = 0 ; i < results.size() - 1 ; ++i)
+   {
+      BOOST_CHECK(results[i].sell_price >= results[i+1].sell_price);
+   }
+   BOOST_CHECK(results.front().sell_price == price(core.amount(100), bitcny.amount(199)));
+   BOOST_CHECK(results.back().sell_price == price(core.amount(100), bitcny.amount(250)));
+
+   o = results.back();
+   results.clear();
+
+   // query with specified price and an not exists order id, expected:
+   // 1. the canceled order should not exists in returned orders and first order's
+   //    id should greater than specified
+   // 2. returned orders sorted by price desendingly
+   // 3. the first order's sell price equal to specified
+   cancel_limit_order(o); // NOTE 1: this canceled order was in scope of the
+                          // first created 50 orders, so with price 2.5 BTS/CNY
+   results = db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY", 50,
+       limit_order_id_type(o.id), o.sell_price);
+   BOOST_CHECK(results.size() == 50);
+   BOOST_CHECK(results.front().id > o.id);
+   // NOTE 2: because of NOTE 1, here should be equal
+   BOOST_CHECK(results.front().sell_price == o.sell_price);
+   for (size_t i = 0 ; i < results.size() - 1 ; ++i)
+   {
+      BOOST_CHECK(results[i].sell_price >= results[i+1].sell_price);
+   }
+   BOOST_CHECK(results.front().sell_price == price(core.amount(100), bitcny.amount(250)));
+   BOOST_CHECK(results.back().sell_price == price(core.amount(100), bitcny.amount(279)));
+
+   o = results.back();
+   results.clear();
+
+   cancel_limit_order(o); // NOTE 3: this time the canceled order was in scope
+                          // of the lowest price 150 orders
+   results = db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY", 101,
+       limit_order_id_type(o.id), o.sell_price);
+   BOOST_CHECK(results.size() == 71);
+   BOOST_CHECK(results.front().id > o.id);
+   // NOTE 3: because of NOTE 1, here should be little than
+   BOOST_CHECK(results.front().sell_price < o.sell_price);
+   for (size_t i = 0 ; i < results.size() - 1 ; ++i)
+   {
+      BOOST_CHECK(results[i].sell_price >= results[i+1].sell_price);
+   }
+   BOOST_CHECK(results.front().sell_price == price(core.amount(100), bitcny.amount(280)));
+   BOOST_CHECK(results.back().sell_price == price(core.amount(100), bitcny.amount(350)));
+
+   BOOST_CHECK_THROW(db_api.get_account_limit_orders(seller.name, GRAPHENE_SYMBOL, "CNY", 101,
+               limit_order_id_type(o.id)), fc::exception);
+
+} FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE( get_transaction_hex )
+{ try {
+   graphene::app::database_api db_api(db);
+   auto test_private_key = generate_private_key("testaccount");
+   public_key_type test_public = test_private_key.get_public_key();
+
+   trx.operations.push_back(make_account("testaccount", test_public));
+   trx.validate();
+
+   // case1: not signed, get hex
+   std::string hex_str = fc::to_hex( fc::raw::pack( trx ) );
+
+   BOOST_CHECK( db_api.get_transaction_hex( trx ) == hex_str );
+   BOOST_CHECK( db_api.get_transaction_hex_without_sig( trx ) + "00" == hex_str );
+
+   // case2: signed, get hex
+   sign( trx, test_private_key );
+   hex_str = fc::to_hex( fc::raw::pack( trx ) );
+
+   BOOST_CHECK( db_api.get_transaction_hex( trx ) == hex_str );
+   BOOST_CHECK( db_api.get_transaction_hex_without_sig( trx ) +
+                   fc::to_hex( fc::raw::pack( trx.signatures ) ) == hex_str );
+
+} FC_LOG_AND_RETHROW() }
+
+BOOST_AUTO_TEST_CASE(verify_account_authority) 
+{
+      try {
+         
+         ACTORS( (nathan) );
+         graphene::app::database_api db_api(db);
+
+         // good keys
+         flat_set<public_key_type> public_keys;
+         public_keys.emplace(nathan_public_key);
+         BOOST_CHECK(db_api.verify_account_authority( "nathan", public_keys));
+
+         // bad keys
+         flat_set<public_key_type> bad_public_keys;
+         bad_public_keys.emplace(public_key_type("BTS6MkMxwBjFWmcDjXRoJ4mW9Hd4LCSPwtv9tKG1qYW5Kgu4AhoZy"));
+         BOOST_CHECK(!db_api.verify_account_authority( "nathan", bad_public_keys));
+
+      } FC_LOG_AND_RETHROW()
+}
+
+BOOST_AUTO_TEST_CASE( any_two_of_three )
+{
+   try {
+      fc::ecc::private_key nathan_key1 = fc::ecc::private_key::regenerate(fc::digest("key1"));
+      fc::ecc::private_key nathan_key2 = fc::ecc::private_key::regenerate(fc::digest("key2"));
+      fc::ecc::private_key nathan_key3 = fc::ecc::private_key::regenerate(fc::digest("key3"));
+      const account_object& nathan = create_account("nathan", nathan_key1.get_public_key() );
+      fund(nathan);
+      graphene::app::database_api db_api(db);
+
+      try {
+         account_update_operation op;
+         op.account = nathan.id;
+         op.active = authority(2, public_key_type(nathan_key1.get_public_key()), 1, 
+               public_key_type(nathan_key2.get_public_key()), 1, public_key_type(nathan_key3.get_public_key()), 1);
+         op.owner = *op.active;
+         trx.operations.push_back(op);
+         sign(trx, nathan_key1);
+         PUSH_TX( db, trx, database::skip_transaction_dupe_check );
+         trx.clear();
+      } FC_CAPTURE_AND_RETHROW ((nathan.active))
+
+      // two keys should work
+      {
+      	flat_set<public_key_type> public_keys;
+      	public_keys.emplace(nathan_key1.get_public_key());
+      	public_keys.emplace(nathan_key2.get_public_key());
+      	BOOST_CHECK(db_api.verify_account_authority("nathan", public_keys));
+      }
+
+      // the other two keys should work
+      {
+     	   flat_set<public_key_type> public_keys;
+      	public_keys.emplace(nathan_key2.get_public_key());
+      	public_keys.emplace(nathan_key3.get_public_key());
+     	   BOOST_CHECK(db_api.verify_account_authority("nathan", public_keys));
+      }
+
+      // just one key should not work
+      {
+     	   flat_set<public_key_type> public_keys;
+         public_keys.emplace(nathan_key1.get_public_key());
+     	   BOOST_CHECK(!db_api.verify_account_authority("nathan", public_keys));
+      }
+   } catch (fc::exception& e) {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
+
+BOOST_AUTO_TEST_CASE( verify_authority_multiple_accounts )
+{
+   try {
+      ACTORS( (nathan) (alice) (bob) );
+
+      graphene::app::database_api db_api(db);
+
+      try {
+         account_update_operation op;
+         op.account = nathan.id;
+         op.active = authority(3, nathan_public_key, 1, alice.id, 1, bob.id, 1);
+         op.owner = *op.active;
+         trx.operations.push_back(op);
+         sign(trx, nathan_private_key);
+         PUSH_TX( db, trx, database::skip_transaction_dupe_check );
+         trx.clear();
+      } FC_CAPTURE_AND_RETHROW ((nathan.active))
+
+      // requires 3 signatures
+      {
+      	flat_set<public_key_type> public_keys;
+      	public_keys.emplace(nathan_public_key);
+      	public_keys.emplace(alice_public_key);
+      	public_keys.emplace(bob_public_key);
+      	BOOST_CHECK(db_api.verify_account_authority("nathan", public_keys));
+      }
+
+      // only 2 signatures given
+      {
+      	flat_set<public_key_type> public_keys;
+      	public_keys.emplace(nathan_public_key);
+      	public_keys.emplace(bob_public_key);
+      	BOOST_CHECK(!db_api.verify_account_authority("nathan", public_keys));
+      }
+   } catch (fc::exception& e) {
+      edump((e.to_detail_string()));
+      throw;
+   }
+}
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE(create_account_with_pubkey_test)
     auto key_info = connection->api()->suggest_brain_key();
     public_key_type pub_key = key_info.pub_key;
 
-    BOOST_REQUIRE_NO_THROW(connection->api()->create_account_with_pubkey((std::string)pub_key, "alice", registrar, referrer));
+    BOOST_REQUIRE_NO_THROW(connection->api()->create_account_with_brain_key((std::string)pub_key, "alice", registrar, referrer));
 
     auto alice = connection->api()->get_account("alice");
 
@@ -29,7 +29,7 @@ BOOST_AUTO_TEST_CASE(create_account_with_pubkey_test)
 
     auto pub_key_hex = fc::to_hex(pub_key.key_data.begin(), pub_key.key_data.size());
 
-    BOOST_REQUIRE_NO_THROW(connection->api()->create_account_with_pubkey(pub_key_hex, "bob", registrar, referrer, true, false));
+    BOOST_REQUIRE_NO_THROW(connection->api()->create_account_with_brain_key(pub_key_hex, "bob", registrar, referrer, true));
 
     auto bob = connection->api()->get_account("bob");
 

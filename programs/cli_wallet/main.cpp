@@ -34,11 +34,9 @@
 #include <fc/rpc/cli.hpp>
 #include <fc/rpc/http_api.hpp>
 #include <fc/rpc/websocket_api.hpp>
-#include <fc/smart_ref_impl.hpp>
 
 #include <graphene/app/api.hpp>
 #include <graphene/chain/config.hpp>
-#include <graphene/chain/protocol/protocol.hpp>
 #include <graphene/egenesis/egenesis.hpp>
 #include <graphene/utilities/key_conversion.hpp>
 #include <graphene/wallet/wallet.hpp>
@@ -60,8 +58,6 @@
 # include <signal.h>
 #else
 # include <csignal>
-#include <fc/asio.hpp>
-#include <boost/asio/signal_set.hpp>
 #endif
 
 using namespace graphene::app;
@@ -88,7 +84,7 @@ int main( int argc, char** argv )
          ("daemon,d", "Run the wallet in daemon mode" )
          ("wallet-file,w", bpo::value<string>()->implicit_value("wallet.json"), "wallet to load")
          ("chain-id", bpo::value<string>(), "chain ID to connect to")
-         ("legacy", bpo::value<bool>(), "Do not connect to playchain API on startup")
+         ("suggest-brain-key", "Suggest a safe brain key to use for creating your account")
          ("version,v", "Display version information");
 
 
@@ -111,11 +107,12 @@ int main( int argc, char** argv )
          std::cout << "Websocket++: " << websocketpp::major_version << "." << websocketpp::minor_version << "." << websocketpp::patch_version << "\n";
          return 0;
       }
-      if( options.count( "daemon" ) )
+      if( options.count("suggest-brain-key") )
       {
-          //ignore SIGPIPE in daemon mode before any typing
-          std::shared_ptr<boost::asio::signal_set> sig_set(new boost::asio::signal_set(fc::asio::default_io_service(), SIGPIPE));
-          sig_set->async_wait([sig_set](const boost::system::error_code& err, int signal) {});
+         auto keyinfo = graphene::wallet::utility::suggest_brain_key();
+         string data = fc::json::to_pretty_string( keyinfo );
+         std::cout << data.c_str() << std::endl;
+         return 0;
       }
 
       fc::path data_dir;
@@ -157,7 +154,6 @@ int main( int argc, char** argv )
       //
       wallet_data wdata;
 
-      //ilog("!!! count ${c} value ${v}", ("c", options.count("wallet-file"))("v", options.at("wallet-file").as<string>()));
       fc::path wallet_file( options.count("wallet-file") ? options.at("wallet-file").as<string>() : "wallet.json");
       if( fc::exists( wallet_file ) )
       {
@@ -193,9 +189,6 @@ int main( int argc, char** argv )
          wdata.ws_user = options.at("server-rpc-user").as<std::string>();
       if( options.count("server-rpc-password") )
          wdata.ws_password = options.at("server-rpc-password").as<std::string>();
-
-      if ( options.count("legacy") )
-          wdata.legacy = options.at("legacy").as<bool>();
 
       fc::http::websocket_client client;
       idump((wdata.ws_server));
@@ -289,6 +282,17 @@ int main( int argc, char** argv )
              wallet_cli->stop();
          });
          wallet_cli->start();
+
+         fc::set_signal_handler([](int signal) {
+            ilog( "Captured SIGINT not in daemon mode" );
+            fclose(stdin);
+         }, SIGINT);
+
+         fc::set_signal_handler([](int signal) {
+            ilog( "Captured SIGTERM not in daemon mode" );
+            fclose(stdin);
+         }, SIGTERM);
+
          wallet_cli->wait();
       }
       else
@@ -297,6 +301,10 @@ int main( int argc, char** argv )
         fc::set_signal_handler([&exit_promise](int signal) {
            exit_promise->set_value(signal);
         }, SIGINT);
+
+        fc::set_signal_handler([&exit_promise](int signal) {
+           exit_promise->set_value(signal);
+        }, SIGTERM);
 
         ilog( "Entering Daemon Mode, ^C to exit" );
         exit_promise->wait();
@@ -313,4 +321,3 @@ int main( int argc, char** argv )
    }
    return 0;
 }
-

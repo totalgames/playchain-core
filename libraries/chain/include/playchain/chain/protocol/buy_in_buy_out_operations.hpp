@@ -29,53 +29,7 @@
 
 namespace playchain { namespace chain {
 
-    using namespace graphene::chain;
-
-   struct buy_in_operation : public base_operation
-   {
-       struct fee_parameters_type {
-           int64_t fee = 0;
-       };
-
-       asset                     fee;
-       account_id_type           player;
-       account_id_type           table_owner;
-       asset                     big_blind_price;
-       uint32_t                  chips_per_big_blind;
-       uint32_t                  purchased_big_blind_amount;
-
-       void get_required_active_authorities(flat_set<account_id_type>& a) const {
-           a.insert(player);
-           a.insert(table_owner);
-       }
-
-       account_id_type   fee_payer()const { return player; }
-       void              validate()const;
-   };
-
-   struct buy_out_operation : public base_operation
-   {
-      struct fee_parameters_type {
-        uint64_t fee = 0;
-      };
-
-      asset                     fee;
-      account_id_type           table_owner;
-      account_id_type           player;
-      asset                     amount;
-      string                    reason;
-
-      void get_required_active_authorities( flat_set<account_id_type>& a) const {
-        a.insert(table_owner);
-      }
-
-      account_id_type   fee_payer()const { return table_owner; }
-      void              validate()const;
-   };
-
-   //^ legacy
-   //=====================================================
-   // playchain:
+   using namespace graphene::chain;
 
    struct buy_in_table_operation : public base_operation
    {
@@ -317,8 +271,6 @@ namespace playchain { namespace chain {
 
 }} // namespace graphene::chain
 
-FC_REFLECT( playchain::chain::buy_in_operation::fee_parameters_type, (fee))
-FC_REFLECT( playchain::chain::buy_out_operation::fee_parameters_type, (fee))
 FC_REFLECT( playchain::chain::buy_in_table_operation::fee_parameters_type, (fee))
 FC_REFLECT( playchain::chain::buy_out_table_operation::fee_parameters_type, (fee)(price_per_kbyte))
 FC_REFLECT( playchain::chain::buy_in_reserve_operation::fee_parameters_type, (fee)(price_per_kbyte))
@@ -329,8 +281,6 @@ FC_REFLECT( playchain::chain::buy_in_reserving_resolve_operation::fee_parameters
 FC_REFLECT( playchain::chain::buy_in_reserving_cancel_all_operation::fee_parameters_type, (fee))
 FC_REFLECT( playchain::chain::buy_in_expire_operation::fee_parameters_type, )
 
-FC_REFLECT( playchain::chain::buy_in_operation, (fee)(player)(table_owner)(big_blind_price)(chips_per_big_blind)(purchased_big_blind_amount))
-FC_REFLECT( playchain::chain::buy_out_operation, (fee)(table_owner)(player)(amount)(reason))
 FC_REFLECT( playchain::chain::buy_in_table_operation, (fee)(player)(table)(table_owner)(amount))
 FC_REFLECT( playchain::chain::buy_out_table_operation, (fee)(player)(table)(table_owner)(amount)(reason))
 FC_REFLECT( playchain::chain::buy_in_reserve_operation, (fee)(player)(uid)(amount)(metadata)(protocol_version))

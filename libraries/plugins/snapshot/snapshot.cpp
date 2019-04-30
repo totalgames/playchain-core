@@ -92,7 +92,7 @@ static void create_snapshot( const graphene::chain::database& db, const fc::path
    {
       out.open( dest );
    }
-   catch ( fc::exception e )
+   catch ( fc::exception& e )
    {
       wlog( "Failed to open snapshot destination: ${ex}", ("ex",e) );
       return;
@@ -104,7 +104,7 @@ static void create_snapshot( const graphene::chain::database& db, const fc::path
          {
             db.get_index( (uint8_t)space_id, (uint8_t)type_id );
          }
-         catch (fc::assert_exception e)
+         catch (fc::assert_exception& e)
          {
             continue;
          }
@@ -119,17 +119,10 @@ static void create_snapshot( const graphene::chain::database& db, const fc::path
 
 void snapshot_plugin::check_snapshot( const graphene::chain::signed_block& b )
 { try {
-
     uint32_t current_block = b.block_num();
-
-    ilog("snapshot plugin: check_snapshot: ${bn}", ("bn", current_block));
-
-    bool f1 = last_block < snapshot_block && snapshot_block <= current_block;
-    bool f2 = last_time < snapshot_time && snapshot_time <= b.timestamp;
-    if(f1 || f2)
-    {
-        create_snapshot( database(), dest );
-    }
+    if( (last_block < snapshot_block && snapshot_block <= current_block)
+           || (last_time < snapshot_time && snapshot_time <= b.timestamp) )
+       create_snapshot( database(), dest );
     last_block = current_block;
     last_time = b.timestamp;
 } FC_LOG_AND_RETHROW() }

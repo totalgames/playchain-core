@@ -36,6 +36,7 @@
 
 #include <graphene/chain/protocol/ext.hpp>
 
+#include <fc/crypto/sha1.hpp>
 #include <fc/io/raw.hpp>
 #include <fc/uint128.hpp>
 #include <fc/static_variant.hpp>
@@ -92,7 +93,6 @@ namespace graphene { namespace chain {
    using                               fc::enum_type;
    using                               fc::optional;
    using                               fc::unsigned_int;
-   using                               fc::signed_int;
    using                               fc::time_point_sec;
    using                               fc::time_point;
    using                               fc::safe;
@@ -160,6 +160,7 @@ namespace graphene { namespace chain {
       vesting_balance_object_type,
       worker_object_type,
       balance_object_type,
+      htlc_object_type,
       OBJECT_TYPE_COUNT ///< Sentry value which contains the number of different object types
    };
 
@@ -218,6 +219,7 @@ namespace graphene { namespace chain {
    class worker_object;
    class balance_object;
    class blinded_balance_object;
+   class htlc_object;
 
    typedef object_id< protocol_ids, account_object_type,            account_object>               account_id_type;
    typedef object_id< protocol_ids, asset_object_type,              asset_object>                 asset_id_type;
@@ -233,6 +235,7 @@ namespace graphene { namespace chain {
    typedef object_id< protocol_ids, vesting_balance_object_type,    vesting_balance_object>       vesting_balance_id_type;
    typedef object_id< protocol_ids, worker_object_type,             worker_object>                worker_id_type;
    typedef object_id< protocol_ids, balance_object_type,            balance_object>               balance_id_type;
+   typedef object_id< protocol_ids, htlc_object_type,               htlc_object>                  htlc_id_type;
 
    // implementation types
    class global_property_object;
@@ -316,6 +319,14 @@ namespace graphene { namespace chain {
        friend bool operator == ( const public_key_type& p1, const fc::ecc::public_key& p2);
        friend bool operator == ( const public_key_type& p1, const public_key_type& p2);
        friend bool operator != ( const public_key_type& p1, const public_key_type& p2);
+   };
+
+   class pubkey_comparator {
+   public:
+      inline bool operator()( const public_key_type& a, const public_key_type& b )const
+      {
+         return a.key_data < b.key_data;
+      }
    };
 
    struct extended_public_key_type
@@ -406,6 +417,7 @@ FC_REFLECT_ENUM( graphene::chain::object_type,
                  (vesting_balance_object_type)
                  (worker_object_type)
                  (balance_object_type)
+                 (htlc_object_type)
                  (OBJECT_TYPE_COUNT)
                )
 FC_REFLECT_ENUM( graphene::chain::impl_object_type,
@@ -474,6 +486,7 @@ FC_REFLECT_TYPENAME( graphene::chain::special_authority_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::buyback_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::fba_accumulator_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::collateral_bid_id_type )
+FC_REFLECT_TYPENAME( graphene::chain::htlc_id_type )
 
 FC_REFLECT_TYPENAME( graphene::chain::player_invitation_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::player_id_type )

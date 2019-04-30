@@ -114,10 +114,9 @@ namespace playchain { namespace chain {
            return &(id(d).owner);
         } ;
 
-        sign_state s({pk}, get_active);
-        s.max_recursion = 0; //not allow guarantors
+        sign_state s({pk}, get_active, get_owner, true, 0);
 
-        FC_ASSERT( s.check_authority(account) || s.check_authority(get_owner(account)),
+        FC_ASSERT( s.check_authority(account),
                    "Missing inviter authority for '${name}'. Client Code = 20180007", ("name",account(d).name) );
     }
 

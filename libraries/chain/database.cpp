@@ -21,7 +21,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <fc/smart_ref_impl.hpp>
 #include "db_balance.cpp"
 #include "db_block.cpp"
 #include "db_debug.cpp"
@@ -33,5 +32,3 @@
 #include "db_update.cpp"
 #include "db_witness_schedule.cpp"
 #include "db_notify.cpp"
-//TODO: #include "db_total_poker.cpp"
-

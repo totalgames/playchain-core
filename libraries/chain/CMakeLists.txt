@@ -60,6 +60,7 @@ add_library( graphene_chain
              protocol/fee_schedule.cpp
              protocol/confidential.cpp
              protocol/vote.cpp
+             protocol/htlc.cpp
              protocol/sign_state.cpp
 
              genesis_state.cpp
@@ -80,6 +81,7 @@ add_library( graphene_chain
              vesting_balance_evaluator.cpp
              withdraw_permission_evaluator.cpp
              worker_evaluator.cpp
+             htlc_evaluator.cpp
              confidential_evaluator.cpp
              special_authority.cpp
              buyback.cpp
@@ -87,6 +89,7 @@ add_library( graphene_chain
              account_object.cpp
              asset_object.cpp
              fba_object.cpp
+             market_object.cpp
              proposal_object.cpp
              vesting_balance_object.cpp
 
@@ -115,8 +118,6 @@ add_library( graphene_chain
              playchain/evaluators/room_evaluators.cpp
              playchain/evaluators/validators.cpp
              playchain/evaluators/db_helpers.cpp
-             playchain/evaluators/legacy_buy_in_buy_out_evaluators.cpp
-             playchain/evaluators/legacy_game_evaluators.cpp
              playchain/evaluators/player_evaluators.cpp
              playchain/evaluators/common_evaluators.cpp
              playchain/evaluators/playchain_committee_member_evaluator.cpp

@@ -121,18 +121,24 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
 /// @returns true on success
 ///////////
 bool generate_block(std::shared_ptr<graphene::app::application> app) {
-   try {
-      fc::ecc::private_key committee_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("init")));
-       auto db = app->chain_database();
-       auto block_1 = db->generate_block(
-             db->get_slot_time(1),
-             db->get_scheduled_witness(1),
-             committee_key,
-             database::skip_nothing);
-       return true;
-   } catch (exception &e) {
-      return false;
-   }
+    graphene::chain::signed_block block;
+    return generate_block(app, block);
+}
+
+bool generate_block(std::shared_ptr<graphene::app::application> app, graphene::chain::signed_block &block)
+{
+    try {
+       fc::ecc::private_key committee_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("init")));
+        auto db = app->chain_database();
+        block = db->generate_block(
+              db->get_slot_time(1),
+              db->get_scheduled_witness(1),
+              committee_key,
+              database::skip_nothing);
+        return true;
+    } catch (exception &) {
+       return false;
+    }
 }
 
 ///////////

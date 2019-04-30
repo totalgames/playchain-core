@@ -30,26 +30,6 @@
 
 namespace playchain { namespace chain {
 
-    void buy_in_operation::validate() const
-    {
-        FC_ASSERT(fee.amount >= 0);
-        FC_ASSERT(player != table_owner);
-        FC_ASSERT(big_blind_price.amount > 0);
-        FC_ASSERT(chips_per_big_blind > 0);
-        FC_ASSERT(purchased_big_blind_amount > 0);
-    }
-
-    void buy_out_operation::validate() const
-    {
-        FC_ASSERT( fee.amount >= 0 );
-        FC_ASSERT( amount.amount >= 0 );
-        FC_ASSERT( player != table_owner );
-    }
-
-    //^ legacy
-    //=====================================================
-    // playchain:
-
     void buy_in_table_operation::validate() const
     {
         FC_ASSERT( fee.amount >= 0 );

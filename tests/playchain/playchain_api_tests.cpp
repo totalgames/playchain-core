@@ -33,11 +33,6 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
     return (itr != idx.end());
   }
 
-  template <typename T> std::string id_to_string(const T &) {
-    BOOST_REQUIRE(false);
-    return "";
-  }
-
   void play_the_game(const Actor &table_owner, const table_id_type &table,
                      const Actor &witness1, const Actor &witness2,
                      const Actor &player1, const Actor &player2) {
@@ -84,47 +79,6 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
     BOOST_REQUIRE(table_obj.is_free());
   }
 };
-
-template <>
-std::string playchain_api_fixture::id_to_string<account_id_type>(
-    const account_id_type &id) {
-  return (std::string)(object_id_type)id;
-}
-
-template <>
-std::string
-playchain_api_fixture::id_to_string<player_id_type>(const player_id_type &id) {
-  return (std::string)(object_id_type)id;
-}
-
-template <>
-std::string playchain_api_fixture::id_to_string<player_invitation_id_type>(
-    const player_invitation_id_type &id) {
-  return (std::string)(object_id_type)id;
-}
-
-template <>
-std::string
-playchain_api_fixture::id_to_string<room_id_type>(const room_id_type &id) {
-  return (std::string)(object_id_type)id;
-}
-
-template <>
-std::string
-playchain_api_fixture::id_to_string<table_id_type>(const table_id_type &id) {
-  return (std::string)(object_id_type)id;
-}
-
-template <>
-std::string playchain_api_fixture::id_to_string<game_witness_id_type>(
-    const game_witness_id_type &id) {
-  return (std::string)(object_id_type)id;
-}
-
-template <>
-std::string playchain_api_fixture::id_to_string<Actor>(const Actor &a) {
-  return id_to_string<account_id_type>(actor(a));
-}
 
 BOOST_FIXTURE_TEST_SUITE(playchain_api_tests, playchain_api_fixture)
 

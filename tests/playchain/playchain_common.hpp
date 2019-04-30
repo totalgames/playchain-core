@@ -105,6 +105,40 @@ namespace playchain_common
             return ActorActions(*this, a);
         }
 
+        template <typename T> std::string id_to_string(const T &) {
+          BOOST_REQUIRE(false);
+          return "";
+        }
+
+        std::string id_to_string(
+            const account_id_type &id) {
+          return (std::string)(object_id_type)id;
+        }
+
+        std::string id_to_string(const player_id_type &id) {
+          return (std::string)(object_id_type)id;
+        }
+
+        std::string id_to_string(
+            const player_invitation_id_type &id) {
+          return (std::string)(object_id_type)id;
+        }
+
+        std::string id_to_string(const room_id_type &id) {
+          return (std::string)(object_id_type)id;
+        }
+
+        std::string id_to_string(const table_id_type &id) {
+          return (std::string)(object_id_type)id;
+        }
+
+        std::string id_to_string(
+            const game_witness_id_type &id) {
+          return (std::string)(object_id_type)id;
+        }
+
+        std::string id_to_string(const Actor &a);
+
         string to_string(const asset& a);
 
         string get_next_uid(const account_id_type &invitor);
