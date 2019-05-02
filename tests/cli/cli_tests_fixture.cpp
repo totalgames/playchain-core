@@ -28,7 +28,8 @@ cli_tests_fixture::cli_tests_fixture()
         //We must deposit funds from balance object to account_balance object before any paying
         connection->api()->import_balance(owner, {graphene::utilities::key_to_wif(owner_key)}, true);
 
-        connection->api()->list_account_balances(owner);
+        auto bs = connection->api()->list_account_balances(owner);
+        idump((bs));
 
         //to sign transaction in wallet
         connection->api()->import_key(owner, graphene::utilities::key_to_wif(owner_key));
@@ -64,7 +65,7 @@ void cli_tests_fixture::create_new_account()
     graphene::wallet::brain_key_info bki = connection->api()->suggest_brain_key();
     BOOST_CHECK(!bki.brain_priv_key.empty());
     signed_transaction create_acct_tx = connection->api()->create_account_with_brain_key(bki.brain_priv_key, "alice",
-          "nathan", "nathan", true);
+          "nathan", "nathan", true, false);
     // save the private key for this new account in the wallet file
     BOOST_CHECK(connection->api()->import_key("alice", bki.wif_priv_key));
     connection->api()->save_wallet_file(connection->wallet_filename());

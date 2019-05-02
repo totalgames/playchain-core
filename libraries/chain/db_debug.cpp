@@ -24,6 +24,7 @@
 
 #include <graphene/chain/database.hpp>
 
+#include <graphene/chain/balance_object.hpp>
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/market_object.hpp>
@@ -42,7 +43,6 @@ void database::debug_dump()
    const auto& db = *this;
    const asset_dynamic_data_object& core_asset_data = db.get_core_asset().dynamic_asset_data_id(db);
 
-   const auto& balance_index = db.get_index_type<account_balance_index>().indices();
    const auto& statistics_index = db.get_index_type<account_stats_index>().indices();
    const auto& bids = db.get_index_type<collateral_bid_index>().indices();
    const auto& settle_index = db.get_index_type<force_settlement_index>().indices();
@@ -51,7 +51,11 @@ void database::debug_dump()
    share_type core_in_orders;
    share_type reported_core_in_orders;
 
-   for( const account_balance_object& a : balance_index )
+   for( const balance_object& bo : db.get_index_type< balance_index >().indices() )
+   {
+      total_balances[ bo.balance.asset_id ] += bo.balance.amount;
+   }
+   for( const account_balance_object& a : db.get_index_type<account_balance_index>().indices() )
    {
     //  idump(("balance")(a));
       total_balances[a.asset_type] += a.balance;
@@ -95,9 +99,9 @@ void database::debug_dump()
 
    if( total_balances[asset_id_type()].value != core_asset_data.current_supply.value )
    {
-      FC_THROW( "computed balance of CORE mismatch",
-                ("computed value",total_balances[asset_id_type()].value)
-                ("current supply",core_asset_data.current_supply.value) );
+      FC_THROW( "Computed balance of CORE mismatch. Supply = ${s}, computed = ${c}",
+                ("c",total_balances[asset_id_type()].value)
+                ("s",core_asset_data.current_supply.value) );
    }
 
 

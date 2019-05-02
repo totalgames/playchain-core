@@ -3327,8 +3327,8 @@ public:
                                                     const signature_type &mandat,
                                                     const string &pub_key,
                                                     const string &account_name,
-                                                    const bool broadcast,
-                                                    const bool /*save_wallet - unused yet*/)
+                                                    bool broadcast,
+                                                    bool /*save_wallet - unused yet*/)
                 {
                     try
                     {
@@ -4816,11 +4816,12 @@ signed_transaction wallet_api::register_account(string name,
 }
 signed_transaction wallet_api::create_account_with_brain_key(string brain_key, string account_name,
                                                              string registrar_account, string referrer_account,
-                                                             bool broadcast /* = false */)
+                                                             bool broadcast /* = false */,
+                                                             bool save_wallet /* = true */)
 {
    return my->create_account_with_brain_key(
             brain_key, account_name, registrar_account,
-            referrer_account, broadcast
+            referrer_account, broadcast, save_wallet
             );
 }
 signed_transaction wallet_api::issue_asset(string to_account, string amount, string symbol,

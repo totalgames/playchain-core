@@ -1073,8 +1073,8 @@ class wallet_api
                                                         const signature_type &mandat,
                                                         const string &pub_key,
                                                         const string &account_name,
-                                                        const bool broadcast = true,
-                                                        const bool save_wallet = true);
+                                                        bool broadcast = true,
+                                                        bool save_wallet = true);
 
        /** Creates a new account and registers it on the blockchain.
        *
@@ -1098,7 +1098,8 @@ class wallet_api
                                                        string account_name,
                                                        string registrar_account,
                                                        string referrer_account,
-                                                       bool broadcast = false);
+                                                       bool broadcast = false,
+                                                       bool save_wallet = true);
 
       /** Transfer an amount from one account to another.
        * @param from the name or id of the account sending the funds

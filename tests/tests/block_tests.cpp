@@ -1758,8 +1758,8 @@ BOOST_FIXTURE_TEST_CASE( tapos_rollover, database_fixture )
       transfer(committee_account, alice_id, asset(10000));
       generate_block();
 
-      BOOST_TEST_MESSAGE( "Generate up to block 0xFF00" );
-      generate_blocks( 0xFF00 );
+      BOOST_TEST_MESSAGE( "Generate up to N block" );
+      generate_blocks( PLAYCHAIN_BLOCKID_POOL_SIZE /2 );
       signed_transaction xfer_tx;
 
       BOOST_TEST_MESSAGE( "Transfer money at/about 0xFF00" );
@@ -1782,8 +1782,8 @@ BOOST_FIXTURE_TEST_CASE( tapos_rollover, database_fixture )
       xfer_tx.clear_signatures();
       sign( xfer_tx, alice_private_key );
 
-      BOOST_TEST_MESSAGE( "Generate up to block 0x10010" );
-      generate_blocks( 0x110 );
+      BOOST_TEST_MESSAGE( "Generate up to N block" );
+      generate_blocks( PLAYCHAIN_BLOCKID_POOL_SIZE /2 );
 
       BOOST_TEST_MESSAGE( "Transfer at/about block 0x10010 using reference block at/about 0xFF00" );
       PUSH_TX( db, xfer_tx, 0 );

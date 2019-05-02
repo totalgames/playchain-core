@@ -10,6 +10,8 @@ using namespace cli;
 
 BOOST_FIXTURE_TEST_SUITE( bitshares_tests, cli_tests_fixture )
 
+#if 0
+
 ///////////////////
 // Test blind transactions and mantissa length of range proofs.
 ///////////////////
@@ -318,6 +320,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
    }
    app1->shutdown();
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 

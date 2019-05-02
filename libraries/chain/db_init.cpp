@@ -205,6 +205,8 @@ void database::initialize_indexes()
 
 void database::init_genesis(const genesis_state_type& genesis_state)
 { try {
+   idump((genesis_state));
+
    FC_ASSERT( genesis_state.initial_timestamp != time_point_sec(), "Must initialize genesis timestamp." );
    FC_ASSERT( genesis_state.initial_timestamp.sec_since_epoch() % GRAPHENE_DEFAULT_BLOCK_INTERVAL == 0,
               "Genesis timestamp must be divisible by GRAPHENE_DEFAULT_BLOCK_INTERVAL." );
@@ -720,46 +722,42 @@ void database::init_genesis(const genesis_state_type& genesis_state)
 
    FC_ASSERT( get_index<fba_accumulator_object>().get_next_id() == fba_accumulator_id_type( fba_accumulator_id_count ) );
 
-   if (PLAYCHAIN_VERSION > version(0, 0, 0))
+   create<playchain_property_object>([&](playchain_property_object& ) {
+       //it is used only graphene genesis
+   });
+
+   FC_ASSERT(create<player_object>([&](player_object& gamer) {
+                                                  gamer.account = GRAPHENE_TEMP_ACCOUNT;
+                                                  gamer.inviter = PLAYCHAIN_NULL_PLAYER;
+                                               }).id == PLAYCHAIN_NULL_PLAYER);
+   FC_ASSERT(create<game_witness_object>([&](game_witness_object& witness) {
+                                                  witness.account = GRAPHENE_TEMP_ACCOUNT;
+                                               }).id == PLAYCHAIN_NULL_GAME_WITNESS);
+   FC_ASSERT(create<room_object>([&](room_object& room) {
+                                                  room.owner = GRAPHENE_TEMP_ACCOUNT;
+                                               }).id == PLAYCHAIN_NULL_ROOM);
+   FC_ASSERT(create<table_object>([&](table_object& table) {
+                                                  table.room = PLAYCHAIN_NULL_ROOM;
+                                                  table.game_expiration = fc::time_point_sec::maximum();
+                                               }).id == PLAYCHAIN_NULL_TABLE);
+   FC_ASSERT(create<pending_buy_in_object>([&](pending_buy_in_object& buyin) {
+                                                  buyin.player = GRAPHENE_NULL_ACCOUNT;
+                                                  buyin.expiration = fc::time_point_sec::maximum();
+                                                  buyin.player_iternal = PLAYCHAIN_NULL_PLAYER;
+                                               }).id == PLAYCHAIN_NULL_PENDING_BUYIN);
+
+   for(const auto &pr: user_accounts_by_balance)
    {
-       create<playchain_property_object>([&](playchain_property_object& ) {
-           //it is used only graphene genesis
-       });
-
-       FC_ASSERT(create<player_object>([&](player_object& gamer) {
-                                                      gamer.account = GRAPHENE_TEMP_ACCOUNT;
-                                                      gamer.inviter = PLAYCHAIN_NULL_PLAYER;
-                                                   }).id == PLAYCHAIN_NULL_PLAYER);
-       FC_ASSERT(create<game_witness_object>([&](game_witness_object& witness) {
-                                                      witness.account = GRAPHENE_TEMP_ACCOUNT;
-                                                   }).id == PLAYCHAIN_NULL_GAME_WITNESS);
-       FC_ASSERT(create<room_object>([&](room_object& room) {
-                                                      room.owner = GRAPHENE_TEMP_ACCOUNT;
-                                                   }).id == PLAYCHAIN_NULL_ROOM);
-       FC_ASSERT(create<table_object>([&](table_object& table) {
-                                                      table.room = PLAYCHAIN_NULL_ROOM;
-                                                      table.game_expiration = fc::time_point_sec::maximum();
-                                                   }).id == PLAYCHAIN_NULL_TABLE);
-       FC_ASSERT(create<pending_buy_in_object>([&](pending_buy_in_object& buyin) {
-                                                      buyin.player = GRAPHENE_NULL_ACCOUNT;
-                                                      buyin.expiration = fc::time_point_sec::maximum();
-                                                      buyin.player_iternal = PLAYCHAIN_NULL_PLAYER;
-                                                   }).id == PLAYCHAIN_NULL_PENDING_BUYIN);
-
-       for(const auto &pr: user_accounts_by_balance)
+       const auto &account = pr.second(*this);
+       if (account.is_lifetime_member() && !account.is_special_account())
        {
-           const auto &account = pr.second(*this);
-           if (account.is_lifetime_member() && !account.is_special_account())
-           {
-               const auto &balance = pr.first(*this);
-               create_player(*this, pr.second, PLAYCHAIN_NULL_PLAYER);
-               asset claimed = balance.balance;
-               remove(balance);
-               adjust_balance(pr.second, claimed);
-           }
+           const auto &balance = pr.first(*this);
+           create_player(*this, pr.second, PLAYCHAIN_NULL_PLAYER);
+           asset claimed = balance.balance;
+           remove(balance);
+           adjust_balance(pr.second, claimed);
        }
    }
-
    debug_dump();
 
    _undo_db.enable();

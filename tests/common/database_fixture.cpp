@@ -38,6 +38,7 @@
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/worker_object.hpp>
+#include <graphene/chain/htlc_object.hpp>
 
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
@@ -320,6 +321,18 @@ void database_fixture::verify_asset_supplies( const database& db )
 
    total_balances[asset_id_type()] += db.get_dynamic_global_properties().witness_budget;
 
+   for( const auto& item : total_debts )
+   {
+      BOOST_CHECK_EQUAL(item.first(db).dynamic_asset_data_id(db).current_supply.value, item.second.value);
+   }
+
+   // htlc
+   const auto& htlc_idx = db.get_index_type< htlc_index >().indices().get< by_id >();
+   for( auto itr = htlc_idx.begin(); itr != htlc_idx.end(); ++itr )
+   {
+      total_balances[itr->transfer.asset_id] += itr->transfer.amount;
+   }
+
    using playchain::chain::table_object;
    using playchain::chain::table_index;
    for( const table_object& table : db.get_index_type< table_index >().indices() )
@@ -349,11 +362,6 @@ void database_fixture::verify_asset_supplies( const database& db )
    for( const room_object& room : db.get_index_type< room_index >().indices() )
    {
       total_balances[ room.pending_rake.asset_id ] += room.pending_rake.amount;
-   }
-
-   for( const auto& item : total_debts )
-   {
-      BOOST_CHECK_EQUAL(item.first(db).dynamic_asset_data_id(db).current_supply.value, item.second.value);
    }
 
    for( const asset_object& asset_obj : db.get_index_type<asset_index>().indices() )
