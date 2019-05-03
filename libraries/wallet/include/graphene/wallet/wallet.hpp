@@ -1059,6 +1059,32 @@ class wallet_api
                                                      bool save_wallet = true);
 
       /**
+       * Create transaction to create invitation for account
+       *
+       * @param inviter the name of inviter
+       * @param invitation_uid the UID that is used for invitation resolving
+       * @param lifetime_in_sec invitation lifetime in seconds
+       * @param metadata the metadata that is associated with new invitation
+       * @returns the transaction creating invitation
+       */
+      signed_transaction create_player_invitation(const string &inviter,
+                                                  const string &invitation_uid,
+                                                  const uint32_t lifetime_in_sec,
+                                                  const string &metadata,
+                                                  bool broadcast = false,
+                                                  bool save_wallet = true);
+
+      /**
+       * Calculate digest transaction to create invitation for account
+       *
+       * @param inviter the name of inviter
+       * @param invitation_uid the UID that is used for invitation resolving
+       * @returns the digest
+       */
+      digest_type calculate_player_invitation_mandat(const string &inviter,
+                                                     const string &invitation_ui);
+
+      /**
        * Resolves invitation for account like player
        *
        * @param inviter the name of inviter
@@ -2194,6 +2220,8 @@ FC_API( graphene::wallet::wallet_api,
         (create_playchain_committee_member)
         (update_playchain_committee_member)
         (create_player_by_room_owner)
+        (create_player_invitation)
+        (calculate_player_invitation_mandat)
         (create_player_from_invitation)
         (login_with_pubkey)
         (create_account_with_brain_key)

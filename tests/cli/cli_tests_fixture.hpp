@@ -18,12 +18,14 @@ namespace cli
         virtual ~cli_tests_fixture();
 
         fc::ecc::private_key create_private_key_from_password(const string &password, const string &salt);
-        void create_new_account();
+        void create_new_account(const std::string &new_account = "alice");
 
         const std::string owner = "nathan";
         fc::ecc::private_key owner_key;
 
         std::shared_ptr<graphene::app::application> cli_app;
         std::unique_ptr<client_connection> connection;
+
+        fc::temp_directory app_dir;
     };
 }

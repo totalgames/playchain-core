@@ -3321,6 +3321,45 @@ public:
                     } FC_CAPTURE_AND_RETHROW((name))
                 }
 
+                signed_transaction create_player_invitation(const string &inviter,
+                                                            const string &invitation_uid,
+                                                            const uint32_t lifetime_in_sec,
+                                                            const string &metadata,
+                                                            bool broadcast,
+                                                            bool /*save_wallet - unused yet*/)
+                {
+                    try
+                    {
+                        check_plc_asset();
+
+                        player_invitation_create_operation op;
+                        account_object inviter_account_object = get_account(inviter);
+                        op.inviter = inviter_account_object.id;
+                        op.uid = invitation_uid;
+                        op.lifetime_in_sec = lifetime_in_sec;
+                        op.metadata = metadata;
+
+                        signed_transaction tx;
+
+                        tx.operations.push_back(op);
+
+                        set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
+
+                        auto dyn_props = get_dynamic_global_properties();
+                        tx.set_reference_block(dyn_props.head_block_id);
+                        tx.set_expiration(dyn_props.time + PLAYCHAIN_DEFAULT_TX_EXPIRATION_PERIOD);
+                        tx.validate();
+
+                        return sign_transaction(tx, broadcast);
+                    } FC_CAPTURE_AND_RETHROW((inviter)(invitation_uid)(lifetime_in_sec)(metadata))
+                }
+
+                digest_type calculate_player_invitation_mandat(const string &inviter,
+                                                               const string &invitation_ui)
+                {
+                    return playchain::chain::utils::create_digest_by_invitation(_chain_id, inviter, invitation_ui);
+                }
+
                 signed_transaction create_player_from_invitation(
                                                     const string &inviter,
                                                     const string &invitation_uid,
@@ -6091,6 +6130,22 @@ signed_transaction wallet_api::create_player_by_room_owner(const string &room_ow
                                                            bool broadcast, bool save_wallet)
 {
     return my->create_player_by_room_owner(room_owner, name, broadcast, save_wallet);
+}
+
+signed_transaction wallet_api::create_player_invitation(const string &inviter,
+                                            const string &invitation_uid,
+                                            const uint32_t lifetime_in_sec,
+                                            const string &metadata,
+                                            bool broadcast,
+                                            bool save_wallet)
+{
+    return my->create_player_invitation(inviter, invitation_uid, lifetime_in_sec, metadata, broadcast, save_wallet);
+}
+
+digest_type wallet_api::calculate_player_invitation_mandat(const string &inviter,
+                                               const string &invitation_uid)
+{
+    return my->calculate_player_invitation_mandat(inviter, invitation_uid);
 }
 
 signed_transaction wallet_api::create_player_from_invitation(const string &inviter,

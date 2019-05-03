@@ -98,19 +98,22 @@ namespace
 std::shared_ptr<graphene::app::application> start_application(fc::temp_directory& app_dir, int& server_port_number) {
    std::shared_ptr<graphene::app::application> app1(new graphene::app::application{});
 
-   app1->register_plugin<graphene::account_history::account_history_plugin>();
-   app1->register_plugin< graphene::market_history::market_history_plugin >();
-   app1->register_plugin< graphene::witness_plugin::witness_plugin >();
-   app1->register_plugin< graphene::grouped_orders::grouped_orders_plugin>();
-   app1->startup_plugins();
+   app1->register_plugin<graphene::account_history::account_history_plugin>(true);
+   app1->register_plugin< graphene::market_history::market_history_plugin >(true);
+   app1->register_plugin< graphene::witness_plugin::witness_plugin >(true);
+   app1->register_plugin< graphene::grouped_orders::grouped_orders_plugin>(true);
    boost::program_options::variables_map cfg;
    server_port_number = get_available_port();
    cfg.emplace("rpc-endpoint", boost::program_options::variable_value(string("127.0.0.1:" + std::to_string(server_port_number)), false));
    cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
    cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
+
    app1->initialize(app_dir.path(), cfg);
+   app1->initialize_plugins(cfg);
 
    app1->startup();
+   app1->startup_plugins();
+
    fc::usleep(fc::milliseconds(500));
     return app1;
 }

@@ -4,13 +4,13 @@
 
 #include <fc/crypto/hex.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 namespace account_create_tests
 {
 using namespace cli;
 
 BOOST_FIXTURE_TEST_SUITE( bitshares_tests, cli_tests_fixture )
-
-#if 0
 
 ///////////////////
 // Test blind transactions and mantissa length of range proofs.
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE( account_history_pagination )
 {
    try
    {
-      create_new_account();
+      create_new_account("jmjatlanta");
 
       // attempt to give jmjatlanta some bitsahres
       BOOST_TEST_MESSAGE("Transferring bitshares from Nathan to jmjatlanta");
@@ -151,39 +151,18 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
 {
    using namespace graphene::chain;
    using namespace graphene::app;
-   std::shared_ptr<graphene::app::application> app1;
    try {
+
+        graphene::chain::htlc_options htlc_params;
+        htlc_params.max_preimage_size = 1024;
+        htlc_params.max_timeout_secs = 60 * 60 * 24 * 28;
+
       // set committee parameters
-      cli_app->chain_database()->modify(app1->chain_database()->get_global_properties(), [](global_property_object& p) {
-         graphene::chain::htlc_options params;
-         params.max_preimage_size = 1024;
-         params.max_timeout_secs = 60 * 60 * 24 * 28;
-         p.parameters.extensions.value.updatable_htlc_options = params;
+      cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
+         p.parameters.extensions.value.updatable_htlc_options = htlc_params;
       });
 
-      BOOST_TEST_MESSAGE("Setting wallet password");
-      connection->api()->set_password("supersecret");
-      connection->api()->unlock("supersecret");
-
-      // import Nathan account
-      BOOST_TEST_MESSAGE("Importing nathan key");
-      std::vector<std::string> nathan_keys{"5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"};
-      BOOST_CHECK_EQUAL(nathan_keys[0], "5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3");
-      BOOST_CHECK(connection->api()->import_key("nathan", nathan_keys[0]));
-
-      BOOST_TEST_MESSAGE("Importing nathan's balance");
-      std::vector<signed_transaction> import_txs = connection->api()->import_balance("nathan", nathan_keys, true);
-      account_object nathan_acct_before_upgrade = connection->api()->get_account("nathan");
-
-      // upgrade nathan
-      BOOST_TEST_MESSAGE("Upgrading Nathan to LTM");
-      signed_transaction upgrade_tx = connection->api()->upgrade_account("nathan", true);
-      account_object nathan_acct_after_upgrade = connection->api()->get_account("nathan");
-
-      // verify that the upgrade was successful
-      BOOST_CHECK_PREDICATE( std::not_equal_to<uint32_t>(), (nathan_acct_before_upgrade.membership_expiration_date.sec_since_epoch())
-            (nathan_acct_after_upgrade.membership_expiration_date.sec_since_epoch()) );
-      BOOST_CHECK(nathan_acct_after_upgrade.is_lifetime_member());
+      idump((cli_app->chain_database()->get_global_properties()));
 
       // Create new asset called BOBCOIN
       try
@@ -217,6 +196,18 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          signed_transaction transfer_tx = connection->api()->transfer("nathan", "alice", "10000", "1.3.0",
                "Here are some CORE token for your new account", true);
       }
+
+      idump((cli_app->chain_database()->get_global_properties()));
+      idump((fc::time_point_sec(cli_app->chain_database()->get_dynamic_global_properties().time).to_iso_string()));
+
+      BOOST_CHECK(generate_block(cli_app));
+
+      cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
+         p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+      });
+
+      idump((cli_app->chain_database()->get_global_properties()));
+      idump((fc::time_point_sec(HARDFORK_CORE_1468_TIME).to_iso_string()));
 
       // create a new account for Bob
       {
@@ -260,6 +251,10 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          graphene::chain::signed_block result_block;
          BOOST_CHECK(generate_block(cli_app, result_block));
 
+         cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
+            p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+         });
+
          // get the ID:
          htlc_id_type htlc_id = result_block.transactions[result_block.transactions.size()-1].operation_results[0].get<object_id_type>();
          alice_htlc_id_as_string = (std::string)(object_id_type)htlc_id;
@@ -282,6 +277,10 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          graphene::chain::signed_block result_block;
          BOOST_CHECK(generate_block(cli_app, result_block));
 
+         cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
+            p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+         });
+
          // get the ID:
          htlc_id_type htlc_id = result_block.transactions[result_block.transactions.size()-1].operation_results[0].get<object_id_type>();
          bob_htlc_id_as_string = (std::string)(object_id_type)htlc_id;
@@ -300,6 +299,10 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          connection->api()->htlc_redeem(bob_htlc_id_as_string, "alice", secret, true);
          BOOST_TEST_MESSAGE("The system is generating a block");
          BOOST_CHECK(generate_block(cli_app));
+
+         cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
+            p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+         });
       }
 
       // TODO: Bob can look at Alice's history to see her preimage
@@ -318,9 +321,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
       edump((e.to_detail_string()));
       throw;
    }
-   app1->shutdown();
 }
-#endif
 
 BOOST_AUTO_TEST_SUITE_END()
 
