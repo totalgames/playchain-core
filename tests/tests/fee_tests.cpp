@@ -3427,7 +3427,6 @@ BOOST_AUTO_TEST_CASE( stealth_fba_test )
 
       generate_blocks( HARDFORK_555_TIME );
       generate_blocks( HARDFORK_563_TIME );
-      generate_blocks( HARDFORK_572_TIME );
 
       // Philbin (registrar who registers Rex)
 

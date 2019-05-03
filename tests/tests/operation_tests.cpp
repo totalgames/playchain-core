@@ -1161,6 +1161,7 @@ BOOST_AUTO_TEST_CASE( update_uia )
       INVOKE(create_uia);
       const auto& test = get_asset(UIA_TEST_SYMBOL);
       const auto& nathan = create_account("nathan");
+      const auto& alice = create_account("alice");
 
       asset_update_operation op;
       op.issuer = test.issuer;
@@ -1195,14 +1196,17 @@ BOOST_AUTO_TEST_CASE( update_uia )
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
 
+      // Disable the ability for the issuer to toggle the white list
       BOOST_TEST_MESSAGE( "Disable white_list permission" );
       op.new_options.issuer_permissions = test.options.issuer_permissions & ~white_list;
       trx.operations.back() = op;
       PUSH_TX( db, trx, ~0 );
 
+      // as the issuer does not have the authority, he can't toggle the white list
       BOOST_TEST_MESSAGE( "Can't toggle white_list" );
       REQUIRE_THROW_WITH_VALUE(op, new_options.flags, test.options.flags & ~white_list);
 
+      // the issuer has the power to restrict transfers
       BOOST_TEST_MESSAGE( "Can toggle transfer_restricted" );
       for( int i=0; i<2; i++ )
       {
@@ -1211,10 +1215,35 @@ BOOST_AUTO_TEST_CASE( update_uia )
          PUSH_TX( db, trx, ~0 );
       }
 
-      BOOST_TEST_MESSAGE( "Make sure white_list can't be re-enabled" );
-      op.new_options.issuer_permissions = test.options.issuer_permissions;
+      // attempt to toggle the issuer's white list authority while supply is 0
+      BOOST_TEST_MESSAGE( "Make sure issuer's white_list permission can be re-enabled if current_supply is 0" );
+      op.new_options.issuer_permissions = test.options.issuer_permissions & white_list;
       op.new_options.flags = test.options.flags;
-      BOOST_CHECK(!(test.options.issuer_permissions & white_list));
+      BOOST_CHECK( !(op.new_options.issuer_permissions & white_list) );
+      trx.operations.back() = op;
+      PUSH_TX( db, trx, ~0 );
+
+      // turn it back off to set up for the next test
+      BOOST_TEST_MESSAGE( "Set issuer's permission back to disabled." );
+      op.new_options.issuer_permissions = test.options.issuer_permissions | white_list;
+      op.new_options.flags = test.options.flags;
+      BOOST_CHECK( !(test.options.issuer_permissions & white_list) );
+      trx.operations.back() = op;
+      PUSH_TX( db, trx, ~0 );
+
+      // issue some tokens
+      graphene::chain::asset_issue_operation asset_issue;
+      asset_issue.asset_to_issue = asset(10, test.id);
+      asset_issue.issuer = nathan.id;
+      asset_issue.issue_to_account = alice.id;
+      trx.operations.back() = asset_issue;
+      PUSH_TX( db, trx, ~0 );
+
+      // attempt to toggle the white list, although the issuer does not have the permissions
+      BOOST_TEST_MESSAGE( "Make sure issuer's permission can't be adjusted, as there are tokens issued" );
+      op.new_options.issuer_permissions = test.options.issuer_permissions & white_list;
+      op.new_options.flags = test.options.flags;
+      BOOST_CHECK(!(test.options.issuer_permissions & ~white_list));
       REQUIRE_THROW_WITH_VALUE(op, new_options.issuer_permissions, UIA_ASSET_ISSUER_PERMISSION_MASK);
 
       BOOST_TEST_MESSAGE( "We can change issuer to account_id_type(), but can't do it again" );
