@@ -146,6 +146,13 @@ if(MSVC)
   set_source_files_properties( db_init.cpp db_block.cpp database.cpp block_database.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )
 endif(MSVC)
 
+# to view hardfork files in IDE
+set(hardfork_root_dir ${CMAKE_CURRENT_SOURCE_DIR}/hardfork.d)
+file(GLOB HARDFORK_FILES "${hardfork_root_dir}/*.hf")
+
+add_custom_target( hardforks SOURCES
+                   ${HARDFORK_FILES})
+
 INSTALL( TARGETS
    graphene_chain
 
