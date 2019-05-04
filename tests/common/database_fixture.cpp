@@ -174,6 +174,10 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
 
       esplugin->plugin_initialize(options);
       esplugin->plugin_startup();
+   }else {
+       ahplugin->plugin_set_app(&app);
+       ahplugin->plugin_initialize(options);
+       ahplugin->plugin_startup();
    }
 
    if(current_test_name == "elasticsearch_objects" || current_test_name == "elasticsearch_suite") {
@@ -201,12 +205,8 @@ database_fixture::database_fixture(const fc::time_point_sec &initial_timestamp)
    goplugin->plugin_set_app(&app);
    goplugin->plugin_initialize(options);
 
-   ahplugin->plugin_set_app(&app);
-   ahplugin->plugin_initialize(options);
-
    mhplugin->plugin_startup();
    goplugin->plugin_startup();
-   ahplugin->plugin_startup();
 
    generate_block();
 
