@@ -96,8 +96,8 @@ struct operation_visitor
    share_type          fill_pays_amount;
    asset_id_type       fill_receives_asset_id;
    share_type          fill_receives_amount;
-   double              fill_fill_price;
-   bool                fill_is_maker;
+   double              fill_fill_price = 0.;
+   bool                fill_is_maker = false;
 
    void operator()( const graphene::chain::fill_order_operation& o )
    {
@@ -110,7 +110,8 @@ struct operation_visitor
       fill_pays_amount = o.pays.amount;
       fill_receives_asset_id = o.receives.asset_id;
       fill_receives_amount = o.receives.amount;
-      fill_fill_price = o.fill_price.to_real();
+      if (o.fill_price.quote.amount.value)
+          fill_fill_price = o.fill_price.to_real();
       fill_is_maker = o.is_maker;
    }
 

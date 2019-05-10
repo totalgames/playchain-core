@@ -37,7 +37,15 @@ using namespace graphene::chain;
 using namespace graphene::chain::test;
 using namespace graphene::app;
 
-BOOST_FIXTURE_TEST_SUITE( elasticsearch_tests, database_fixture )
+struct elasticsearch_fixture: public database_fixture
+{
+    using database_fixture::database_fixture;
+
+    const int refresh_interval_ms = 1000;
+    const char *default_index_prefix = "playchain-";
+};
+
+BOOST_FIXTURE_TEST_SUITE( elasticsearch_tests, elasticsearch_fixture )
 
 BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
    try {
@@ -48,12 +56,12 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
       graphene::utilities::ES es;
       es.curl = curl;
       es.elasticsearch_url = "http://localhost:9200/";
-      es.index_prefix = "bitshares-";
+      es.index_prefix =  default_index_prefix;
       //es.auth = "elastic:changeme";
 
       // delete all first
       auto delete_account_history = graphene::utilities::deleteAll(es);
-      fc::usleep(fc::milliseconds(1000)); // this is because index.refresh_interval, nothing to worry
+      fc::usleep(fc::milliseconds(refresh_interval_ms)); // this is because index.refresh_interval, nothing to worry
 
       if(delete_account_history) { // all records deleted
 
@@ -63,7 +71,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
          auto bob = create_account("bob");
 
          generate_block();
-         fc::usleep(fc::milliseconds(1000));
+         fc::usleep(fc::milliseconds(refresh_interval_ms));
 
          // for later use
          //int asset_create_op_id = operation::tag<asset_create_operation>::value;
@@ -82,13 +90,13 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
          res = graphene::utilities::simpleQuery(es);
          j = fc::json::from_string(res);
          auto first_id = j["hits"]["hits"][size_t(0)]["_id"].as_string();
-         BOOST_CHECK_EQUAL(first_id, "2.9.1"); // this should be 0? are they inserted in the right order?
+         BOOST_CHECK_EQUAL(first_id, "2.9.0"); // this should be 0? are they inserted in the right order?
 
          generate_block();
          auto willie = create_account("willie");
          generate_block();
 
-         fc::usleep(fc::milliseconds(1000)); // index.refresh_interval
+         fc::usleep(fc::milliseconds(refresh_interval_ms)); // index.refresh_interval
 
          es.endpoint = es.index_prefix + "*/data/_count";
          res = graphene::utilities::simpleQuery(es);
@@ -103,7 +111,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
          transfer(account_id_type()(db), bob, asset(300));
 
          generate_block();
-         fc::usleep(fc::milliseconds(1000)); // index.refresh_interval
+         fc::usleep(fc::milliseconds(refresh_interval_ms)); // index.refresh_interval
 
          res = graphene::utilities::simpleQuery(es);
          j = fc::json::from_string(res);
@@ -113,7 +121,7 @@ BOOST_AUTO_TEST_CASE(elasticsearch_account_history) {
 
          // check the visitor data
          auto block_date = db.head_block_time();
-         std::string index_name = graphene::utilities::generateIndexName(block_date, "bitshares-");
+         std::string index_name = graphene::utilities::generateIndexName(block_date, default_index_prefix);
 
          es.endpoint = index_name + "/data/2.9.12"; // we know last op is a transfer of amount 300
          res = graphene::utilities::getEndPoint(es);
@@ -144,14 +152,14 @@ BOOST_AUTO_TEST_CASE(elasticsearch_objects) {
       auto delete_objects = graphene::utilities::deleteAll(es);
 
       generate_block();
-      fc::usleep(fc::milliseconds(1000));
+      fc::usleep(fc::milliseconds(refresh_interval_ms));
 
       if(delete_objects) { // all records deleted
 
          // asset and bitasset
          create_bitasset("USD", account_id_type());
          generate_block();
-         fc::usleep(fc::milliseconds(1000));
+         fc::usleep(fc::milliseconds(refresh_interval_ms));
 
          string query = "{ \"query\" : { \"bool\" : { \"must\" : [{\"match_all\": {}}] } } }";
          es.endpoint = es.index_prefix + "*/data/_count";
@@ -164,6 +172,9 @@ BOOST_AUTO_TEST_CASE(elasticsearch_objects) {
 
          es.endpoint = es.index_prefix + "asset/data/_search";
          res = graphene::utilities::simpleQuery(es);
+
+         idump((res));
+
          j = fc::json::from_string(res);
          auto first_id = j["hits"]["hits"][size_t(0)]["_source"]["symbol"].as_string();
          BOOST_CHECK_EQUAL(first_id, "USD");
@@ -192,12 +203,12 @@ BOOST_AUTO_TEST_CASE(elasticsearch_suite) {
       graphene::utilities::ES es;
       es.curl = curl;
       es.elasticsearch_url = "http://localhost:9200/";
-      es.index_prefix = "bitshares-";
+      es.index_prefix = default_index_prefix;
       auto delete_account_history = graphene::utilities::deleteAll(es);
-      fc::usleep(fc::milliseconds(1000));
+      fc::usleep(fc::milliseconds(refresh_interval_ms));
       es.index_prefix = "objects-";
       auto delete_objects = graphene::utilities::deleteAll(es);
-      fc::usleep(fc::milliseconds(1000));
+      fc::usleep(fc::milliseconds(refresh_interval_ms));
 
       if(delete_account_history && delete_objects) { // all records deleted
 

@@ -76,6 +76,7 @@ bool SendBulk(ES&& es)
 
    if(handleBulkResponse(getResponseCode(curl_request.handler), curlResponse))
       return true;
+
    return false;
 }
 
@@ -99,7 +100,9 @@ bool handleBulkResponse(long http_code, const std::string& CurlReadBuffer)
       // all good, but check errors in response
       fc::variant j = fc::json::from_string(CurlReadBuffer);
       bool errors = j["errors"].as_bool();
-      if(errors == true) {
+      if(errors == true)
+      {
+         wdump((j));
          return false;
       }
    }

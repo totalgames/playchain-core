@@ -58,7 +58,7 @@ class elasticsearch_plugin_impl
       uint32_t _elasticsearch_bulk_sync = 100;
       bool _elasticsearch_visitor = false;
       std::string _elasticsearch_basic_auth = "";
-      std::string _elasticsearch_index_prefix = "bitshares-";
+      std::string _elasticsearch_index_prefix = "playchain-";
       bool _elasticsearch_operation_object = false;
       uint32_t _elasticsearch_start_es_after_block = 0;
       CURL *curl; // curl handler
@@ -236,6 +236,29 @@ void elasticsearch_plugin_impl::doBlock(uint32_t trx_in_block, const signed_bloc
    bs.trx_id = trx_id;
 }
 
+double calculate_unit(const share_type &amount,
+                       const uint8_t precision)
+{
+    auto n = asset::scaled_precision(precision).value;
+    if (n)
+        return amount.value/(double)n;
+    return 0.; //elasticsearch doesn't accept overflow constants
+}
+
+double calculate_price(const share_type &n_amount,
+                       const uint8_t n_precision,
+                       const share_type &d_amount,
+                       const uint8_t d_precision)
+{
+    auto d = calculate_unit(d_amount, d_precision);
+    if (!d)
+        return 0.;
+    auto n = calculate_unit(n_amount, n_precision);
+    if (!n)
+        return 0.;
+    return n / d;
+}
+
 void elasticsearch_plugin_impl::doVisitor(const optional <operation_history_object>& oho)
 {
    graphene::chain::database& db = database();
@@ -247,13 +270,13 @@ void elasticsearch_plugin_impl::doVisitor(const optional <operation_history_obje
    vs.fee_data.asset = o_v.fee_asset;
    vs.fee_data.asset_name = fee_asset.symbol;
    vs.fee_data.amount = o_v.fee_amount;
-   vs.fee_data.amount_units = (o_v.fee_amount.value)/(double)asset::scaled_precision(fee_asset.precision).value;
+   vs.fee_data.amount_units = calculate_unit(o_v.fee_amount, fee_asset.precision);
 
    auto transfer_asset = o_v.transfer_asset_id(db);
    vs.transfer_data.asset = o_v.transfer_asset_id;
    vs.transfer_data.asset_name = transfer_asset.symbol;
    vs.transfer_data.amount = o_v.transfer_amount;
-   vs.transfer_data.amount_units = (o_v.transfer_amount.value)/(double)asset::scaled_precision(transfer_asset.precision).value;
+   vs.transfer_data.amount_units = calculate_unit(o_v.transfer_amount, transfer_asset.precision);
    vs.transfer_data.from = o_v.transfer_from;
    vs.transfer_data.to = o_v.transfer_to;
 
@@ -264,15 +287,12 @@ void elasticsearch_plugin_impl::doVisitor(const optional <operation_history_obje
    vs.fill_data.pays_asset_id = o_v.fill_pays_asset_id;
    vs.fill_data.pays_asset_name = fill_pays_asset.symbol;
    vs.fill_data.pays_amount = o_v.fill_pays_amount;
-   vs.fill_data.pays_amount_units = (o_v.fill_pays_amount.value)/(double)asset::scaled_precision(fill_pays_asset.precision).value;
+   vs.fill_data.pays_amount_units = calculate_unit(o_v.fill_pays_amount, fill_pays_asset.precision);
    vs.fill_data.receives_asset_id = o_v.fill_receives_asset_id;
    vs.fill_data.receives_asset_name = fill_receives_asset.symbol;
    vs.fill_data.receives_amount = o_v.fill_receives_amount;
-   vs.fill_data.receives_amount_units = (o_v.fill_receives_amount.value)/(double)asset::scaled_precision(fill_receives_asset.precision).value;
-
-   auto fill_price = (o_v.fill_receives_amount.value/(double)asset::scaled_precision(fill_receives_asset.precision).value) /
-           (o_v.fill_pays_amount.value/(double)asset::scaled_precision(fill_pays_asset.precision).value);
-   vs.fill_data.fill_price_units = fill_price;
+   vs.fill_data.receives_amount_units = calculate_unit(o_v.fill_receives_amount, fill_receives_asset.precision);
+   vs.fill_data.fill_price_units = calculate_price(o_v.fill_receives_amount, fill_receives_asset.precision, o_v.fill_pays_amount, fill_pays_asset.precision);
    vs.fill_data.fill_price = o_v.fill_fill_price;
    vs.fill_data.is_maker = o_v.fill_is_maker;
 }
@@ -431,7 +451,7 @@ void elasticsearch_plugin::plugin_set_program_options(
          ("elasticsearch-bulk-sync", boost::program_options::value<uint32_t>(), "Number of bulk documents to index on a syncronied chain(100)")
          ("elasticsearch-visitor", boost::program_options::value<bool>(), "Use visitor to index additional data(slows down the replay(false))")
          ("elasticsearch-basic-auth", boost::program_options::value<std::string>(), "Pass basic auth to elasticsearch database('')")
-         ("elasticsearch-index-prefix", boost::program_options::value<std::string>(), "Add a prefix to the index(bitshares-)")
+         ("elasticsearch-index-prefix", boost::program_options::value<std::string>(), "Add a prefix to the index(playchain-)")
          ("elasticsearch-operation-object", boost::program_options::value<bool>(), "Save operation as object(false)")
          ("elasticsearch-start-es-after-block", boost::program_options::value<uint32_t>(), "Start doing ES job after block(0)")
          ;
