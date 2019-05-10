@@ -665,7 +665,7 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
       FC_ASSERT( now <= trx.expiration, "", ("now",now)("trx.exp",trx.expiration) );
       FC_ASSERT( head_block_time() <= HARDFORK_CORE_1573_TIME
             || trx.get_packed_size() <= chain_parameters.maximum_transaction_size,
-            "Transaction exceeds maximum transaction size." );
+            "Transaction size ${s} exceeds maximum transaction size ${m}.", ("s", trx.get_packed_size())("m", chain_parameters.maximum_transaction_size) );
    }
 
    //Insert transaction into unique transactions database.

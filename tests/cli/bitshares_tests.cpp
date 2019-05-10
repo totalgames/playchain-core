@@ -45,18 +45,33 @@ BOOST_AUTO_TEST_CASE( cli_confidential_tx_test )
       W.create_blind_account("bob", bki_bob.brain_priv_key);
       BOOST_CHECK(W.get_blind_accounts().size() == 3);
 
+      idump((cli_app->chain_database()->get_global_properties()));
+
       // ** Block 1: Import Nathan account:
       BOOST_TEST_MESSAGE("Importing nathan key and balance");
       nathan_keys = std::vector<std::string>{"5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"};
       W.import_key("nathan", nathan_keys[0]);
       W.import_balance("nathan", nathan_keys, true);
       generate_block(cli_app); head_block++;
+      cli_app->chain_database()->modify(
+         cli_app->chain_database()->get_global_properties(),
+         []( global_property_object& p) {
+            p.parameters.maximum_transaction_size = 8192;
+      });
 
       // ** Block 2: Nathan will blind 100M CORE token:
       BOOST_TEST_MESSAGE("Blinding a large balance");
       W.transfer_to_blind("nathan", GRAPHENE_SYMBOL, {{"nathan","100000000"}}, true);
       BOOST_CHECK( W.get_blind_balances("nathan")[0].amount == 10000000000000 );
+
+      idump((cli_app->chain_database()->get_global_properties()));
+
       generate_block(cli_app); head_block++;
+      cli_app->chain_database()->modify(
+         cli_app->chain_database()->get_global_properties(),
+         []( global_property_object& p) {
+            p.parameters.maximum_transaction_size = 8192;
+      });
 
       // ** Block 3: Nathan will send 1M CORE token to alice and 10K CORE token to bob. We
       // then confirm that balances are received, and then analyze the range
@@ -92,7 +107,13 @@ BOOST_AUTO_TEST_CASE( cli_confidential_tx_test )
                                                  rp_mantissabits.end(),         // find unequal adjacent values
                                                  std::not_equal_to<int>());
       BOOST_CHECK(adjacent_unequal == rp_mantissabits.end());
+
       generate_block(cli_app); head_block++;
+      cli_app->chain_database()->modify(
+         cli_app->chain_database()->get_global_properties(),
+         []( global_property_object& p) {
+            p.parameters.maximum_transaction_size = 8192;
+      });
 
       // ** Check head block:
       BOOST_TEST_MESSAGE("Check that all expected blocks have processed");

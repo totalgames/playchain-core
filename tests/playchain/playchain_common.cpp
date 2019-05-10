@@ -524,7 +524,7 @@ const game_witness_object &playchain_fixture::create_witness(const Actor &accoun
     auto pret = pplaychain_api->get_game_witness(account.name);
     BOOST_REQUIRE(pret.valid());
 
-    return *pret;
+    return db.get<game_witness_object>(pret->id);
 }
 
 buy_in_table_operation playchain_fixture::buy_in_table_op(
