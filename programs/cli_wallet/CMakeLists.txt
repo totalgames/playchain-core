@@ -3,10 +3,12 @@ if( UNIX AND NOT APPLE )
   set(rt_library rt )
 endif()
 
-find_package( Gperftools QUIET )
-if( GPERFTOOLS_FOUND )
-    message( STATUS "Found gperftools; compiling cli_wallet with TCMalloc")
-    list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+if( USE_GPERFTOOLS )
+    find_package( Gperftools QUIET )
+    if( GPERFTOOLS_FOUND )
+        message( STATUS "Found gperftools; compiling cli_wallet with TCMalloc")
+        list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+    endif()
 endif()
 
 target_link_libraries( cli_wallet

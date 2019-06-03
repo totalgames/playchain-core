@@ -3,10 +3,12 @@ if( UNIX AND NOT APPLE )
   set(rt_library rt )
 endif()
 
-find_package( Gperftools QUIET )
-if( GPERFTOOLS_FOUND )
-    message( STATUS "Found gperftools; compiling playchaind with TCMalloc")
-    list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+if( USE_GPERFTOOLS )
+    find_package( Gperftools QUIET )
+    if( GPERFTOOLS_FOUND )
+        message( STATUS "Found gperftools; compiling playchaind with TCMalloc")
+        list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+    endif()
 endif()
 
 # We have to link against graphene_debug_witness because deficiency in our API infrastructure doesn't allow plugins to be fully abstracted #246

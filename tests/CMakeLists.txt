@@ -1,9 +1,11 @@
 file(GLOB COMMON_SOURCES "common/*.cpp")
 
-find_package( Gperftools QUIET )
-if( GPERFTOOLS_FOUND )
-    message( STATUS "Found gperftools; compiling tests with TCMalloc")
-    list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+if( USE_GPERFTOOLS )
+    find_package( Gperftools QUIET )
+    if( GPERFTOOLS_FOUND )
+        message( STATUS "Found gperftools; compiling tests with TCMalloc")
+        list( APPEND PLATFORM_SPECIFIC_LIBS tcmalloc )
+    endif()
 endif()
 
 option(c "(ON OR OFF)" OFF)
