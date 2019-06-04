@@ -198,7 +198,8 @@ int main(int argc, char** argv) {
       node->startup();
       node->startup_plugins();
 
-      std::cout << PLAYCHAIN << " network started." << std::endl;
+      std::cout << PLAYCHAIN << " network started. ";
+      std::cout << "Initial chain ID = " << (std::string)node->get_chain_id() << std::endl;
 
       wait_signals(node);
 

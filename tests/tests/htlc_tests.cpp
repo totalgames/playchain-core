@@ -130,7 +130,7 @@ void set_committee_parameters(database_fixture* db_fixture)
    graphene::chain::htlc_options new_params;
    new_params.max_preimage_size = 19200;
    new_params.max_timeout_secs = 60 * 60 * 24 * 28;
-   uop.new_parameters.extensions.value.updatable_htlc_options = new_params;
+   uop.new_parameters.extensions.insert(chain_parameters_extensions{new_params});
    uop.new_parameters.current_fees = new_fee_schedule;
    cop.proposed_ops.emplace_back(uop);
    
@@ -238,7 +238,7 @@ try {
    {
       graphene::chain::htlc_extend_operation big_extend;
       big_extend.htlc_id = alice_htlc_id;
-      big_extend.seconds_to_add = db.get_global_properties().parameters.extensions.value.updatable_htlc_options->max_timeout_secs + 10;
+      big_extend.seconds_to_add = db.get_global_properties().parameters.get_updatable_htlc_options()->max_timeout_secs + 10;
       big_extend.fee = db.get_global_properties().parameters.current_fees->calculate_fee(big_extend);
       big_extend.update_issuer = alice_id;
       trx.operations.push_back(big_extend);
@@ -424,7 +424,7 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
          graphene::chain::htlc_options new_params;
          new_params.max_preimage_size = 2048;
          new_params.max_timeout_secs = 60 * 60 * 24 * 28;
-         cmuop.new_parameters.extensions.value.updatable_htlc_options = new_params;
+         cmuop.new_parameters.extensions.insert(chain_parameters_extensions{new_params});
          cop.proposed_ops.emplace_back(cmuop);
          trx.operations.push_back(cop);
          // update with signatures
@@ -439,7 +439,7 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
          BOOST_TEST_MESSAGE("Sending proposal.");
          GRAPHENE_CHECK_THROW(db.push_transaction(trx), fc::exception);
          BOOST_TEST_MESSAGE("Verifying that proposal did not succeeed.");
-         BOOST_CHECK(!db.get_global_properties().parameters.extensions.value.updatable_htlc_options.valid());
+         BOOST_CHECK(!db.get_global_properties().parameters.get_updatable_htlc_options().valid());
          trx.clear();
       }
 
@@ -509,7 +509,7 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
          graphene::chain::htlc_options new_params;
          new_params.max_preimage_size = 2048;
          new_params.max_timeout_secs = 60 * 60 * 24 * 28;
-         uop.new_parameters.extensions.value.updatable_htlc_options = new_params;
+         uop.new_parameters.extensions.insert(chain_parameters_extensions{new_params});
          uop.new_parameters.current_fees = new_fee_schedule;
          cop.proposed_ops.emplace_back(uop);
          trx.operations.push_back(cop);
@@ -533,19 +533,19 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
       }
       BOOST_TEST_MESSAGE( "Verifying that the parameters didn't change immediately" );
 
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.extensions.value.updatable_htlc_options->max_preimage_size, 19200u);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_updatable_htlc_options()->max_preimage_size, 19200u);
 
       BOOST_TEST_MESSAGE( "Generating blocks until proposal expires" );
       generate_blocks(good_proposal_id(db).expiration_time + 5);
       BOOST_TEST_MESSAGE( "Verify that the parameters still have not changed" );
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.extensions.value.updatable_htlc_options->max_preimage_size, 19200u);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_updatable_htlc_options()->max_preimage_size, 19200u);
 
       BOOST_TEST_MESSAGE( "Generating blocks until next maintenance interval" );
       generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
       generate_block();   // get the maintenance skip slots out of the way
 
       BOOST_TEST_MESSAGE( "Verify that the change has been implemented" );
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.extensions.value.updatable_htlc_options->max_preimage_size, 2048u);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_updatable_htlc_options()->max_preimage_size, 2048u);
       BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<htlc_create_operation>().fee, 2 * GRAPHENE_BLOCKCHAIN_PRECISION);
       
 } FC_LOG_AND_RETHROW() }

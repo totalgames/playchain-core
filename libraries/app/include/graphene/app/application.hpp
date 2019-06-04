@@ -104,6 +104,8 @@ namespace graphene { namespace app {
 
          void enable_plugin( const string& name );
 
+         graphene::chain::chain_id_type get_chain_id() const;
+
       private:
          void add_available_plugin( std::shared_ptr<abstract_plugin> p );
          std::shared_ptr<detail::application_impl> my;

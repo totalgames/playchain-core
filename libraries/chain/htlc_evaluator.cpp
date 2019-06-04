@@ -32,7 +32,7 @@ namespace graphene {
 
       optional<htlc_options> get_committee_htlc_options(graphene::chain::database& db)
       {
-         return db.get_global_properties().parameters.extensions.value.updatable_htlc_options;
+         return db.get_global_properties().parameters.get_updatable_htlc_options();
       }
 
       void_result htlc_create_evaluator::do_evaluate(const htlc_create_operation& o)

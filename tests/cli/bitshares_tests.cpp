@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
 
       // set committee parameters
       cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
-         p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+         p.parameters.extensions.insert(chain_parameters_extensions{htlc_params});
       });
 
       idump((cli_app->chain_database()->get_global_properties()));
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
       BOOST_CHECK(generate_block(cli_app));
 
       cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
-         p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+         p.parameters.extensions.insert(chain_parameters_extensions{htlc_params});
       });
 
       idump((cli_app->chain_database()->get_global_properties()));
@@ -273,7 +273,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          BOOST_CHECK(generate_block(cli_app, result_block));
 
          cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
-            p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+            p.parameters.extensions.insert(chain_parameters_extensions{htlc_params});
          });
 
          // get the ID:
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          BOOST_CHECK(generate_block(cli_app, result_block));
 
          cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
-            p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+            p.parameters.extensions.insert(chain_parameters_extensions{htlc_params});
          });
 
          // get the ID:
@@ -322,7 +322,7 @@ BOOST_AUTO_TEST_CASE( cli_create_htlc )
          BOOST_CHECK(generate_block(cli_app));
 
          cli_app->chain_database()->modify(cli_app->chain_database()->get_global_properties(), [&htlc_params](global_property_object& p) {
-            p.parameters.extensions.value.updatable_htlc_options = htlc_params;
+            p.parameters.extensions.insert(chain_parameters_extensions{htlc_params});
          });
       }
 

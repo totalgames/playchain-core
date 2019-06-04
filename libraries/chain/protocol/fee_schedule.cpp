@@ -198,7 +198,23 @@ namespace graphene { namespace chain {
       return f_max;
    }
 
-   void chain_parameters::validate()const
+   const optional<htlc_options>& chain_parameters::get_updatable_htlc_options() const
+   {
+       static optional<htlc_options> opt;
+
+       for(auto &&reff: extensions)
+       {
+           if (reff.which() == chain_parameters_extensions::tag<htlc_options>::value)
+           {
+               opt = reff.get<htlc_options>();
+               break;
+           }
+       }
+
+       return opt;
+   }
+
+   void chain_parameters::validate() const
    {
       current_fees->validate();
       FC_ASSERT( reserve_percent_of_fee <= GRAPHENE_100_PERCENT );

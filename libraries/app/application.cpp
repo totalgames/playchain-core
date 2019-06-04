@@ -1069,6 +1069,11 @@ void graphene::app::application::enable_plugin(const string& name)
    my->_active_plugins[name]->plugin_set_app(this);
 }
 
+chain_id_type graphene::app::application::get_chain_id() const
+{
+   return my->get_chain_id();
+}
+
 void graphene::app::application::add_available_plugin(std::shared_ptr<graphene::app::abstract_plugin> p)
 {
    my->_available_plugins[p->plugin_name()] = p;
@@ -1421,8 +1426,9 @@ void options_helper::load_config_file(const fc::path& config_ini_path,
        if (logging_config)
           fc::configure_logging(*logging_config);
     }
-    catch (const fc::exception&)
+    catch (const fc::exception& err)
     {
+       wdump((err.what()))
        wlog("Error parsing logging config from config file ${config}, using default config", ("config", config_ini_path.preferred_string()));
     }
 }
