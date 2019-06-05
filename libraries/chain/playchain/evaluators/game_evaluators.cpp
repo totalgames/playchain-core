@@ -703,23 +703,24 @@ namespace playchain{ namespace chain{
             {
                 pending_buyouts_resolve(d, table, table_owner, result);
 
-                d.modify(table, [&](table_object &obj)
+                d.modify(table, [&](table_object &table_obj)
                 {
-                    auto room = obj.room;
+                    auto room = table_obj.room;
                     asset room_rake;
 
-                    decltype(obj.playing_cash) cash_result;
+                    decltype(table_obj.playing_cash) cash_result;
                     std::for_each(begin(result.cash), end(result.cash),
                                    [&](const decltype(result.cash)::value_type &data)
                     {
-                        const player_object &player = get_player(d, data.first);
+                        const account_id_type &player_account_id = data.first;
+                        const player_object &player = get_player(d, player_account_id);
                         const gamer_cash_result &gamer_result = data.second;
 
                         if (gamer_result.rake.amount > 0)
                         {
-                            d.modify(player, [&room, &gamer_result, &required_witnesses](player_object &obj)
+                            d.modify(player, [&table_obj, &player_account_id, &room, &gamer_result, &required_witnesses](player_object &obj)
                             {
-                                obj.pending_fees.emplace_back(room, gamer_result.rake.amount, required_witnesses);
+                                obj.pending_fees.emplace_back( player_account_id, table_obj.metadata, gamer_result.rake, room, required_witnesses);
                             });
 
                             room_rake += gamer_result.rake;
@@ -734,32 +735,32 @@ namespace playchain{ namespace chain{
                     });
 
                     std::for_each(begin(cash_result), end(cash_result),
-                                  [&](const decltype(obj.cash)::value_type &data)
+                                  [&](const decltype(table_obj.cash)::value_type &data)
                     {
-                        assert(obj.playing_cash.end() != obj.playing_cash.find(data.first));
+                        assert(table_obj.playing_cash.end() != table_obj.playing_cash.find(data.first));
 
                         auto &&new_amount = data.second;
                         if (new_amount.amount > 0)
                         {
-                            obj.adjust_cash(data.first, new_amount);
+                            table_obj.adjust_cash(data.first, new_amount);
                         }
-                        auto &&old_amount = obj.playing_cash[data.first];
-                        obj.adjust_playing_cash(data.first, -old_amount);
+                        auto &&old_amount = table_obj.playing_cash[data.first];
+                        table_obj.adjust_playing_cash(data.first, -old_amount);
                     });
 
-                    auto rest_playing_cash = obj.playing_cash;
+                    auto rest_playing_cash = table_obj.playing_cash;
                     std::for_each(begin(rest_playing_cash), end(rest_playing_cash),
-                                  [&](const decltype(obj.playing_cash)::value_type &data)
+                                  [&](const decltype(table_obj.playing_cash)::value_type &data)
                     {
                         auto &&amount = data.second;
-                        obj.adjust_playing_cash(data.first, -amount);
-                        obj.adjust_cash(data.first, amount);
+                        table_obj.adjust_playing_cash(data.first, -amount);
+                        table_obj.adjust_cash(data.first, amount);
                     });
 
-                    obj.game_created = fc::time_point_sec::min();
-                    obj.game_expiration = fc::time_point_sec::maximum();
+                    table_obj.game_created = fc::time_point_sec::min();
+                    table_obj.game_expiration = fc::time_point_sec::maximum();
 
-                    obj.voted_witnesses.clear();
+                    table_obj.voted_witnesses.clear();
                 });
 
                 buyins_resolve(d, table, false);

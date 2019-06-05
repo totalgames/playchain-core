@@ -452,6 +452,11 @@ struct get_impacted_account_visitor
       _impacted.insert( op.committee_member_account );
    }
    void operator()( const playchain_committee_member_update_parameters_operation& op ) {}
+
+   void operator()( const playchain_deposit_cashback_operation& op )
+   {
+       _impacted.insert(op.recipient);
+   }
 };
 
 void operation_get_impacted_accounts( const operation& op, flat_set<account_id_type>& result )

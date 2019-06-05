@@ -74,4 +74,27 @@ namespace playchain { namespace chain {
         FC_ASSERT(committee_members_by_witness.end() != it);
         return *it;
     }
+
+    deposit_statistic::deposit_statistic(
+                           const account_id_type &getter,
+                           const string &metadata,
+                           const asset &amount):
+        getter(getter),
+        metadata(metadata),
+        amount(amount.amount),
+        asset_id(amount.asset_id)
+    {
+    }
+
+    player_pending_fee_data::player_pending_fee_data(
+                            const account_id_type &getter,
+                            const string &metadata,
+                            const asset &amount,
+                            const room_id_type &room,
+                            const game_witnesses_type &witnesses):
+        deposit_statistic(getter, metadata, amount),
+        room(room),
+        witnesses(witnesses)
+    {
+    }
 }}

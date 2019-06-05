@@ -44,19 +44,41 @@ namespace playchain { namespace chain {
     using namespace graphene::chain;
     using namespace graphene::db;
 
-    struct player_pending_fee_data
+    struct deposit_statistic
     {
-        player_pending_fee_data(){}
+        deposit_statistic() = default;
 
-        player_pending_fee_data(const room_id_type &room,
-                                const share_type &amount,
-                                const game_witnesses_type &witnesses):
-        room(room),
-        amount(amount),
-        witnesses(witnesses){}
+        deposit_statistic(const account_id_type &getter,
+                               const string &metadata,
+                               const asset &);
+
+        friend bool operator < ( const deposit_statistic& a, const deposit_statistic& b )
+        {
+            if( a.asset_id < b.asset_id ) return true;
+            if( a.asset_id > b.asset_id ) return false;
+            if( a.getter < b.getter ) return true;
+            if( a.getter > b.getter ) return false;
+
+            return a.metadata < b.metadata;
+        }
+
+        account_id_type           getter;
+        string                    metadata;
+        share_type                amount;
+        asset_id_type             asset_id;
+    };
+
+    struct player_pending_fee_data: public deposit_statistic
+    {
+        player_pending_fee_data() = default;
+
+        player_pending_fee_data(const account_id_type &getter,
+                                const string &metadata,
+                                const asset &amount,
+                                const room_id_type &room,
+                                const game_witnesses_type &witnesses);
 
         room_id_type                        room;
-        share_type                          amount;
         game_witnesses_type                 witnesses;
     };
 
@@ -72,7 +94,7 @@ namespace playchain { namespace chain {
         player_id_type                      inviter;
 
         using fees_data_type = std::vector<player_pending_fee_data>;
-        using fees_by_rooms_type = flat_map<room_id_type, share_type>;
+        using fees_by_rooms_type = flat_map<room_id_type, flat_set<deposit_statistic> >;
 
         /**
          * Tracks the table provider fees paid by this account which have not been disseminated
@@ -134,7 +156,14 @@ namespace playchain { namespace chain {
     using player_index = generic_index<player_object, player_multi_index_type>;
 }}
 
-FC_REFLECT( playchain::chain::player_pending_fee_data, (room)(amount)(witnesses))
+FC_REFLECT( playchain::chain::deposit_statistic,
+            (getter)
+            (metadata)
+            (amount)
+            (asset_id))
+FC_REFLECT_DERIVED( playchain::chain::player_pending_fee_data, (playchain::chain::deposit_statistic),
+                    (room)
+                    (witnesses))
 
 FC_REFLECT_DERIVED( playchain::chain::player_object,
                     (graphene::db::object),

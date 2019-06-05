@@ -61,8 +61,37 @@ namespace
        return r.to_uint64();
     }
 
+    struct deposit_context
+    {
+        deposit_context(const account_id_type &getter,
+                        const string &metadata,
+                        const asset_id_type &asset_id):
+            getter(getter),
+            metadata(metadata),
+            asset_id(asset_id)
+        {}
+
+        account_id_type getter;
+        string metadata;
+        asset_id_type asset_id;
+    };
+
+    struct marked_deposit_context
+    {
+        marked_deposit_context(const playchain_deposit_type type,
+                               const deposit_context &ctx):
+            type(type),
+            ctx(ctx)
+        {
+        }
+
+        playchain_deposit_type type = playchain_deposit_type::unknown;
+        const deposit_context &ctx;
+    };
+
     template<typename T>
     void deposit_cashback(database &d,
+                          const marked_deposit_context &ctx,
                           const room_object &room,
                           const T& cashback_parent,
                           const account_id_type &owner,
@@ -71,11 +100,8 @@ namespace
         if( amount < 1 )
            return;
 
-#ifdef NDEBUG
-        dlog("deposit cashback ${a} to '${name}'", ("a", amount)("name", owner(d).name));
-#else
-        ilog("deposit cashback ${a} to '${name}'", ("a", amount)("name", owner(d).name));
-#endif
+        d.push_applied_operation(
+                    playchain_deposit_cashback_operation{ ctx.type, ctx.ctx.getter, owner, asset{amount, ctx.ctx.asset_id}, ctx.ctx.metadata } );
 
         d.modify(room, [&amount](room_object &obj)
         {
@@ -177,6 +203,7 @@ namespace
 
     void disseminate_for_inviters(database &d,
                                   const playchain_parameters &parameters,
+                                  const marked_deposit_context &ctx,
                                   const room_object &room,
                                   const player_object &inviter,
                                   share_type &amount,
@@ -189,7 +216,14 @@ namespace
         {
             d.modify( inviter, [&](player_object &obj)
             {
-                obj.pending_parent_invitation_fees[room.id] += amount;
+                deposit_statistic ds{ctx.ctx.getter, ctx.ctx.metadata, asset{0,ctx.ctx.asset_id} };
+                auto &&deposit_stats = obj.pending_parent_invitation_fees[room.id];
+                auto &&it = deposit_stats.find(ds);
+                if (it == deposit_stats.end())
+                {
+                    it = deposit_stats.emplace(ds).first;
+                }
+                (*it).amount += amount;
             });
 
             amount = 0;
@@ -215,11 +249,11 @@ namespace
                 parents_cut += max_my_cut - my_cut;
             }
 
-            deposit_cashback(d, room, inviter, inviter.account, my_cut);
+            deposit_cashback(d, ctx, room, inviter, inviter.account, my_cut);
         }
 
         amount = parents_cut;
-        disseminate_for_inviters(d, parameters, room,
+        disseminate_for_inviters(d, parameters, ctx, room,
                                  inviter.inviter(d), amount, --max_depth);
     }
 }
@@ -244,12 +278,16 @@ void deposit_pending_fees(database &d)
         {
             auto room_id = pending_fees_p.first;
             const auto &room = room_id(d);
-            auto pending_fees = pending_fees_p.second;
+            for(const auto &ds: pending_fees_p.second)
+            {
+                deposit_context player_ctx{ds.getter, ds.metadata, ds.asset_id};
+                marked_deposit_context inviter_deposit_ctx{playchain_deposit_type::inviter, player_ctx};
+                auto pending_amount = ds.amount;
+                disseminate_for_inviters(d, parameters, inviter_deposit_ctx, room,
+                                         player, pending_amount, PLAYCHAIN_MAXIMUM_INVITERS_DEPTH);
 
-            disseminate_for_inviters(d, parameters, room,
-                                     player, pending_fees, PLAYCHAIN_MAXIMUM_INVITERS_DEPTH);
-
-            deposit_cashback(d, room, room, room.owner, pending_fees);
+                deposit_cashback(d, inviter_deposit_ctx, room, room, room.owner, ds.amount);
+            }
         }
 
         d.modify(player, [](player_object& obj) {
@@ -258,6 +296,11 @@ void deposit_pending_fees(database &d)
 
         for(const auto &data: player.pending_fees)
         {
+            deposit_context player_ctx{data.getter, data.metadata, data.asset_id};
+            marked_deposit_context inviter_deposit_ctx{playchain_deposit_type::inviter, player_ctx};
+            marked_deposit_context room_owner_deposit_ctx{playchain_deposit_type::room, player_ctx};
+            marked_deposit_context witness_deposit_ctx{playchain_deposit_type::witness, player_ctx};
+
             const auto &room = data.room(d);
             const auto &pending_fees = data.amount;
 
@@ -265,7 +308,7 @@ void deposit_pending_fees(database &d)
             auto witness_cut = cut_fee(pending_fees, parameters.game_witness_percent_of_fee );
             auto game_owner_cut = pending_fees - inviters_cut - witness_cut;
 
-            disseminate_for_inviters(d, parameters, room,
+            disseminate_for_inviters(d, parameters, inviter_deposit_ctx, room,
                                      player.inviter(d), inviters_cut, PLAYCHAIN_MAXIMUM_INVITERS_DEPTH);
             game_owner_cut += inviters_cut;
 
@@ -278,7 +321,7 @@ void deposit_pending_fees(database &d)
                     for(const game_witness_id_type &witness_id: data.witnesses)
                     {
                         const auto &witness = witness_id(d);
-                        deposit_cashback(d, room, witness, witness.account, witness_one_cut);
+                        deposit_cashback(d, witness_deposit_ctx, room, witness, witness.account, witness_one_cut);
                         witness_cut -= witness_one_cut;
                     }
                 }
@@ -286,14 +329,14 @@ void deposit_pending_fees(database &d)
                 {
                     const game_witness_id_type &lucky_witness_id = (*data.witnesses.begin());
                     const auto &witness = lucky_witness_id(d);
-                    deposit_cashback(d, room, witness, witness.account, witness_cut);
+                    deposit_cashback(d, witness_deposit_ctx, room, witness, witness.account, witness_cut);
                 }
             }else
             {
                 game_owner_cut += witness_cut;
             }
 
-            deposit_cashback(d, room, room, room.owner, game_owner_cut);
+            deposit_cashback(d, room_owner_deposit_ctx, room, room, room.owner, game_owner_cut);
         }
 
         d.modify(player, [](player_object& obj) {

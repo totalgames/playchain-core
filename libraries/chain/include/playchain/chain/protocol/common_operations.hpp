@@ -48,8 +48,48 @@ namespace playchain { namespace chain {
         account_id_type   fee_payer()const { return donator; }
         void              validate()const;
     };
+
+    enum class playchain_deposit_type: uint16_t
+    {
+        unknown = 0,
+        inviter,
+        room,
+        witness
+    };
+
+    struct playchain_deposit_cashback_operation : public base_operation
+    {
+        struct fee_parameters_type {};
+
+        playchain_deposit_cashback_operation(){}
+        playchain_deposit_cashback_operation(
+                             const playchain_deposit_type deposit,
+                             const account_id_type &getter,
+                             const account_id_type &recipient,
+                             const asset &amount,
+                             const string &metadata)
+           : deposit((uint16_t)deposit),
+             getter(getter),
+             recipient(recipient),
+             amount(amount),
+             metadata(metadata)
+        {}
+
+        asset                     fee; // always zero
+        uint16_t                  deposit;
+        account_id_type           getter;
+        account_id_type           recipient;
+        asset                     amount;
+        string                    metadata;
+
+        account_id_type fee_payer()const { return GRAPHENE_TEMP_ACCOUNT; }
+        void            validate()const { FC_ASSERT( !"virtual operation" ); }
+        share_type      calculate_fee(const fee_parameters_type& k)const { return 0; }
+    };
 }}
 
 FC_REFLECT( playchain::chain::donate_to_playchain_operation::fee_parameters_type, (fee))
+FC_REFLECT( playchain::chain::playchain_deposit_cashback_operation::fee_parameters_type, )
 
 FC_REFLECT( playchain::chain::donate_to_playchain_operation, (fee)(donator))
+FC_REFLECT( playchain::chain::playchain_deposit_cashback_operation, (fee)(deposit)(getter)(recipient)(amount)(metadata))
