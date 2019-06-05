@@ -1012,6 +1012,33 @@ void application::initialize(const fc::path& data_dir, const boost::program_opti
       const uint16_t num_threads = options["io-threads"].as<uint16_t>();
       fc::asio::default_io_service_scope::set_num_threads(num_threads);
    }
+
+   std::vector<string> wanted;
+   if( options.count("plugins") )
+   {
+      boost::split(wanted, options.at("plugins").as<std::string>(), [](char c){return c == ' ';});
+   }
+   else
+   {
+      wanted.push_back("witness");
+      wanted.push_back("account_history");
+      wanted.push_back("market_history");
+      wanted.push_back("grouped_orders");
+   }
+   int es_ah_conflict_counter = 0;
+   for (auto& it : wanted)
+   {
+      if(it == "account_history")
+         ++es_ah_conflict_counter;
+      if(it == "elasticsearch")
+         ++es_ah_conflict_counter;
+
+      if(es_ah_conflict_counter > 1) {
+         elog("Can't start program with elasticsearch and account_history plugin at the same time");
+         std::exit(EXIT_FAILURE);
+      }
+      if (!it.empty()) enable_plugin(it);
+   }
 }
 
 void application::startup()
