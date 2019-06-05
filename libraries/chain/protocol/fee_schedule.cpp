@@ -201,6 +201,7 @@ namespace graphene { namespace chain {
    const optional<htlc_options>& chain_parameters::get_updatable_htlc_options() const
    {
        static optional<htlc_options> opt;
+       opt.reset();
 
        for(auto &&reff: extensions)
        {

@@ -1311,8 +1311,9 @@ namespace
              const std::string& section_name = section.first;
              const boost::property_tree::ptree& section_tree = section.second;
 
+#ifndef NDEBUG
              std::cout << section_name << std::endl;
-
+#endif //DEBUG
              const std::string console_appender_section_prefix = "log.console_appender.";
              const std::string file_appender_section_prefix = "log.file_appender.";
              const std::string gelf_appender_section_prefix = "log.gelf_appender.";
