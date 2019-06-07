@@ -5,7 +5,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <playchain/chain/playchain_config.hpp>
-#include <playchain/chain/sign_utils.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 #include <graphene/utilities/key_conversion.hpp>
 
 namespace cli
