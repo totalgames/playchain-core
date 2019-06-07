@@ -5,7 +5,7 @@
 
 #include <playchain/chain/evaluators/db_helpers.hpp>
 #include <playchain/chain/evaluators/validators.hpp>
-#include <playchain/chain/sign_utils.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 
 namespace playchain_api_tests {
 struct playchain_api_fixture : public playchain_common::playchain_fixture {

@@ -1,6 +1,6 @@
 #include "playchain_common.hpp"
 
-#include <playchain/chain/sign_utils.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 #include <playchain/chain/schema/player_invitation_object.hpp>
 #include <playchain/chain/schema/player_object.hpp>
 

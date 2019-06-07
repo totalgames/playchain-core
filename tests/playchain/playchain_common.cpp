@@ -1,6 +1,6 @@
 #include "playchain_common.hpp"
 
-#include <playchain/chain/sign_utils.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 
 #include <playchain/chain/schema/player_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
@@ -33,6 +33,13 @@ void playchain_fixture::init_fees()
     enable_fees();
 
     flat_set< fee_parameters > fees = db.get_global_properties().parameters.current_fees->parameters;
+
+    transfer_operation::fee_parameters_type transfer_params;
+    transfer_params.fee = 0;
+    transfer_params.price_per_kbyte = 0;
+    fees.erase(transfer_params);
+    fees.insert(transfer_params);
+
     player_invitation_create_operation::fee_parameters_type player_invitation_create_params;
     player_invitation_create_params.fee = 2 * GRAPHENE_BLOCKCHAIN_PRECISION;
     player_invitation_create_params.price_per_kbyte = 0;

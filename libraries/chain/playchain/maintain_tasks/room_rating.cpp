@@ -30,22 +30,56 @@
 #include <playchain/chain/schema/table_object.hpp>
 
 #include <playchain/chain/evaluators/db_helpers.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 
 namespace playchain { namespace chain {
 
 namespace
 {
-    void recalculate_rating(database &d, const room_object &room)
+    class randomizing_context
+    {
+    public:
+        explicit randomizing_context(const database &d);
+
+        uint16_t next() const;
+
+    private:
+
+        const size_t _MIN = 1;
+        const size_t _MAX = 0xfff;
+
+        int64_t _entropy = 0;
+        mutable size_t _pos = 0;
+    };
+
+    randomizing_context::randomizing_context(const database &d)
+    {
+        _entropy = utils::get_database_entropy(d);
+    }
+
+    uint16_t randomizing_context::next() const
+    {
+        return (uint16_t)utils::get_pseudo_random(_entropy, _pos++, _MIN, _MAX);
+    }
+
+    void recalculate_rating(database &d, const randomizing_context &rnd, const room_object &room)
     {
         const auto& dprops = d.get_dynamic_global_properties();
         auto old_rating = room.rating;
 
-        //TODO: calculate fraud statistic
+        assert(sizeof(old_rating) == 4);
 
         auto new_rating = old_rating;
 
+        //(1) randomize to make chance for different rooms with same rating
+        new_rating  &= (~0xffff);
+        new_rating |= rnd.next();
+
+        // TODO: (2) calculate fraud statistic to decrease rating
+        // TODO: (3) use votes from players to increase rating
+
         d.modify(room, [&](room_object &obj){
-            obj.prev_rating = obj.rating;
+            obj.prev_rating = old_rating;
             obj.rating = new_rating;
             obj.last_rating_update = dprops.time;
         });
@@ -53,8 +87,10 @@ namespace
 
     void recalculate_weight(database &d, const table_object &table)
     {
-        //invert 'rating' because table 'weight' sorted by ascending (look allocation_of_vacancies)
-        auto new_weight = -table.room(d).rating;
+        auto new_weight = table.room(d).rating;
+
+        // TODO
+
         d.modify(table, [&](table_object &obj){
             obj.weight = new_weight;
         });
@@ -63,22 +99,32 @@ namespace
 
 void update_room_rating(database &d)
 {
-    const auto& parameters = get_playchain_parameters(d);
     auto& rooms_by_last_update = d.get_index_type<room_index>().indices().get<by_last_rating_update>();
+
+    if (rooms_by_last_update.size() == 1) //only special room
+        return;
+
+    randomizing_context rnd{d};
+
+    const auto& parameters = get_playchain_parameters(d);
     auto itr = rooms_by_last_update.begin();
     size_t ci = 0;
     while( itr != rooms_by_last_update.end() &&
            ci++ < parameters.rooms_rating_recalculations_per_maintenance)
     {
         const room_object &room = *itr++;
+        if (room_object::is_special_room(room.id))
+            continue;
+
         if (room.last_updated_table != table_id_type{})
         {
             --ci;
             continue;
         }
-        recalculate_rating(d, room);
+        recalculate_rating(d, rnd, room);
     }
 }
+
 void update_table_weight(database &d)
 {
     const auto& parameters = get_playchain_parameters(d);
@@ -88,7 +134,7 @@ void update_table_weight(database &d)
     for( const room_object& room : idx )
     {
         if (room.is_not_changed_rating())
-            break;
+            continue;
 
         rooms.emplace_back(std::cref(room));
     }
@@ -105,6 +151,9 @@ void update_table_weight(database &d)
                    ci++ < parameters.tables_weight_recalculations_per_maintenance)
             {
                 const table_object &table = *itr++;
+                if (table_object::is_special_table(table.id))
+                    continue;
+
                 recalculate_weight(d, table);
                 last_updated_table = table.id;
             }

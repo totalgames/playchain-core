@@ -54,7 +54,7 @@ namespace playchain { namespace chain {
       uint32_t                pending_buy_in_allocate_per_block = PLAYCHAIN_DEFAULT_PENDING_BUY_IN_ALLOCATE_PER_BLOCK;
       uint32_t                rooms_rating_recalculations_per_maintenance = PLAYCHAIN_DEFAULT_ROOMS_RATING_RECALCULATIONS_PER_MAINTENANCE;
       uint32_t                tables_weight_recalculations_per_maintenance = PLAYCHAIN_DEFAULT_TABLES_WEIGHT_RECALCULATIONS_PER_MAINTENANCE;
-      int32_t                 max_allowed_table_weight_to_be_allocated = PLAYCHAIN_DEFAULT_MAX_ALLOWED_TABLE_WEIGHT_TO_BE_ALLOCATED;
+      int32_t                 min_allowed_table_weight_to_be_allocated = PLAYCHAIN_DEFAULT_MIN_ALLOWED_TABLE_WEIGHT_TO_BE_ALLOCATED;
       uint32_t                minimum_desired_number_of_players_for_tables_allocation = PLAYCHAIN_DEFAULT_MINIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION;
       uint32_t                maximum_desired_number_of_players_for_tables_allocation = PLAYCHAIN_DEFAULT_MAXIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION;
       uint32_t                buy_in_expiration_seconds = PLAYCHAIN_DEFAULT_BUY_IN_EXPIRATION_SECONDS;
@@ -87,7 +87,7 @@ FC_REFLECT( playchain::chain::playchain_parameters,
             (pending_buy_in_allocate_per_block)
             (rooms_rating_recalculations_per_maintenance)
             (tables_weight_recalculations_per_maintenance)
-            (max_allowed_table_weight_to_be_allocated)
+            (min_allowed_table_weight_to_be_allocated)
             (minimum_desired_number_of_players_for_tables_allocation)
             (maximum_desired_number_of_players_for_tables_allocation)
             (buy_in_expiration_seconds)

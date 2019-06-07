@@ -22,24 +22,33 @@
 * THE SOFTWARE.
 */
 
-#include <playchain/chain/sign_utils.hpp>
+#pragma once
+
+#include <graphene/chain/protocol/types.hpp>
+
+namespace graphene { namespace chain {
+    class database;
+}}
 
 namespace playchain { namespace chain { namespace utils {
 
-digest_type create_digest_by_invitation(const chain_id_type& chain_id, const string &inviter, const string &invitation_uid)
-{
-    digest_type::encoder enc;
-    fc::raw::pack( enc, chain_id );
-    fc::raw::pack( enc, inviter );
-    fc::raw::pack( enc, invitation_uid );
-    return enc.result();
-}
+using namespace graphene::chain;
 
-public_key_type get_signature_key(const signature_type &signature, const digest_type &digest)
-{
-    public_key_type result = fc::ecc::public_key(signature, digest);
-    FC_ASSERT(public_key_type() != result);
-    return result;
-}
+/**
+ * Creates invitation digest that should be used to create MANDAT for resolve operation
+ *
+ * @param chain_id
+ * @param inviter the name of inviter (not id)
+ * @param invitation_uid the invitation UID
+ * @returns the digest
+ */
+digest_type create_digest_by_invitation(const chain_id_type& chain_id, const string &inviter, const string &invitation_uid);
+
+public_key_type get_signature_key(const signature_type &signature, const digest_type &);
+
+//it is not recommend use in speed required functions
+int64_t get_database_entropy(const database &d);
+
+size_t get_pseudo_random(const int64_t entropy, const size_t pos = 0xff, const size_t min = 0, const size_t max = 0xffff);
 
 }}}

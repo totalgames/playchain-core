@@ -98,7 +98,7 @@ add_library( graphene_chain
              is_authorized_asset.cpp
 
              playchain/playchain_config.cpp
-             playchain/sign_utils.cpp
+             playchain/playchain_utils.cpp
              playchain/version.cpp
              playchain/impacted.cpp
              playchain/block_tasks/block_tasks.cpp

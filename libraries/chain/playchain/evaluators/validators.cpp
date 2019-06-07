@@ -34,7 +34,7 @@
 #include <playchain/chain/schema/game_witness_object.hpp>
 #include <playchain/chain/schema/pending_buy_in_object.hpp>
 
-#include <playchain/chain/sign_utils.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 #include <graphene/chain/protocol/sign_state.hpp>
 
 namespace playchain { namespace chain {

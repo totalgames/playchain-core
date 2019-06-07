@@ -159,8 +159,8 @@ void allocation_of_vacancies(database &d)
                 last_loop = true;
             }
 
-            auto key_l = std::make_tuple(buy_in.metadata, reachable_minimum, std::numeric_limits<int32_t>::min(), min_table_id);
-            auto key_r = std::make_tuple(buy_in.metadata, reachable_maximum, parameters.max_allowed_table_weight_to_be_allocated, max_table_id);
+            auto key_l = std::make_tuple(buy_in.metadata, reachable_minimum, parameters.min_allowed_table_weight_to_be_allocated, min_table_id);
+            auto key_r = std::make_tuple(buy_in.metadata, reachable_maximum, std::numeric_limits<int32_t>::max(), max_table_id);
 
             auto range = tables_by_free_places.range(::boost::lambda::_1 >= key_l, ::boost::lambda::_1 <= key_r);
             auto itr = range.first;

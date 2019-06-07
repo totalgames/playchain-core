@@ -76,7 +76,7 @@
 #include <graphene/wallet/reflect_util.hpp>
 #include <graphene/debug_witness/debug_api.hpp>
 
-#include <playchain/chain/sign_utils.hpp>
+#include <playchain/chain/playchain_utils.hpp>
 #include <playchain/chain/protocol/game_event_operations.hpp>
 
 #ifndef WIN32
