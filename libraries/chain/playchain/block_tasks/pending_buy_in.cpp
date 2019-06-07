@@ -39,6 +39,8 @@
 #include <boost/multi_index/detail/unbounded.hpp>
 
 #include <limits>
+#include <sstream>
+#include <iostream>
 
 namespace playchain { namespace chain {
 
@@ -86,6 +88,48 @@ namespace
                                                       expire_by_replacement} );
         }
     }
+
+    template<typename Range>
+    void print_tables_range(const Range &range, const string &preffix = "")
+#ifdef NDEBUG
+    {
+        //SLOW OP. SKIPPED
+    }
+#else
+    {
+        auto itr = range.first;
+        std::vector<string> table_list;
+
+        size_t ci = 0;
+        while(itr != range.second)
+        {
+            const auto &table = *itr++;
+
+            std::stringstream ss;
+
+            if (ci > 0)
+                ss << ", ";
+            ss << '"' << ci++ << '"' << ": ";
+            ss << fc::json::to_string( table.to_variant() );
+
+            table_list.emplace_back(ss.str());
+        }
+
+        if (!table_list.empty())
+        {
+            std::stringstream ss;
+
+            ss << preffix << " >> ";
+
+            for(auto &&r: table_list)
+            {
+                ss << r;
+            }
+
+            std::cerr << ss.str() << std::endl;
+        }
+    }
+#endif //DEBUG
 }
 
 void update_expired_pending_buy_in(database &d)
@@ -147,8 +191,9 @@ void allocation_of_vacancies(database &d)
 
             if (!lookup_out_range)
             {
-                auto range_test_min = tables_by_free_places.range(::boost::lambda::_1 >= std::make_tuple(buy_in.metadata, reachable_minimum, std::numeric_limits<int32_t>::min(), min_table_id),
+                auto range_test_min = tables_by_free_places.range(::boost::lambda::_1 >= std::make_tuple(buy_in.metadata, reachable_minimum, parameters.min_allowed_table_weight_to_be_allocated, min_table_id),
                                                                   ::boost::lambda::_1 <= std::make_tuple(buy_in.metadata, reachable_maximum, std::numeric_limits<int32_t>::max(), max_table_id));
+                print_tables_range(range_test_min, "test");
                 if (range_test_min.first == range_test_min.second)
                 {
                     reachable_minimum = 0;
@@ -163,6 +208,8 @@ void allocation_of_vacancies(database &d)
             auto key_r = std::make_tuple(buy_in.metadata, reachable_maximum, std::numeric_limits<int32_t>::max(), max_table_id);
 
             auto range = tables_by_free_places.range(::boost::lambda::_1 >= key_l, ::boost::lambda::_1 <= key_r);
+            print_tables_range(range);
+
             auto itr = range.first;
 
             lookup_out_range = true;

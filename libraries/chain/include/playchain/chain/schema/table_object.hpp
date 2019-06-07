@@ -281,7 +281,7 @@ namespace playchain { namespace chain {
                                        &object::id>>, //unique
                          composite_key_compare<std::less<string>,
                                                std::less<uint32_t>,
-                                               std::less<int32_t>,
+                                               std::greater<int32_t>,
                                                std::less<object_id_type>>>
     >>;
 

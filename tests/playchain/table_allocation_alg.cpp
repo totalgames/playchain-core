@@ -44,7 +44,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg)
     Actor lucky3 = create_new_player(richregistrator, "lucky3", asset(player_init_balance));
     Actor lucky4 = create_new_player(richregistrator, "lucky4", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     BOOST_REQUIRE_EQUAL(table1_obj.get_pending_proposals(), 0u);
 
@@ -144,6 +144,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_consider_protocol_version)
     Actor player3 = create_new_player(richregistrator, "player3", asset(player_init_balance));
     Actor player4 = create_new_player(richregistrator, "player4", asset(player_init_balance));
 
+    next_maintenance();
+
     auto stake = asset(player_init_balance/2);
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version1));
@@ -153,12 +155,20 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_consider_protocol_version)
 
     generate_block();
 
-    //because protocol_version1 == protocol_version2 (by protocol) and alg_conf_min == 1
-    BOOST_REQUIRE_EQUAL(table1(db).get_pending_proposals(), 2u);
-    //because protocol_version1 == protocol_version2 (by protocol) and alg_conf_min == 1
-    BOOST_REQUIRE_EQUAL(table2(db).get_pending_proposals(), 0u);
+    if (table1(db).weight < table2(db).weight)
+    {
+        //because protocol_version1 == protocol_version2 (by protocol) and alg_conf_min == 1
+        BOOST_CHECK_EQUAL(table1(db).get_pending_proposals(), 0u);
+        //because protocol_version1 == protocol_version2 (by protocol) and alg_conf_min == 1
+        BOOST_CHECK_EQUAL(table2(db).get_pending_proposals(), 2u);
+    }else
+    {
+        BOOST_CHECK_EQUAL(table1(db).get_pending_proposals(), 2u);
+        BOOST_CHECK_EQUAL(table2(db).get_pending_proposals(), 0u);
+    }
+
     //because protocol_version3 != protocol_version1 == protocol_version2
-    BOOST_REQUIRE_EQUAL(table3(db).get_pending_proposals(), 2u);
+    BOOST_CHECK_EQUAL(table3(db).get_pending_proposals(), 2u);
 }
 
 PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_without_table)
@@ -173,7 +183,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_without_table)
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -208,7 +218,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_single_table)
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -245,7 +255,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_different_tables)
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -288,7 +298,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_table_owner)
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
     Actor player2 = create_new_player(richregistrator, "player2", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -354,7 +364,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_full_table)
     Actor player11 = create_new_player(richregistrator, "p11", asset(player_init_balance));
     Actor player12 = create_new_player(richregistrator, "p12", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     BOOST_REQUIRE_EQUAL(table1_obj.get_pending_proposals(), 0u);
     BOOST_REQUIRE_EQUAL(table2_obj.get_pending_proposals(), 0u);
@@ -420,7 +430,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_tables)
     Actor player11 = create_new_player(richregistrator, "p11", asset(player_init_balance));
     Actor player12 = create_new_player(richregistrator, "p12", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator));
 
@@ -486,7 +496,7 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_will_free_tab
     Actor player11 = create_new_player(richregistrator, "p11", asset(player_init_balance));
     Actor player12 = create_new_player(richregistrator, "p12", asset(player_init_balance));
 
-    generate_block();
+    next_maintenance();
 
     auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator));
 
@@ -654,12 +664,12 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
 
     auto stake = asset(player_init_balance/2);
 
-    next_maintenance();
+    size_t ci = 0;
+    while(room1(db).rating <= room2(db).rating && ci++ < 10)
+    {
+        next_maintenance();
+    }
 
-    wdump((room1(db).rating));
-    wdump((room2(db).rating));
-
-    BOOST_REQUIRE_NE(room1(db).rating, room2(db).rating);
     BOOST_REQUIRE_GT(room1(db).rating, room2(db).rating);
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta));
@@ -668,27 +678,34 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
 
     generate_block();
 
-    BOOST_CHECK_EQUAL(table2_1(db).get_pending_proposals(), 3u);
-    BOOST_CHECK_EQUAL(table2_2(db).get_pending_proposals(), 0u);
-
-    next_maintenance();
-    next_maintenance();
-
-    wdump((room1(db).rating));
-    wdump((room2(db).rating));
-
-    BOOST_REQUIRE_NE(room1(db).rating, room2(db).rating);
-    BOOST_REQUIRE_LT(room1(db).rating, room2(db).rating);
-
+    BOOST_CHECK_EQUAL(table1_1(db).get_pending_proposals(), 3u);
+    BOOST_CHECK_EQUAL(table1_2(db).get_pending_proposals(), 0u);
     BOOST_CHECK_EQUAL(table2_1(db).get_pending_proposals(), 0u);
     BOOST_CHECK_EQUAL(table2_2(db).get_pending_proposals(), 0u);
+
+    ci = 0;
+    while(room1(db).rating >= room2(db).rating && ci++ < 10)
+    {
+        next_maintenance();
+    }
+
+    BOOST_REQUIRE_LT(room1(db).rating, room2(db).rating);
+
+    BOOST_REQUIRE_EQUAL(table1_1(db).get_pending_proposals(), 0u);
+    BOOST_REQUIRE_EQUAL(table1_2(db).get_pending_proposals(), 0u);
+    BOOST_REQUIRE_EQUAL(table2_1(db).get_pending_proposals(), 0u);
+    BOOST_REQUIRE_EQUAL(table2_2(db).get_pending_proposals(), 0u);
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player3, get_next_uid(actor(player3)), stake, meta));
 
-    BOOST_CHECK_EQUAL(table1_1(db).get_pending_proposals(), 3u);
+    generate_block();
+
+    BOOST_CHECK_EQUAL(table1_1(db).get_pending_proposals(), 0u);
     BOOST_CHECK_EQUAL(table1_2(db).get_pending_proposals(), 0u);
+    BOOST_CHECK_EQUAL(table2_1(db).get_pending_proposals(), 3u);
+    BOOST_CHECK_EQUAL(table2_2(db).get_pending_proposals(), 0u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
