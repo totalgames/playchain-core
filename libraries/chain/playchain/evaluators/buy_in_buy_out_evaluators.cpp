@@ -40,6 +40,8 @@
 #include <playchain/chain/evaluators/validators.hpp>
 #include <playchain/chain/evaluators/db_helpers.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 namespace playchain { namespace chain {
 
 namespace
@@ -331,6 +333,10 @@ namespace
 
             FC_ASSERT(is_table_owner(d, op.table_owner, op.table), "Wrong table owner");
             FC_ASSERT(is_pending_buy_in_exists(d, op.pending_buyin), "Pending buy-in does not exist");
+            if (d.head_block_time() >= HARDFORK_PLAYCHAIN_3_TIME)
+            {
+                FC_ASSERT(table.metadata == op.metadata, "Wrong metadata to resolve pending  buyin");
+            }
 
             const pending_buy_in_object& buyin = op.pending_buyin(d);
             const player_object &player = get_player(d, buyin.player);

@@ -31,6 +31,8 @@
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include <limits>
 
 namespace playchain{ namespace chain{
@@ -76,8 +78,16 @@ namespace playchain{ namespace chain{
             const database& d = db();
             FC_ASSERT(is_table_exists(d, op.table), "Table does not exist");
             FC_ASSERT(is_table_owner(d, op.owner, op.table), "Wrong table owner");
-            FC_ASSERT(op.table(d).is_free(), "Can't update table while playing");
+
+            auto &&table_obj = op.table(d);
+
+            FC_ASSERT(table_obj.is_free(), "Can't update table while playing");
             FC_ASSERT(!is_table_voting(d, op.table), "Can't update table while voting");
+            if (d.head_block_time() >= HARDFORK_PLAYCHAIN_3_TIME &&
+                    table_obj.metadata != op.metadata)
+            {
+                FC_ASSERT(!is_table_alive(d, table_obj.id), "Can't update table metadata while table alive");
+            }
 
             return void_result();
         } FC_CAPTURE_AND_RETHROW((op))
