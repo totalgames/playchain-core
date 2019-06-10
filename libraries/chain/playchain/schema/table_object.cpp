@@ -31,9 +31,40 @@
 
 #include <playchain/chain/schema/pending_buy_in_object.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include <algorithm>
+#include <limits>
 
 namespace playchain { namespace chain {
+
+void table_object::set_weight(database &d) const
+{
+    if (d.head_block_time() >= HARDFORK_PLAYCHAIN_2_TIME)
+    {
+        auto new_weight = room(d).rating;
+
+        if (is_table_alive(d, id))
+        {
+            d.modify(*this, [&new_weight](table_object &obj){
+                obj.weight = new_weight;
+            });
+        }else
+        {
+            if (new_weight <= 0)
+                new_weight = std::numeric_limits<decltype(new_weight)>::min();
+
+            d.modify(*this, [&new_weight](table_object &obj){
+                obj.weight = -new_weight;
+            });
+        }
+    }else
+    {
+        d.modify(*this, [&](table_object &obj){
+            obj.weight = 0;
+        });
+    }
+}
 
 void table_object::adjust_cash(const player_id_type &player, asset delta)
 {

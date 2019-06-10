@@ -31,6 +31,7 @@
 
 #include <playchain/chain/evaluators/db_helpers.hpp>
 #include <playchain/chain/playchain_utils.hpp>
+#include <playchain/chain/evaluators/validators.hpp>
 
 namespace playchain { namespace chain {
 
@@ -82,17 +83,6 @@ namespace
             obj.prev_rating = old_rating;
             obj.rating = new_rating;
             obj.last_rating_update = dprops.time;
-        });
-    }
-
-    void recalculate_weight(database &d, const table_object &table)
-    {
-        auto new_weight = table.room(d).rating;
-
-        // TODO
-
-        d.modify(table, [&](table_object &obj){
-            obj.weight = new_weight;
         });
     }
 }
@@ -154,7 +144,7 @@ void update_table_weight(database &d)
                 if (table_object::is_special_table(table.id))
                     continue;
 
-                recalculate_weight(d, table);
+                table.set_weight(d);
                 last_updated_table = table.id;
             }
             d.modify(room, [&](room_object &obj){

@@ -76,6 +76,12 @@ namespace playchain { namespace chain {
         return idx.end() != idx.find(table);
     }
 
+    bool is_table_alive(const database& d, const table_id_type &table)
+    {
+        const auto& idx = d.get_index_type<table_alive_index>().indices().get<by_table>();
+        return idx.end() != idx.find(table);
+    }
+
     bool is_table_voting_for_playing(const database& d, const table_id_type &table)
     {
         const auto& idx = d.get_index_type<table_voting_index>().indices().get<by_table>();

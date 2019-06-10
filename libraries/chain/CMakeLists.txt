@@ -122,7 +122,7 @@ add_library( graphene_chain
              playchain/evaluators/common_evaluators.cpp
              playchain/evaluators/playchain_committee_member_evaluator.cpp
              playchain/block_tasks/player_invitation.cpp
-             playchain/block_tasks/table_voting.cpp
+             playchain/block_tasks/table_check.cpp
              playchain/block_tasks/pending_buy_in.cpp
              playchain/maintain_tasks/room_rating.cpp
              playchain/maintain_tasks/deposit_pending_fees.cpp

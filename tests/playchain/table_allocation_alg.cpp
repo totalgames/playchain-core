@@ -5,6 +5,8 @@
 
 #include <playchain/chain/evaluators/db_helpers.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 namespace table_allocation_alg_tests
 {
 struct table_allocation_alg_fixture: public playchain_common::playchain_fixture
@@ -648,6 +650,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_replace_allocation
 
 PLAYCHAIN_TEST_CASE(check_room_rake_changing)
 {
+    generate_blocks(HARDFORK_PLAYCHAIN_2_TIME);
+
     const std::string meta = "Game";
 
     room_id_type room1 = create_new_room(richregistrator, "room1");
@@ -670,6 +674,11 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
         next_maintenance();
     }
 
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_2));
+
     BOOST_REQUIRE_GT(room1(db).rating, room2(db).rating);
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta));
@@ -688,6 +697,11 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
     {
         next_maintenance();
     }
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_2));
 
     BOOST_REQUIRE_LT(room1(db).rating, room2(db).rating);
 

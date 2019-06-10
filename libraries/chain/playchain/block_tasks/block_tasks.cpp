@@ -26,7 +26,7 @@
 #include <graphene/chain/database.hpp>
 
 #include "player_invitation.hpp"
-#include "table_voting.hpp"
+#include "table_check.hpp"
 #include "pending_buy_in.hpp"
 
 namespace playchain { namespace chain {
@@ -38,6 +38,7 @@ void process_block_tasks(database &d, const bool maintenance)
     update_expired_table_game(d, maintenance);
     update_expired_pending_buy_in(d);
     update_expired_buy_in(d);
+    update_expired_table_alive(d);
 
     allocation_of_vacancies(d);
 }

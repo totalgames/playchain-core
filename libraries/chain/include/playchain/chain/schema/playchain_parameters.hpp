@@ -58,6 +58,7 @@ namespace playchain { namespace chain {
       uint32_t                minimum_desired_number_of_players_for_tables_allocation = PLAYCHAIN_DEFAULT_MINIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION;
       uint32_t                maximum_desired_number_of_players_for_tables_allocation = PLAYCHAIN_DEFAULT_MAXIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION;
       uint32_t                buy_in_expiration_seconds = PLAYCHAIN_DEFAULT_BUY_IN_EXPIRATION_SECONDS;
+      uint32_t                table_alive_expiration_seconds = PLAYCHAIN_DEFAULT_TABLE_ALIVE_EXPIRATION_SECONDS;
 
       percent_type            percentage_of_voter_witness_substitution_while_voting_for_playing = PLAYCHAIN_DEFAULT_PERCENTAGE_OF_VOTER_WITNESS_SUBSTITUTION_WHILE_VOTING_FOR_PLAYING;
       percent_type            percentage_of_voter_witness_substitution_while_voting_for_results = PLAYCHAIN_DEFAULT_PERCENTAGE_OF_VOTER_WITNESS_SUBSTITUTION_WHILE_VOTING_FOR_RESULTS;
@@ -91,6 +92,7 @@ FC_REFLECT( playchain::chain::playchain_parameters,
             (minimum_desired_number_of_players_for_tables_allocation)
             (maximum_desired_number_of_players_for_tables_allocation)
             (buy_in_expiration_seconds)
+            (table_alive_expiration_seconds)
             (percentage_of_voter_witness_substitution_while_voting_for_playing)
             (percentage_of_voter_witness_substitution_while_voting_for_results)
             (min_votes_for_results)

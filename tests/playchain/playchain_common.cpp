@@ -867,4 +867,23 @@ void playchain_fixture::vote_for(const vote_id_type &vote_id, const Actor &voter
     }FC_LOG_AND_RETHROW()
 }
 
+table_alive_operation playchain_fixture::table_alive_op(const account_id_type& room_owner,
+                                     const table_id_type& table)
+{
+    table_alive_operation op;
+
+    op.owner = room_owner;
+    op.table = table;
+
+    return op;
+}
+
+table_alive_operation playchain_fixture::table_alive(const Actor& room_owner,
+                                  const table_id_type &table)
+{
+    auto op = table_alive_op(actor(room_owner), table);
+
+    actor(room_owner).push_operation(op);
+    return op;
+}
 }

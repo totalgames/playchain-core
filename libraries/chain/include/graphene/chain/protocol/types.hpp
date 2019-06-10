@@ -66,6 +66,7 @@ namespace playchain { namespace chain {
     class buy_in_object;
     class pending_table_vote_object;
     class playchain_committee_member_object;
+    class table_alive_object;
 }}
 
 namespace graphene { namespace chain {
@@ -200,6 +201,7 @@ namespace graphene { namespace chain {
       impl_buy_in_object_type,
       impl_pending_table_vote_object_type,
       impl_playchain_committee_member_object_type,
+      impl_table_alive_object_type,
    };
 
    //typedef fc::unsigned_int            object_id_type;
@@ -288,6 +290,7 @@ namespace graphene { namespace chain {
    typedef object_id< implementation_for_playchain_ids, impl_buy_in_object_type, buy_in_object>                         buy_in_id_type;
    typedef object_id< implementation_for_playchain_ids, impl_pending_table_vote_object_type, pending_table_vote_object> pending_table_vote_id_type;
    typedef object_id< implementation_for_playchain_ids, impl_playchain_committee_member_object_type, playchain_committee_member_object> playchain_committee_member_id_type;
+   typedef object_id< implementation_for_playchain_ids, impl_table_alive_object_type, table_alive_object>               table_alive_id_type;
 
    typedef fc::array<char, GRAPHENE_MAX_ASSET_SYMBOL_LENGTH>    symbol_type;
    typedef fc::ripemd160                                        block_id_type;
@@ -454,6 +457,7 @@ FC_REFLECT_ENUM( graphene::chain::playchain_impl_object_type,
                  (impl_buy_in_object_type)
                  (impl_pending_table_vote_object_type)
                  (impl_playchain_committee_member_object_type)
+                 (impl_table_alive_object_type)
                )
 
 FC_REFLECT_TYPENAME( graphene::chain::share_type )
@@ -500,6 +504,7 @@ FC_REFLECT_TYPENAME( graphene::chain::playchain_property_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::buy_in_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::pending_table_vote_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::playchain_committee_member_id_type )
+FC_REFLECT_TYPENAME( graphene::chain::table_alive_id_type )
 
 FC_REFLECT( graphene::chain::void_t, )
 

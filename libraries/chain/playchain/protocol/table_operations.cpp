@@ -42,4 +42,9 @@ void table_update_operation::validate() const
     FC_ASSERT( min_accepted_proposal_asset.amount > 0 );
 }
 
+void table_alive_operation::validate() const
+{
+    FC_ASSERT( !account_object::is_special_account(owner) );
+    FC_ASSERT( table != PLAYCHAIN_NULL_TABLE );
+}
 }}

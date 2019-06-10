@@ -25,10 +25,13 @@
 #include <playchain/chain/evaluators/table_evaluators.hpp>
 #include <playchain/chain/playchain_config.hpp>
 
+#include <playchain/chain/evaluators/db_helpers.hpp>
 #include <playchain/chain/evaluators/validators.hpp>
 
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
+
+#include <limits>
 
 namespace playchain{ namespace chain{
 
@@ -58,6 +61,8 @@ namespace playchain{ namespace chain{
                            table.game_created = fc::time_point_sec::min();
                            table.game_expiration = fc::time_point_sec::maximum();
                         });
+
+            new_table.set_weight(d);
 
             dlog("new table: ${t}", ("t", new_table));
 
@@ -90,6 +95,49 @@ namespace playchain{ namespace chain{
                             table.required_witnesses = op.required_witnesses;
                             table.min_accepted_proposal_asset = op.min_accepted_proposal_asset;
                         });
+
+            return void_result();
+        } FC_CAPTURE_AND_RETHROW((op))
+    }
+
+    void_result table_alive_evaluator::do_evaluate( const operation_type& op )
+    {
+        try {
+            const database& d = db();
+            FC_ASSERT(is_table_exists(d, op.table), "Table does not exist");
+            FC_ASSERT(is_table_owner(d, op.owner, op.table), "Wrong table owner");
+
+            return void_result();
+        } FC_CAPTURE_AND_RETHROW((op))
+    }
+
+    void_result table_alive_evaluator::do_apply( const operation_type& op )
+    {
+        try {
+            database& d = db();
+
+            auto &&table_obj = op.table(d);
+
+            const auto& dyn_props = d.get_dynamic_global_properties();
+            const auto& parameters = get_playchain_parameters(d);
+
+            const auto& idx = d.get_index_type<table_alive_index>().indices().get<by_table>();
+            auto it = idx.find(table_obj.id);
+            if (idx.end() != it)
+            {
+                d.modify(*it, [&](table_alive_object& alive) {
+                    alive.expiration = dyn_props.time + fc::seconds(parameters.table_alive_expiration_seconds);
+                            });
+            }else
+            {
+                d.create<table_alive_object>([&](table_alive_object& alive) {
+                                           alive.table = table_obj.id;
+                                           alive.created = dyn_props.time;
+                                           alive.expiration = alive.created + fc::seconds(parameters.table_alive_expiration_seconds);
+                });
+            }
+
+            table_obj.set_weight(d);
 
             return void_result();
         } FC_CAPTURE_AND_RETHROW((op))

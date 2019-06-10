@@ -146,7 +146,8 @@ namespace graphene { namespace chain {
             playchain_committee_member_create_operation,
             playchain_committee_member_update_operation,
             playchain_committee_member_update_parameters_operation,
-            playchain_deposit_cashback_operation                    // VIRTUAL
+            playchain_deposit_cashback_operation,                   // VIRTUAL
+            table_alive_operation
          > operation;
 
    /// @} // operations group

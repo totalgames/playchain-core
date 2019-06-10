@@ -126,6 +126,7 @@ void database::initialize_evaluators()
    register_evaluator<room_update_evaluator>();
    register_evaluator<table_create_evaluator>();
    register_evaluator<table_update_evaluator>();
+   register_evaluator<table_alive_evaluator>();
    register_evaluator<player_create_by_room_owner_evaluator>();
    register_evaluator<buy_in_reserve_evaluator>();
    register_evaluator<buy_in_cancel_evaluator>();
@@ -201,6 +202,7 @@ void database::initialize_indexes()
    add_index< primary_index<buy_in_index> >();
    add_index< primary_index<pending_table_vote_index> >();
    add_index< primary_index<playchain_committee_member_index> >();
+   add_index< primary_index<table_alive_index> >();
 }
 
 void database::init_genesis(const genesis_state_type& genesis_state)

@@ -457,6 +457,11 @@ struct get_impacted_account_visitor
    {
        _impacted.insert(op.recipient);
    }
+
+   void operator()( const table_alive_operation& op )
+   {
+       _impacted.insert(op.owner);
+   }
 };
 
 void operation_get_impacted_accounts( const operation& op, flat_set<account_id_type>& result )

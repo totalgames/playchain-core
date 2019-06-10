@@ -388,9 +388,6 @@ namespace playchain_common
                                          const table_id_type &table,
                                          const bool rollback_table);
 
-        ///////////////////////////////
-        /// \brief migration
-        ///
         player_create_by_room_owner_operation player_create_by_room_owner_op(const account_id_type& room_owner,
                                                                                const account_id_type& account);
 
@@ -439,6 +436,18 @@ namespace playchain_common
                                                                             const optional<string>& url = {});
 
         void vote_for(const vote_id_type &vote_id, const Actor &voter, bool approve = true);
+
+        table_alive_operation table_alive_op(const account_id_type& room_owner,
+                                             const table_id_type& table);
+
+        table_alive_operation table_alive_op(const Actor& room_owner,
+                                                                               const table_id_type& table)
+        {
+            return table_alive_op(actor(room_owner), table);
+        }
+
+        table_alive_operation table_alive(const Actor& room_owner,
+                                          const table_id_type &table);
     };
 }
 

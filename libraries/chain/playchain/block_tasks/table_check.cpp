@@ -22,7 +22,7 @@
 * THE SOFTWARE.
 */
 
-#include "table_voting.hpp"
+#include "table_check.hpp"
 
 #include <graphene/chain/database.hpp>
 
@@ -31,12 +31,13 @@
 
 #include <playchain/chain/evaluators/game_evaluators.hpp>
 #include <playchain/chain/evaluators/db_helpers.hpp>
+#include <playchain/chain/evaluators/validators.hpp>
 
 namespace playchain { namespace chain {
 
 void update_expired_table_voting(database &d)
 {
-   auto& voting_by_expiration= d.get_index_type<table_voting_index>().indices().get<by_table_voting_expiration>();
+   auto& voting_by_expiration= d.get_index_type<table_voting_index>().indices().get<by_table_expiration>();
    while( !voting_by_expiration.empty() && voting_by_expiration.begin()->expiration <= d.head_block_time() )
    {
        const table_voting_object &voting = *voting_by_expiration.begin();
@@ -72,6 +73,23 @@ void update_expired_table_game(database &d, const bool maintenance)
                     game_event_operation{ table.id, table.room(d).owner, fail_expire_game_lifetime{} } );
 
         rollback_table(d, table);
+    }
+}
+
+void update_expired_table_alive(database &d)
+{
+    auto& alive_by_expiration= d.get_index_type<table_alive_index>().indices().get<by_table_expiration>();
+    while( !alive_by_expiration.empty() && alive_by_expiration.begin()->expiration <= d.head_block_time() )
+    {
+        const table_alive_object &alive = *alive_by_expiration.begin();
+
+        assert(is_table_exists(d, alive.table));
+
+        const table_object &table = alive.table(d);
+
+        d.remove(alive);
+
+        table.set_weight(d);
     }
 }
 

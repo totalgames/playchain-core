@@ -49,4 +49,13 @@ namespace playchain { namespace chain {
           void_result do_evaluate( const operation_type& o );
           void_result do_apply( const operation_type& o );
     };
+
+    class table_alive_evaluator : public evaluator<table_alive_evaluator>
+    {
+       public:
+          using operation_type = table_alive_operation;
+
+          void_result do_evaluate( const operation_type& o );
+          void_result do_apply( const operation_type& o );
+    };
 }}

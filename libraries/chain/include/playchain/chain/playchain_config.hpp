@@ -98,6 +98,7 @@ struct config
     const uint32_t minimum_desired_number_of_players_for_tables_allocation;
     const uint32_t maximum_desired_number_of_players_for_tables_allocation;
     const uint32_t buy_in_expiration_seconds;
+    const uint32_t table_alive_expiration_seconds;
 
     enum test_mode { test };
 
@@ -122,4 +123,5 @@ void override_config(std::unique_ptr<config> new_config);
 #define PLAYCHAIN_DEFAULT_MINIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION (playchain::protocol::detail::get_config().minimum_desired_number_of_players_for_tables_allocation)
 #define PLAYCHAIN_DEFAULT_MAXIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION (playchain::protocol::detail::get_config().maximum_desired_number_of_players_for_tables_allocation)
 #define PLAYCHAIN_DEFAULT_BUY_IN_EXPIRATION_SECONDS (playchain::protocol::detail::get_config().buy_in_expiration_seconds)
+#define PLAYCHAIN_DEFAULT_TABLE_ALIVE_EXPIRATION_SECONDS (playchain::protocol::detail::get_config().table_alive_expiration_seconds)
 

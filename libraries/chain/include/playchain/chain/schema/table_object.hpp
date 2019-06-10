@@ -112,6 +112,7 @@ namespace playchain { namespace chain {
 
         static bool is_special_table(const table_id_type &);
 
+        void set_weight(database &) const;
         void adjust_cash(const player_id_type &id, asset delta);
         void adjust_playing_cash(const player_id_type &id, asset delta);
         void clear_cash();
@@ -165,6 +166,17 @@ namespace playchain { namespace chain {
         {
             return !votes.empty() && (votes.begin()->second).which() == voting_data_type::tag<game_result>::value;
         }
+    };
+
+    class table_alive_object : public graphene::db::abstract_object<table_alive_object>
+    {
+    public:
+        static constexpr uint8_t space_id = implementation_for_playchain_ids;
+        static constexpr uint8_t type_id  = impl_table_alive_object_type;
+
+        table_id_type                       table;
+        fc::time_point_sec                  created; //< for monitoring only
+        fc::time_point_sec                  expiration;
     };
 
     /**
@@ -288,7 +300,7 @@ namespace playchain { namespace chain {
     using table_index = generic_index<table_object, table_multi_index_type>;
 
     struct by_table;
-    struct by_table_voting_expiration;
+    struct by_table_expiration;
 
     /**
      * @ingroup object_index
@@ -300,7 +312,7 @@ namespace playchain { namespace chain {
           ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
           ordered_unique< tag<by_table>,
                     member<table_voting_object, table_id_type, &table_voting_object::table> >,
-          ordered_unique<tag<by_table_voting_expiration>,
+          ordered_unique<tag<by_table_expiration>,
                     composite_key<table_voting_object,
                     member<table_voting_object, time_point_sec, &table_voting_object::expiration>,
                     member<object, object_id_type, &object::id > >>
@@ -327,6 +339,24 @@ namespace playchain { namespace chain {
     >>;
 
     using pending_table_vote_index = generic_index<pending_table_vote_object, pending_table_vote_multi_index_type>;
+
+    /**
+     * @ingroup object_index
+     */
+    using table_alive_multi_index_type =
+    multi_index_container<
+       table_alive_object,
+       indexed_by<
+          ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
+          ordered_unique< tag<by_table>,
+                    member<table_alive_object, table_id_type, &table_alive_object::table> >,
+          ordered_unique<tag<by_table_expiration>,
+                    composite_key<table_alive_object,
+                    member<table_alive_object, time_point_sec, &table_alive_object::expiration>,
+                    member<object, object_id_type, &object::id > >>
+    >>;
+
+    using table_alive_index = generic_index<table_alive_object, table_alive_multi_index_type>;
 }}
 
 FC_REFLECT_DERIVED( playchain::chain::table_object,
@@ -342,3 +372,7 @@ FC_REFLECT_DERIVED( playchain::chain::table_voting_object,
                     (graphene::db::object),
                     (table)(created)(expiration)(votes)(witnesses_allowed_for_substitution)
                     (required_player_voters)(required_witness_voters)(voted_witnesses)(etalon_vote))
+
+FC_REFLECT_DERIVED( playchain::chain::table_alive_object,
+                    (graphene::db::object),
+                    (table)(created)(expiration))

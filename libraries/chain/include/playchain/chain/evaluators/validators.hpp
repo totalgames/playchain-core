@@ -48,6 +48,8 @@ namespace playchain { namespace chain {
 
     bool is_table_voting(const database& d, const table_id_type &table);
 
+    bool is_table_alive(const database& d, const table_id_type &table);
+
     bool is_table_voting_for_playing(const database& d, const table_id_type &table);
 
     bool is_table_voting_for_results(const database& d, const table_id_type &table);
