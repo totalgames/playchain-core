@@ -39,8 +39,7 @@
 
 #include <playchain/chain/evaluators/validators.hpp>
 #include <playchain/chain/evaluators/db_helpers.hpp>
-
-#include <graphene/chain/hardfork.hpp>
+#include <playchain/chain/evaluators/table_evaluators.hpp>
 
 namespace playchain { namespace chain {
 
@@ -92,6 +91,8 @@ namespace
     operation_result register_buy_in(database& d, const player_object & player,
                        const table_object &table)
     {
+        object_id_type ret_id;
+
         auto& index = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table_and_player>();
         auto it = index.find(boost::make_tuple(table.id, player.id));
         if (it == index.end())
@@ -99,7 +100,7 @@ namespace
             const auto& dyn_props = d.get_dynamic_global_properties();
             const auto& parameters = get_playchain_parameters(d);
 
-            return d.create<buy_in_object>([&](buy_in_object& buyin) {
+            ret_id = d.create<buy_in_object>([&](buy_in_object& buyin) {
                buyin.player = player.id;
                buyin.table = table.id;
                buyin.created = dyn_props.time;
@@ -110,7 +111,11 @@ namespace
             prolong_life_for_by_in(d, *it);
         }
 
-        return {};
+        object_id_type alive_id = alife_for_table(d, table.id).get<object_id_type>();
+        if (ret_id == object_id_type{})
+            ret_id = alive_id;
+
+        return ret_id;
     }
 
     operation_result buy_out_table(database& d, const player_object & player,
@@ -333,10 +338,6 @@ namespace
 
             FC_ASSERT(is_table_owner(d, op.table_owner, op.table), "Wrong table owner");
             FC_ASSERT(is_pending_buy_in_exists(d, op.pending_buyin), "Pending buy-in does not exist");
-            if (d.head_block_time() >= HARDFORK_PLAYCHAIN_3_TIME)
-            {
-                FC_ASSERT(table.metadata == op.metadata, "Wrong metadata to resolve pending  buyin");
-            }
 
             const pending_buy_in_object& buyin = op.pending_buyin(d);
             const player_object &player = get_player(d, buyin.player);

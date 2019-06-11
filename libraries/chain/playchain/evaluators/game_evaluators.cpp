@@ -34,6 +34,7 @@
 #include <playchain/chain/evaluators/validators.hpp>
 #include <playchain/chain/evaluators/db_helpers.hpp>
 #include <playchain/chain/evaluators/buy_in_buy_out_evaluators.hpp>
+#include <playchain/chain/evaluators/table_evaluators.hpp>
 
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
@@ -1115,7 +1116,7 @@ namespace playchain{ namespace chain{
                 d.remove(vote_obj);
             }
 
-            return void_result();
+            return alife_for_table(d, table.id);
         }FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -1188,7 +1189,7 @@ namespace playchain{ namespace chain{
                 d.remove(vote_obj);
             }
 
-            return void_result();
+            return alife_for_table(d, table.id);
         }FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -1203,7 +1204,7 @@ namespace playchain{ namespace chain{
         }FC_CAPTURE_AND_RETHROW((op))
     }
 
-    void_result game_reset_evaluator::do_apply( const operation_type& op )
+    operation_result game_reset_evaluator::do_apply( const operation_type& op )
     {
         try {
             database& d = db();
@@ -1222,7 +1223,7 @@ namespace playchain{ namespace chain{
                 d.remove(*it);
             }
 
-            return void_result();
+            return alife_for_table(d, table.id);
         }FC_CAPTURE_AND_RETHROW((op))
     }
 }}

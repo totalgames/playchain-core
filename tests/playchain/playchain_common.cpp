@@ -11,6 +11,8 @@
 #include <playchain/chain/evaluators/db_helpers.hpp>
 #include <playchain/chain/evaluators/validators.hpp>
 
+#include <algorithm>
+
 namespace playchain_common
 {
 
@@ -867,21 +869,27 @@ void playchain_fixture::vote_for(const vote_id_type &vote_id, const Actor &voter
     }FC_LOG_AND_RETHROW()
 }
 
-table_alive_operation playchain_fixture::table_alive_op(const account_id_type& room_owner,
-                                     const table_id_type& table)
+tables_alive_operation playchain_fixture::tables_alive_op(const account_id_type& room_owner,
+                                     const std::set<table_id_type> &tables)
 {
-    table_alive_operation op;
+    tables_alive_operation op;
 
     op.owner = room_owner;
-    op.table = table;
+    std::copy(begin(tables), end(tables), std::inserter(op.tables, op.tables.end()));
 
     return op;
 }
 
-table_alive_operation playchain_fixture::table_alive(const Actor& room_owner,
+tables_alive_operation playchain_fixture::table_alive(const Actor& room_owner,
                                   const table_id_type &table)
 {
-    auto op = table_alive_op(actor(room_owner), table);
+    return tables_alive(room_owner, {table});
+}
+
+tables_alive_operation playchain_fixture::tables_alive(const Actor& room_owner,
+                                  const std::set<table_id_type> &tables)
+{
+    auto op = tables_alive_op(actor(room_owner), tables);
 
     actor(room_owner).push_operation(op);
     return op;

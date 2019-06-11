@@ -56,7 +56,7 @@ namespace playchain { namespace chain {
           using operation_type = game_reset_operation;
 
           void_result do_evaluate( const operation_type& o );
-          void_result do_apply( const operation_type& o );
+          operation_result do_apply( const operation_type& o );
     };
 
     void rollback_table(database& d, const table_object &table);

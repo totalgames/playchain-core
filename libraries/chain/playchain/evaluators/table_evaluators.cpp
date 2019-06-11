@@ -114,42 +114,59 @@ namespace playchain{ namespace chain{
     {
         try {
             const database& d = db();
-            FC_ASSERT(is_table_exists(d, op.table), "Table does not exist");
-            FC_ASSERT(is_table_owner(d, op.owner, op.table), "Wrong table owner");
+            for (const auto &table: op.tables)
+            {
+                FC_ASSERT(is_table_exists(d, table), "Table does not exist");
+                FC_ASSERT(is_table_owner(d, op.owner, table), "Wrong table owner");
+            }
 
             return void_result();
         } FC_CAPTURE_AND_RETHROW((op))
     }
 
-    void_result table_alive_evaluator::do_apply( const operation_type& op )
+    operation_result table_alive_evaluator::do_apply( const operation_type& op )
     {
         try {
             database& d = db();
 
-            auto &&table_obj = op.table(d);
-
-            const auto& dyn_props = d.get_dynamic_global_properties();
-            const auto& parameters = get_playchain_parameters(d);
-
-            const auto& idx = d.get_index_type<table_alive_index>().indices().get<by_table>();
-            auto it = idx.find(table_obj.id);
-            if (idx.end() != it)
+            operation_result last_alive_id;
+            for (const auto &table: op.tables)
             {
-                d.modify(*it, [&](table_alive_object& alive) {
-                    alive.expiration = dyn_props.time + fc::seconds(parameters.table_alive_expiration_seconds);
-                            });
-            }else
-            {
-                d.create<table_alive_object>([&](table_alive_object& alive) {
-                                           alive.table = table_obj.id;
-                                           alive.created = dyn_props.time;
-                                           alive.expiration = alive.created + fc::seconds(parameters.table_alive_expiration_seconds);
-                });
+                last_alive_id = alife_for_table(d, table);
             }
-
-            table_obj.set_weight(d);
-
-            return void_result();
+            return last_alive_id;
         } FC_CAPTURE_AND_RETHROW((op))
     }
+
+    operation_result alife_for_table(database& d, const table_id_type &table)
+    {
+        auto &&table_obj = table(d);
+
+        const auto& dyn_props = d.get_dynamic_global_properties();
+        const auto& parameters = get_playchain_parameters(d);
+
+        object_id_type alive_id;
+
+        const auto& idx = d.get_index_type<table_alive_index>().indices().get<by_table>();
+        auto it = idx.find(table_obj.id);
+        if (idx.end() != it)
+        {
+            d.modify(*it, [&](table_alive_object& alive) {
+                alive.expiration = dyn_props.time + fc::seconds(parameters.table_alive_expiration_seconds);
+                        });
+            alive_id = (*it).id;
+        }else
+        {
+            alive_id = d.create<table_alive_object>([&](table_alive_object& alive) {
+                                       alive.table = table_obj.id;
+                                       alive.created = dyn_props.time;
+                                       alive.expiration = alive.created + fc::seconds(parameters.table_alive_expiration_seconds);
+            }).id;
+        }
+
+        table_obj.set_weight(d);
+
+        return alive_id;
+    }
+
 }}

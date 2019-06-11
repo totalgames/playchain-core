@@ -10,6 +10,8 @@
 #include "actor.hpp"
 #include "defines.hpp"
 
+#include <set>
+
 namespace playchain_common
 {
     using namespace graphene::chain;
@@ -318,7 +320,8 @@ namespace playchain_common
 
         buy_in_reserving_cancel_operation buy_in_reserving_cancel(const Actor& player, const string& uid);
 
-        buy_in_reserving_resolve_operation buy_in_reserving_resolve_op(const account_id_type& owner, const table_id_type& table, const pending_buy_in_id_type& id);
+        buy_in_reserving_resolve_operation buy_in_reserving_resolve_op(const account_id_type& owner, const table_id_type& table,
+                                                                       const pending_buy_in_id_type& id);
 
         buy_in_reserving_resolve_operation buy_in_reserving_resolve_op(const Actor& owner, const table_id_type& table, const pending_buy_in_id_type& id)
         {
@@ -437,17 +440,20 @@ namespace playchain_common
 
         void vote_for(const vote_id_type &vote_id, const Actor &voter, bool approve = true);
 
-        table_alive_operation table_alive_op(const account_id_type& room_owner,
-                                             const table_id_type& table);
+        tables_alive_operation tables_alive_op(const account_id_type& room_owner,
+                                              const std::set<table_id_type> &tables);
 
-        table_alive_operation table_alive_op(const Actor& room_owner,
-                                                                               const table_id_type& table)
+        tables_alive_operation tables_alive_op(const Actor& room_owner,
+                                              const std::set<table_id_type> &tables)
         {
-            return table_alive_op(actor(room_owner), table);
+            return tables_alive_op(actor(room_owner), tables);
         }
 
-        table_alive_operation table_alive(const Actor& room_owner,
+        tables_alive_operation table_alive(const Actor& room_owner,
                                           const table_id_type &table);
+
+        tables_alive_operation tables_alive(const Actor& room_owner,
+                                          const std::set<table_id_type> &tables);
     };
 }
 

@@ -75,7 +75,7 @@ namespace playchain { namespace chain {
         }
     };
 
-    struct table_alive_operation : public base_operation
+    struct tables_alive_operation : public base_operation
     {
         struct fee_parameters_type {
             uint64_t fee = 0;
@@ -83,7 +83,7 @@ namespace playchain { namespace chain {
 
         asset                                       fee;
         account_id_type                             owner;
-        table_id_type                               table;
+        flat_set<table_id_type>                     tables;
 
         account_id_type   fee_payer()const { return owner; }
         void              validate()const;
@@ -92,8 +92,8 @@ namespace playchain { namespace chain {
 
 FC_REFLECT( playchain::chain::table_create_operation::fee_parameters_type, (fee)(price_per_kbyte))
 FC_REFLECT( playchain::chain::table_update_operation::fee_parameters_type, (fee)(price_per_kbyte))
-FC_REFLECT( playchain::chain::table_alive_operation::fee_parameters_type, (fee))
+FC_REFLECT( playchain::chain::tables_alive_operation::fee_parameters_type, (fee))
 
 FC_REFLECT( playchain::chain::table_create_operation, (fee)(owner)(room)(metadata)(required_witnesses)(min_accepted_proposal_asset))
 FC_REFLECT( playchain::chain::table_update_operation, (fee)(owner)(table)(metadata)(required_witnesses)(min_accepted_proposal_asset))
-FC_REFLECT( playchain::chain::table_alive_operation, (fee)(owner)(table))
+FC_REFLECT( playchain::chain::tables_alive_operation, (fee)(owner)(tables))

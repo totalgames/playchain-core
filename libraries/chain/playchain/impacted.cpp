@@ -458,7 +458,7 @@ struct get_impacted_account_visitor
        _impacted.insert(op.recipient);
    }
 
-   void operator()( const table_alive_operation& op )
+   void operator()( const tables_alive_operation& op )
    {
        _impacted.insert(op.owner);
    }

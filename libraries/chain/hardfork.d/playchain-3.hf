@@ -1,9 +1,9 @@
-// #playchain-3 Check table metadata for buy_in_reserving_resolve_operation and table_update_operation
+// #playchain-3 Check if table alive when metadata is changing for table_update_operation
 #ifndef HARDFORK_PLAYCHAIN_3_TIME
 	#if defined(PLAYCHAIN_MAINNET)
-        #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1561366800 ))
+        #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1561370400 ))
 	#elif defined(PLAYCHAIN_TESTNET)
-        #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1560333600 ))
+        #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1560337200 ))
 	#endif
 #endif
 

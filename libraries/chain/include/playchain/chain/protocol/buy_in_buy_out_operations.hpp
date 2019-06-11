@@ -217,7 +217,6 @@ namespace playchain { namespace chain {
       table_id_type             table;
       account_id_type           table_owner;
       pending_buy_in_id_type    pending_buyin;
-      string                    metadata;
 
       void get_required_active_authorities(flat_set<account_id_type>& a) const {
           a.insert(table_owner);
@@ -289,6 +288,6 @@ FC_REFLECT( playchain::chain::buy_in_reserving_cancel_operation, (fee)(player)(u
 FC_REFLECT( playchain::chain::buy_in_reserving_allocated_table_operation, (fee)(player)(uid)(amount)(metadata)
             (table)(table_owner)(table_weight)(room_rating))
 FC_REFLECT( playchain::chain::buy_in_reserving_expire_operation, (fee)(player)(uid)(amount)(metadata)(expire_by_replacement)(table)(table_owner))
-FC_REFLECT( playchain::chain::buy_in_reserving_resolve_operation, (fee)(table)(table_owner)(pending_buyin)(metadata))
+FC_REFLECT( playchain::chain::buy_in_reserving_resolve_operation, (fee)(table)(table_owner)(pending_buyin))
 FC_REFLECT( playchain::chain::buy_in_reserving_cancel_all_operation, (fee)(player))
 FC_REFLECT( playchain::chain::buy_in_expire_operation, (fee)(player)(table)(table_owner)(amount))
