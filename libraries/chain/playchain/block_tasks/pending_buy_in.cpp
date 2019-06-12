@@ -97,6 +97,7 @@ namespace
     }
 #else
     {
+#if defined(PRINT_PLAYCHAIN_TABLES_RANGE)
         auto itr = range.first;
         std::vector<string> table_list;
 
@@ -128,6 +129,7 @@ namespace
 
             std::cerr << ss.str() << std::endl;
         }
+#endif //PRINT_PLAYCHAIN_TABLES_RANGE
     }
 #endif //DEBUG
 }

@@ -5,6 +5,12 @@ set_source_files_properties( "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain
 
 add_dependencies( build_hardfork_hpp cat-parts )
 
+option(PRINT_PLAYCHAIN_TABLES_RANGE "Switch printing for playchain tables range in debug (ON OR OFF)" OFF)
+
+if ( PRINT_PLAYCHAIN_TABLES_RANGE )
+    add_definitions(-DPRINT_PLAYCHAIN_TABLES_RANGE)
+endif()
+
 file(GLOB HEADERS "include/graphene/chain/*.hpp")
 file(GLOB PROTOCOL_HEADERS "include/graphene/chain/protocol/*.hpp")
 file(GLOB BLOCK_TASKS_HEADERS "playchain/block_tasks/*.hpp")
