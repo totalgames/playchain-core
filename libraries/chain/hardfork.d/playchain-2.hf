@@ -1,9 +1,8 @@
 // #playchain-2 Use alive object to calculate table weight
 #ifndef HARDFORK_PLAYCHAIN_2_TIME
-	#if defined(PLAYCHAIN_MAINNET)
+    #if defined(PLAYCHAIN_MAINNET)
         #define HARDFORK_PLAYCHAIN_2_TIME (fc::time_point_sec( 1561366800 ))
-	#elif defined(PLAYCHAIN_TESTNET)
-        #define HARDFORK_PLAYCHAIN_2_TIME (fc::time_point_sec( 1560333600 ))
-	#endif
+    #elif defined(PLAYCHAIN_TESTNET)
+        #define HARDFORK_PLAYCHAIN_2_TIME (fc::time_point_sec( 1560416400 ))
+    #endif
 #endif
-
