@@ -12,6 +12,7 @@ if ( PRINT_PLAYCHAIN_TABLES_RANGE )
 endif()
 
 file(GLOB HEADERS "include/graphene/chain/*.hpp")
+file(GLOB_RECURSE PLAYCHAIN_HEADERS "include/playchain/chain/*.hpp")
 file(GLOB PROTOCOL_HEADERS "include/graphene/chain/protocol/*.hpp")
 file(GLOB BLOCK_TASKS_HEADERS "playchain/block_tasks/*.hpp")
 file(GLOB MAINTAIN_TASKS_HEADERS "playchain/maintain_tasks/*.hpp")
@@ -138,6 +139,7 @@ add_library( graphene_chain
 
              ${BLOCK_TASKS_HEADERS}
              ${MAINTAIN_TASKS_HEADERS}
+             ${PLAYCHAIN_HEADERS}
              ${HEADERS}
              ${PROTOCOL_HEADERS}
              "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain/hardfork.hpp"

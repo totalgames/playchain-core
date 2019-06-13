@@ -519,7 +519,7 @@ bool application_impl::handle_block(const graphene::net::block_message& blk_msg,
                           std::vector<fc::uint160_t>& contained_transaction_message_ids)
 { try {
          auto latency = fc::time_point::now() - blk_msg.block.timestamp;
-         if (sync_mode && blk_msg.block.block_num() % 500 == 0)
+         if (sync_mode && blk_msg.block.block_num() % 5000 == 0)
          {
              ilog("Sync block: #${n} time: ${t}",
                   ("n", blk_msg.block.block_num())

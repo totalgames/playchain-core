@@ -8,8 +8,6 @@ if( USE_GPERFTOOLS )
     endif()
 endif()
 
-option(c "(ON OR OFF)" OFF)
-
 option(UTESTS_DISABLE_ALL_TESTS "(ON OR OFF)" OFF)
 option(UTESTS_ENABLE_CHAIN_TESTS "(ON OR OFF)" ON)
 option(UTESTS_ENABLE_PERFORMANCE_TESTS "(ON OR OFF)" OFF)
