@@ -100,26 +100,34 @@ namespace playchain { namespace chain {
         } FC_CAPTURE_AND_RETHROW( (op) )
     }
 
-    void_result playchain_committee_member_update_parameters_evaluator::do_evaluate(const playchain_committee_member_update_parameters_operation& o)
+    template<typename Operation>
+    void_result playchain_committee_member_update_parameters_evaluator_impl<Operation>::do_evaluate(const operation_type& o)
     {
         try {
-            FC_ASSERT(trx_state->_is_proposed_trx);
+            FC_ASSERT(this->trx_state->_is_proposed_trx);
 
             return void_result();
         } FC_CAPTURE_AND_RETHROW( (o) )
     }
 
-    void_result playchain_committee_member_update_parameters_evaluator::do_apply(const playchain_committee_member_update_parameters_operation& o)
+    template<typename Operation>
+    void_result playchain_committee_member_update_parameters_evaluator_impl<Operation>::do_apply(const operation_type& o)
     {
         try {
-            database& d = db();
+            database& d = this->db();
             d.modify(d.get( playchain_property_id_type() ), [&o](playchain_property_object& p)
             {
-                p.pending_parameters = o.new_parameters;
+                playchain_parameters params = o.new_parameters;
+                p.pending_parameters = params;
+
+                ilog("${p1} -> ${p2}", ("p1", p.parameters)("p2", params));
             });
 
             return void_result();
         } FC_CAPTURE_AND_RETHROW( (o) )
     }
+
+    template class playchain_committee_member_update_parameters_evaluator_impl<playchain_committee_member_update_parameters_operation>;
+    template class playchain_committee_member_update_parameters_evaluator_impl<playchain_committee_member_update_parameters_v2_operation>;
 
 } } // graphene::chain

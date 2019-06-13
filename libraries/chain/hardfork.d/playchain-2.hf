@@ -3,6 +3,6 @@
     #if defined(PLAYCHAIN_MAINNET)
         #define HARDFORK_PLAYCHAIN_2_TIME (fc::time_point_sec( 1561366800 ))
     #elif defined(PLAYCHAIN_TESTNET)
-        #define HARDFORK_PLAYCHAIN_2_TIME (fc::time_point_sec( 1560416400 ))
+        #define HARDFORK_PLAYCHAIN_2_TIME (fc::time_point_sec( 1560499200 ))
     #endif
 #endif

@@ -64,7 +64,18 @@ namespace playchain { namespace chain {
       struct fee_parameters_type { uint64_t fee = 0; };
 
       asset                 fee;
-      playchain_parameters  new_parameters;
+      playchain_parameters_v1  new_parameters;
+
+      account_id_type fee_payer()const { return PLAYCHAIN_COMMITTEE_ACCOUNT; }
+      void            validate()const;
+   };
+
+   struct playchain_committee_member_update_parameters_v2_operation : public base_operation
+   {
+      struct fee_parameters_type { uint64_t fee = 0; };
+
+      asset                 fee;
+      playchain_parameters_v2  new_parameters;
 
       account_id_type fee_payer()const { return PLAYCHAIN_COMMITTEE_ACCOUNT; }
       void            validate()const;
@@ -74,10 +85,11 @@ namespace playchain { namespace chain {
 FC_REFLECT( playchain::chain::playchain_committee_member_create_operation::fee_parameters_type, (fee) )
 FC_REFLECT( playchain::chain::playchain_committee_member_update_operation::fee_parameters_type, (fee) )
 FC_REFLECT( playchain::chain::playchain_committee_member_update_parameters_operation::fee_parameters_type, (fee) )
-
+FC_REFLECT( playchain::chain::playchain_committee_member_update_parameters_v2_operation::fee_parameters_type, (fee) )
 
 FC_REFLECT( playchain::chain::playchain_committee_member_create_operation,
             (fee)(committee_member_account)(url) )
 FC_REFLECT( playchain::chain::playchain_committee_member_update_operation,
             (fee)(committee_member)(committee_member_account)(new_url) )
 FC_REFLECT( playchain::chain::playchain_committee_member_update_parameters_operation, (fee)(new_parameters) );
+FC_REFLECT( playchain::chain::playchain_committee_member_update_parameters_v2_operation, (fee)(new_parameters) );

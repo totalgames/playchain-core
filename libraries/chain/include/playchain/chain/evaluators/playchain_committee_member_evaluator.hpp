@@ -49,13 +49,19 @@ namespace playchain { namespace chain {
          void_result do_apply( const playchain_committee_member_update_operation& o );
    };
 
-   class playchain_committee_member_update_parameters_evaluator : public evaluator<playchain_committee_member_update_parameters_evaluator>
+   template<typename Operation>
+   class playchain_committee_member_update_parameters_evaluator_impl : public evaluator<playchain_committee_member_update_parameters_evaluator_impl<Operation>>
    {
-      public:
-         typedef playchain_committee_member_update_parameters_operation operation_type;
+   public:
+       using operation_type = Operation;
 
-         void_result do_evaluate( const playchain_committee_member_update_parameters_operation& o );
-         void_result do_apply( const playchain_committee_member_update_parameters_operation& o );
+       void_result do_evaluate( const operation_type& o );
+       void_result do_apply( const operation_type& o );
    };
 
+   using playchain_committee_member_update_parameters_evaluator = playchain_committee_member_update_parameters_evaluator_impl<
+           playchain_committee_member_update_parameters_operation>;
+
+   using playchain_committee_member_update_parameters_v2_evaluator = playchain_committee_member_update_parameters_evaluator_impl<
+           playchain_committee_member_update_parameters_v2_operation>;
 } } // graphene::chain

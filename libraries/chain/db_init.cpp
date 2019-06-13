@@ -136,6 +136,7 @@ void database::initialize_evaluators()
    register_evaluator<playchain_committee_member_create_evaluator>();
    register_evaluator<playchain_committee_member_update_evaluator>();
    register_evaluator<playchain_committee_member_update_parameters_evaluator>();
+   register_evaluator<playchain_committee_member_update_parameters_v2_evaluator>();
 }
 
 void database::initialize_indexes()

@@ -55,7 +55,7 @@ namespace playchain { namespace chain {
         return PLAYCHAIN_NULL_TABLE == id;
     }
 
-    void playchain_parameters::validate()const
+    void playchain_parameters_v1::validate()const
     {
        FC_ASSERT( player_referrer_percent_of_fee <= GRAPHENE_100_PERCENT );
        FC_ASSERT( player_referrer_parent_percent_of_fee <= GRAPHENE_100_PERCENT );
