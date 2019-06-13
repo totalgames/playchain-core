@@ -1018,15 +1018,24 @@ void application::initialize(const fc::path& data_dir, const boost::program_opti
    {
       boost::split(wanted, options.at("plugins").as<std::string>(), [](char c){return c == ' ';});
    }
-   else
+
+   std::set<string> uniq_wanted;
+   for (const auto& it : wanted)
    {
-      wanted.push_back("witness");
-      wanted.push_back("account_history");
-      wanted.push_back("market_history");
-      wanted.push_back("grouped_orders");
+       if(it == "default")
+       {
+           uniq_wanted.insert("witness");
+           uniq_wanted.insert("account_history");
+           uniq_wanted.insert("market_history");
+           uniq_wanted.insert("grouped_orders");
+       }else if (!it.empty())
+       {
+           uniq_wanted.insert(it);
+       }
    }
+
    int es_ah_conflict_counter = 0;
-   for (auto& it : wanted)
+   for (auto& it : uniq_wanted)
    {
       if(it == "account_history")
          ++es_ah_conflict_counter;
@@ -1037,7 +1046,7 @@ void application::initialize(const fc::path& data_dir, const boost::program_opti
          elog("Can't start program with elasticsearch and account_history plugin at the same time");
          std::exit(EXIT_FAILURE);
       }
-      if (!it.empty()) enable_plugin(it);
+      enable_plugin(it);
    }
 }
 
