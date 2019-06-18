@@ -35,6 +35,8 @@
 
 #include <playchain/chain/evaluators/buy_in_buy_out_evaluators.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 #include <boost/lambda/lambda.hpp>
 #include <boost/multi_index/detail/unbounded.hpp>
 
@@ -89,8 +91,8 @@ namespace
         }
     }
 
-    template<typename Range>
-    void print_tables_range(const Range &range, const string &preffix = "")
+    template<typename Iterator>
+    void print_tables_range(const Iterator &range_first, const Iterator &range_second, const string &preffix = "")
 #ifdef NDEBUG
     {
         //SLOW OP. SKIPPED
@@ -98,11 +100,11 @@ namespace
 #else
     {
 #if defined(PRINT_PLAYCHAIN_TABLES_RANGE)
-        auto itr = range.first;
+        auto itr = range_first;
         std::vector<string> table_list;
 
         size_t ci = 0;
-        while(itr != range.second)
+        while(itr != range_second)
         {
             const auto &table = *itr++;
 
@@ -161,11 +163,105 @@ void update_expired_pending_buy_in(database &d)
     }
 }
 
-void allocation_of_vacancies(database &d)
+template <typename Index>
+auto create_range_v1(const Index& index,
+              const string& search_meta,
+              const uint32_t min_occupied_places,
+              const uint32_t max_occupied_places,
+              const int32_t min_allowed_table_weight_to_be_allocated)
 {
     static const auto min_table_id = object_id_type{table_object::space_id, table_object::type_id, 0};
     static const auto max_table_id = object_id_type{table_object::space_id, table_object::type_id, std::numeric_limits<uint32_t>::max()};
 
+    return index.range(::boost::lambda::_1 >= std::make_tuple(search_meta, min_occupied_places,
+                                                             min_allowed_table_weight_to_be_allocated, min_table_id),
+                       ::boost::lambda::_1 <= std::make_tuple(search_meta, max_occupied_places,
+                                                             std::numeric_limits<int32_t>::max(), max_table_id));
+}
+
+template <typename Index>
+auto create_range_v2(const Index& index,
+              const string& search_meta,
+              const uint32_t min_occupied_places,
+              const uint32_t max_occupied_places,
+              const int32_t /*min_allowed_table_weight_to_be_allocated*/)
+{
+    return index.range(::boost::lambda::_1 >= std::make_tuple(search_meta, min_occupied_places),
+                       ::boost::lambda::_1 <= std::make_tuple(search_meta, max_occupied_places));
+}
+
+template <typename Index>
+auto create_range(const database &d,
+                  const Index& index,
+                  const string& search_meta,
+                  const uint32_t min_occupied_places,
+                  const uint32_t max_occupied_places,
+                  const int32_t min_allowed_table_weight_to_be_allocated)
+{
+    if (d.head_block_time() >= HARDFORK_PLAYCHAIN_4_TIME)
+    {
+        return create_range_v2(index, search_meta, min_occupied_places, max_occupied_places, min_allowed_table_weight_to_be_allocated);
+    }else
+    {
+        return create_range_v1(index, search_meta, min_occupied_places, max_occupied_places, min_allowed_table_weight_to_be_allocated);
+    }
+}
+
+template<typename Range>
+bool find_in_range(const Range &range, database &d, const pending_buy_in_object &buy_in,
+                   const int32_t min_allowed_table_weight_to_be_allocated,
+                   flat_set<pending_buy_in_id_type> &prev_proposals)
+{
+    auto itr = range.first;
+
+    bool found = false;
+    while(itr != range.second)
+    {
+        const auto &table = *itr++;
+
+        if (table.weight < min_allowed_table_weight_to_be_allocated)
+        {
+            continue;
+        }
+
+        // if versions do not match by algorithm (maj.min.XXXX)
+        if (table.room(d).protocol_version != buy_in.protocol_version)
+        {
+            continue;
+        }
+
+        // if player is table owner
+        if (table.room(d).owner == buy_in.player)
+        {
+            continue;
+        }
+
+        // if min_accepted_proposal_asset is not satisfying
+        if (table.min_accepted_proposal_asset.asset_id != buy_in.amount.asset_id ||
+            table.min_accepted_proposal_asset > buy_in.amount)
+        {
+            continue;
+        }
+
+        // do not allocate more then once
+        if (table.is_waiting_at_table(buy_in.player_iternal) ||
+            table.is_playing(buy_in.player_iternal))
+        {
+            continue;
+        }
+
+        pending_buy_in_id_type prev_proposal = allocate_table(d, buy_in, table);
+        if (prev_proposal != PLAYCHAIN_NULL_PENDING_BUYIN)
+            prev_proposals.emplace(prev_proposal);
+        found = true;
+        break;
+    }
+
+    return found;
+}
+
+void allocation_of_vacancies(database &d)
+{
     const auto& parameters = get_playchain_parameters(d);
     auto& by_expiration= d.get_index_type<pending_buy_in_index>().indices().get<by_pending_buy_in_allocation_status_and_expiration>();
     auto itr_buy_in = by_expiration.begin();
@@ -193,10 +289,16 @@ void allocation_of_vacancies(database &d)
 
             if (!lookup_out_range)
             {
-                auto range_test_min = tables_by_free_places.range(::boost::lambda::_1 >= std::make_tuple(buy_in.metadata, reachable_minimum, parameters.min_allowed_table_weight_to_be_allocated, min_table_id),
-                                                                  ::boost::lambda::_1 <= std::make_tuple(buy_in.metadata, reachable_maximum, std::numeric_limits<int32_t>::max(), max_table_id));
-                print_tables_range(range_test_min, "test");
-                if (range_test_min.first == range_test_min.second)
+                auto range = create_range(d, tables_by_free_places, buy_in.metadata,
+                                          reachable_minimum,
+                                          reachable_maximum, parameters.min_allowed_table_weight_to_be_allocated);
+                print_tables_range(range.first, range.second, "first");
+                if (range.first != range.second)
+                {
+                    lookup_out_range = !find_in_range(range, d, buy_in, parameters.min_allowed_table_weight_to_be_allocated, prev_proposals);
+
+                    continue;
+                }else
                 {
                     reachable_minimum = 0;
                 }
@@ -206,51 +308,12 @@ void allocation_of_vacancies(database &d)
                 last_loop = true;
             }
 
-            auto key_l = std::make_tuple(buy_in.metadata, reachable_minimum, parameters.min_allowed_table_weight_to_be_allocated, min_table_id);
-            auto key_r = std::make_tuple(buy_in.metadata, reachable_maximum, std::numeric_limits<int32_t>::max(), max_table_id);
+            auto range = create_range(d, tables_by_free_places, buy_in.metadata,
+                                 reachable_minimum,
+                                 reachable_maximum, parameters.min_allowed_table_weight_to_be_allocated);
+            print_tables_range(range.first, range.second);
 
-            auto range = tables_by_free_places.range(::boost::lambda::_1 >= key_l, ::boost::lambda::_1 <= key_r);
-            print_tables_range(range);
-
-            auto itr = range.first;
-
-            lookup_out_range = true;
-            while(itr != range.second)
-            {
-                const auto &table = *itr++;
-
-                // if versions do not match by algorithm (maj.min.XXXX)
-                if (table.room(d).protocol_version != buy_in.protocol_version)
-                {
-                    continue;
-                }
-
-                // if player is table owner
-                if (table.room(d).owner == buy_in.player)
-                {
-                    continue;
-                }
-
-                // if min_accepted_proposal_asset is not satisfying
-                if (table.min_accepted_proposal_asset.asset_id != buy_in.amount.asset_id ||
-                    table.min_accepted_proposal_asset > buy_in.amount)
-                {
-                    continue;
-                }
-
-                // do not allocate more then once
-                if (table.is_waiting_at_table(buy_in.player_iternal) ||
-                    table.is_playing(buy_in.player_iternal))
-                {
-                    continue;
-                }
-
-                pending_buy_in_id_type prev_proposal = allocate_table(d, buy_in, table);
-                if (prev_proposal != PLAYCHAIN_NULL_PENDING_BUYIN)
-                    prev_proposals.emplace(prev_proposal);
-                lookup_out_range = false;
-                break;
-            }
+            lookup_out_range = !find_in_range(range, d, buy_in, parameters.min_allowed_table_weight_to_be_allocated, prev_proposals);
 
         } while(lookup_out_range && !last_loop);
     }

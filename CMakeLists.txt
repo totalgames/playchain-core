@@ -8,6 +8,7 @@ option(GRAPHENE_DISABLE_UNITY_BUILD "Disable unity build optimization (ON OR OFF
 
 add_definitions(-DPLAYCHAIN="${BLOCKCHAIN_NAME}")
 
+set( CMAKE_CXX_STANDARD 14 )
 set( CLI_CLIENT_EXECUTABLE_NAME graphene_client )
 set( GUI_CLIENT_EXECUTABLE_NAME PlayChain )
 set( CUSTOM_URL_SCHEME "gcs" )

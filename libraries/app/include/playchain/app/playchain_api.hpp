@@ -98,6 +98,7 @@ struct playchain_table_info
     amount_type           required_witnesses = 0;
     asset                 min_accepted_proposal_asset;
     playchain_table_state state = playchain_table_state::nop;
+    bool                  alive = false;
 };
 
 struct playchain_pending_buy_in_proposal_info
@@ -494,7 +495,8 @@ FC_REFLECT(playchain::app::playchain_table_info,
            (server_url)
            (required_witnesses)
            (min_accepted_proposal_asset)
-           (state))
+           (state)
+           (alive))
 
 FC_REFLECT(playchain::app::playchain_pending_buy_in_proposal_info,
            (name)

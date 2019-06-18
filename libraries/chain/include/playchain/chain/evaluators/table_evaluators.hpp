@@ -59,5 +59,5 @@ namespace playchain { namespace chain {
           operation_result do_apply( const operation_type& o );
     };
 
-    operation_result alife_for_table(database& d, const table_id_type &);
+    operation_result alive_for_table(database& d, const table_id_type &);
 }}

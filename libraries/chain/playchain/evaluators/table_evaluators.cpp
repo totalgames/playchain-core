@@ -132,13 +132,13 @@ namespace playchain{ namespace chain{
             operation_result last_alive_id;
             for (const auto &table: op.tables)
             {
-                last_alive_id = alife_for_table(d, table);
+                last_alive_id = alive_for_table(d, table);
             }
             return last_alive_id;
         } FC_CAPTURE_AND_RETHROW((op))
     }
 
-    operation_result alife_for_table(database& d, const table_id_type &table)
+    operation_result alive_for_table(database& d, const table_id_type &table)
     {
         auto &&table_obj = table(d);
 
