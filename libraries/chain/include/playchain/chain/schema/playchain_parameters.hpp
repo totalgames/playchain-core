@@ -77,6 +77,7 @@ namespace playchain { namespace chain {
        }
 
        uint32_t                table_alive_expiration_seconds = PLAYCHAIN_DEFAULT_TABLE_ALIVE_EXPIRATION_SECONDS;
+       uint32_t                room_rating_measurements_alive_periods = PLAYCHAIN_DEFAULT_ROOM_RATING_MEASUREMENTS_ALIVE_PERIODS;
    };
 
    using playchain_parameters = playchain_parameters_v2;
@@ -112,4 +113,5 @@ FC_REFLECT( playchain::chain::playchain_parameters_v1,
 
 FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v2, (playchain::chain::playchain_parameters_v1),
                    (table_alive_expiration_seconds)
+                   (room_rating_measurements_alive_periods)
                    )

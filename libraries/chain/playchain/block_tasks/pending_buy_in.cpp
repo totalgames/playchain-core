@@ -30,6 +30,7 @@
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/player_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
+#include <playchain/chain/schema/room_rating_object.hpp>
 
 #include <playchain/chain/evaluators/db_helpers.hpp>
 
@@ -66,6 +67,18 @@ namespace
             obj.table = table.id;
         });
 
+        auto& m = d.create<room_rating_measurement_object>([&](room_rating_measurement_object& obj) {
+            obj.created = d.head_block_time();
+            obj.expiration = obj.created + get_playchain_parameters(d).room_rating_measurements_alive_periods * d.get_global_properties().parameters.maintenance_interval;
+            obj.associated_buyin = buy_in.id;
+            obj.table = buy_in.table;
+            obj.room = buy_in.table(d).room;
+            obj.weight = 0;
+            obj.waiting_resolve = true;
+        });
+
+        wlog("______________Push measurement ${m}", ("m", m));
+
         return prev_proposal;
     }
 
@@ -80,7 +93,25 @@ namespace
                                                       expire_by_replacement,
                                                       buy_in.table,
                                                       buy_in.table(d).room(d).owner} );
-        }else
+
+            auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
+            auto it = measurements_by_buyin.find(buy_in.id);
+            if (it != measurements_by_buyin.end())
+            {
+                d.modify(*it, [&](room_rating_measurement_object &obj)
+                {
+                    wlog("______________Push Failed measurement ${m}", ("m", obj));
+
+                    obj.waiting_resolve = false;
+                    obj.weight = 0; // expired buyins give zero contribution to rating
+                });
+            }
+            else
+            {
+                elog("Buyin ${b} doesn't take part in room rating calculation! Something is wrong.", ("b", buy_in));
+            }
+        }
+        else
         {
             d.push_applied_operation( buy_in_reserving_expire_operation{ buy_in.player,
                                                       buy_in.uid, buy_in.amount,
@@ -137,6 +168,9 @@ namespace
 void update_expired_pending_buy_in(database &d)
 {
     auto& by_expiration= d.get_index_type<pending_buy_in_index>().indices().get<by_playchain_obj_expiration>();
+
+    //wlog("______________update_expired_pending_buy_in _____ size==${s}",("s", by_expiration.size()));
+
     while( !by_expiration.empty() && by_expiration.begin()->expiration <= d.head_block_time() )
     {
         const pending_buy_in_object &buy_in = *by_expiration.begin();
@@ -150,6 +184,7 @@ void update_expired_pending_buy_in(database &d)
 
             d.modify(table, [&](table_object &obj)
             {
+                //wlog("______________update_expired_pending_buy_in _____ remove allocated buy_in for player ${p}", ("p", player));
                 obj.remove_pending_proposal(player.id);
             });
         }
@@ -278,10 +313,12 @@ void update_expired_buy_in(database &d)
             prolong_life_for_by_in(d, buy_in);
 
             continue;
-        }else
+        }
+        else
         {
             expire_buy_in(d, buy_in, table);
         }
     }
 }
 }}
+

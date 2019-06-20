@@ -50,6 +50,7 @@
 #include <playchain/chain/schema/player_invitation_object.hpp>
 #include <playchain/chain/schema/player_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
+#include <playchain/chain/schema/room_rating_object.hpp>
 #include <playchain/chain/schema/game_witness_object.hpp>
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/pending_buy_out_object.hpp>

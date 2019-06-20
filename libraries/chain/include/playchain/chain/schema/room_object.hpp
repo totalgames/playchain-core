@@ -56,6 +56,10 @@ namespace playchain { namespace chain {
         int32_t                             prev_rating = 0;
         table_id_type                       last_updated_table;
 
+        uint64_t                            weight_sum_by_time_factor = 1;
+        uint64_t                            measurement_sum_by_time_factor = 1;
+        uint32_t                            measurement_quantity = 1;
+
         ///Not disseminated rake
         asset pending_rake;
 
@@ -115,5 +119,5 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::room_object,
                     (graphene::db::object),
-                    (owner)(server_url)(metadata)(protocol_version)(rating)(last_rating_update)(prev_rating)(last_updated_table)(pending_rake)(balance) )
+                    (owner)(server_url)(metadata)(protocol_version)(rating)(last_rating_update)(prev_rating)(last_updated_table)(pending_rake)(balance)(weight_sum_by_time_factor)(measurement_sum_by_time_factor)(measurement_quantity) )
 

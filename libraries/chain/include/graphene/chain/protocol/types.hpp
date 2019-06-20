@@ -57,6 +57,7 @@ namespace playchain { namespace chain {
     class player_invitation_object;
     class player_object;
     class room_object;
+    class room_rating_measurement_object;
     class game_witness_object;
     class table_object;
     class pending_buy_out_object;
@@ -202,6 +203,7 @@ namespace graphene { namespace chain {
       impl_pending_table_vote_object_type,
       impl_playchain_committee_member_object_type,
       impl_table_alive_object_type,
+      impl_room_rating_measurement_object_type,
    };
 
    //typedef fc::unsigned_int            object_id_type;
@@ -291,6 +293,7 @@ namespace graphene { namespace chain {
    typedef object_id< implementation_for_playchain_ids, impl_pending_table_vote_object_type, pending_table_vote_object> pending_table_vote_id_type;
    typedef object_id< implementation_for_playchain_ids, impl_playchain_committee_member_object_type, playchain_committee_member_object> playchain_committee_member_id_type;
    typedef object_id< implementation_for_playchain_ids, impl_table_alive_object_type, table_alive_object>               table_alive_id_type;
+   typedef object_id< implementation_for_playchain_ids, impl_room_rating_measurement_object_type, room_rating_measurement_object> room_rating_measurement_object_id_type;
 
    typedef fc::array<char, GRAPHENE_MAX_ASSET_SYMBOL_LENGTH>    symbol_type;
    typedef fc::ripemd160                                        block_id_type;
@@ -458,6 +461,7 @@ FC_REFLECT_ENUM( graphene::chain::playchain_impl_object_type,
                  (impl_pending_table_vote_object_type)
                  (impl_playchain_committee_member_object_type)
                  (impl_table_alive_object_type)
+                 (impl_room_rating_measurement_object_type)
                )
 
 FC_REFLECT_TYPENAME( graphene::chain::share_type )

@@ -191,6 +191,7 @@ void database::initialize_indexes()
    add_index< primary_index<player_invitation_index> >();
    add_index< primary_index<player_index> >();
    add_index< primary_index<room_index> >();
+   add_index< primary_index<room_rating_measurement_index> >();
    add_index< primary_index<game_witness_index> >();
    auto tbl_index = add_index< primary_index<table_index> >();
    tbl_index->add_secondary_index<table_owner_index>(std::cref(*this));
