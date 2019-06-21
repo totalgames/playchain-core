@@ -55,8 +55,7 @@ namespace
         }
         else
         {
-            auto ret = adjust_precision(TIME_FACTOR_C1 * std::exp(TIME_FACTOR_C2 * x) + TIME_FACTOR_C3);
-            return ret;
+            return adjust_precision(TIME_FACTOR_C1 * std::exp(TIME_FACTOR_C2 * x) + TIME_FACTOR_C3);
         }
     }
 
@@ -151,9 +150,13 @@ namespace
         auto& measurements_by_room = d.get_index_type<room_rating_measurement_index>().indices().get<by_room>();
 
         auto range = measurements_by_room.equal_range(room.id);
+        uint32_t measurements_used_to_rating_calculation = 0;
         for (auto it =range.first; it!=range.second; ++it)
         {
             auto& measurement = *it;
+
+            if(measurement.waiting_resolve)
+                continue;
 
             wlog("______________ADD room ${r}, measurement=${m}", ("r", room)("m", measurement));
 
@@ -167,12 +170,14 @@ namespace
 
             weight_sum_by_time_factor += measurement.weight* K_factor(minutes_from_measurement_till_now.count());
             measurement_sum_by_time_factor += K_factor(minutes_from_measurement_till_now.count());
+
+            ++measurements_used_to_rating_calculation;
         }
 
         d.modify(room, [&](room_object &obj) {
             obj.weight_sum_by_time_factor = weight_sum_by_time_factor;
             obj.measurement_sum_by_time_factor = measurement_sum_by_time_factor;
-            obj.measurement_quantity = std::distance(range.first, range.second);
+            obj.measurement_quantity = measurements_used_to_rating_calculation;
         });
     }
 
@@ -341,23 +346,4 @@ void update_table_weight(database &d)
 }
 
 }}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

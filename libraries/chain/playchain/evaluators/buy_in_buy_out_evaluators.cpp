@@ -78,6 +78,19 @@ namespace
 
             assert(table.pending_proposals.find(player.id) != table.pending_proposals.end());
 
+            auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
+            auto it = measurements_by_buyin.find(buy_in.id);
+            if (it != measurements_by_buyin.end())
+            {
+                wlog("______________Remove measurement ${m} - buyin cancelled", ("m", *it));
+
+                d.remove(*it);
+            }
+            else
+            {
+                elog("Buyin ${b} doesn't take part in room rating calculation! Something is wrong.", ("b", buy_in));
+            }
+
             d.modify(table, [&](table_object &obj)
             {
                  obj.remove_pending_proposal(player.id);
