@@ -357,6 +357,111 @@ PLAYCHAIN_TEST_CASE(check_notresolved_buyins_are_not_used_in_rating_count)
     BOOST_CHECK_EQUAL(room2(db).rating, room(db).rating);
 }
 
+
+namespace
+{
+    template <class T>
+    T adjust_precision(const T& val)
+    {
+        return GRAPHENE_BLOCKCHAIN_PRECISION * val;
+    }
+
+    uint64_t K_factor(uint64_t x)
+    {
+        if (x <= TIME_FACTOR_FADE_START)
+        {
+            return adjust_precision(x);
+        }
+        else
+        {
+            return adjust_precision(TIME_FACTOR_C1 * std::exp(TIME_FACTOR_C2 * x) + TIME_FACTOR_C3);
+        }
+    }
+
+    uint64_t f_N(uint64_t N)
+    {
+        if (N <= QUANTITY_FACTOR_FADE_START)
+        {
+            return adjust_precision(QUANTITY_FACTOR_C1 + N * QUANTITY_FACTOR_C2);
+        }
+        else
+        {
+            return adjust_precision(std::log(N) / QUANTITY_FACTOR_C3 + QUANTITY_FACTOR_C4);
+        }
+    }
+
+    uint64_t stat_correction()
+    {
+        return adjust_precision(STAT_CORRECTION_M);
+    }
+}
+
+PLAYCHAIN_TEST_CASE(check_calculation_formula)
+{
+    const std::string protocol_version = "1.0.0+20190223";
+
+    const std::string meta = "Game";
+
+    room_id_type room = create_new_room(richregistrator, "room", protocol_version);
+    table_id_type table = create_new_table(richregistrator, room, 0u, meta);
+
+    Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
+    Actor player2 = create_new_player(richregistrator, "player2", asset(player_init_balance));
+    Actor player3 = create_new_player(richregistrator, "player3", asset(player_init_balance));
+    Actor player4 = create_new_player(richregistrator, "player4", asset(player_init_balance));
+
+    auto stake = asset(player_init_balance / 3);
+
+    generate_block();
+
+    auto diff_time1 = db.get_dynamic_global_properties().next_maintenance_time.sec_since_epoch() - db.get_dynamic_global_properties().time.sec_since_epoch();
+    auto diff_time2 = diff_time1/2;
+
+
+    BOOST_TEST_MESSAGE("\nSTART BUYIN ON TABLE1 at time T1");
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE_EQUAL(table(db).get_pending_proposals(), 2u);
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table, table(db).pending_proposals.begin()->second));
+    generate_block();
+
+    generate_blocks(db.get_dynamic_global_properties().time + diff_time2);
+
+    BOOST_TEST_MESSAGE("\nSTART BUYIN ON TABLE1 at time T2");
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE_EQUAL(table(db).get_pending_proposals(), 2u);
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table, table(db).pending_proposals.begin()->second));
+    generate_block();
+
+
+    BOOST_TEST_MESSAGE("\nGENERATE MAINTANCE");
+    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time - GRAPHENE_DEFAULT_BLOCK_INTERVAL);
+    generate_block();
+
+    BOOST_REQUIRE_EQUAL(table(db).get_pending_proposals(), 0u);
+
+    auto room_rating_in_blockchain = room(db).rating;
+
+    //////////////////////////////////////////////////////////////////////////
+    //      calculate room rating
+    //////////////////////////////////////////////////////////////////////////
+
+    auto time_coef = K_factor(diff_time1/60) + K_factor(diff_time1 / 60) + K_factor(diff_time2 / 60) + K_factor(diff_time2 / 60);
+    auto weight_with_time_coef = 1*K_factor(diff_time1 / 60) + 0*K_factor(diff_time1 / 60) + 1*K_factor(diff_time2 / 60) + 0*K_factor(diff_time2 / 60);
+
+    const auto M = stat_correction();
+
+    BOOST_TEST_MESSAGE("\n"<< weight_with_time_coef<<" "<< time_coef<< " " << M << " ");
+
+    const auto calculated_rating = (weight_with_time_coef + weight_with_time_coef * M/ time_coef) * 25 * f_N(4) / (time_coef + M);
+
+    BOOST_CHECK_EQUAL(room_rating_in_blockchain, calculated_rating);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 }
 
