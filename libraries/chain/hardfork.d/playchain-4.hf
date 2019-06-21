@@ -1,8 +1,10 @@
 // #playchain-3 Fix table allocation algorithm
 #ifndef HARDFORK_PLAYCHAIN_4_TIME
     #if defined(PLAYCHAIN_MAINNET)
-        #define HARDFORK_PLAYCHAIN_4_TIME (fc::time_point_sec( 1561366800 ))
+        //07/01/2019 @ 9:00am
+        #define HARDFORK_PLAYCHAIN_4_TIME (fc::time_point_sec( 1561971600 ))
     #elif defined(PLAYCHAIN_TESTNET)
+        //06/18/2019 @ 9:00am
         #define HARDFORK_PLAYCHAIN_4_TIME (fc::time_point_sec( 1560848400 ))
     #endif
 #endif

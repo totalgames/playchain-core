@@ -1,8 +1,10 @@
 // #playchain-3 Check if table alive when metadata is changing for table_update_operation
 #ifndef HARDFORK_PLAYCHAIN_3_TIME
     #if defined(PLAYCHAIN_MAINNET)
-        #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1561370400 ))
+        //07/01/2019 @ 9:00am
+        #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1561971600 ))
     #elif defined(PLAYCHAIN_TESTNET)
+        //06/14/2019 @ 9:00am
         #define HARDFORK_PLAYCHAIN_3_TIME (fc::time_point_sec( 1560502800 ))
     #endif
 #endif
