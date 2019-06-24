@@ -7,6 +7,7 @@
 #include <boost/multi_index/detail/unbounded.hpp>
 
 #include <playchain/chain/evaluators/db_helpers.hpp>
+#include <graphene/chain/hardfork.hpp>
 
 namespace room_rating_tests
 {
@@ -30,14 +31,6 @@ struct room_rating_fixture : public playchain_common::playchain_fixture
 
 BOOST_FIXTURE_TEST_SUITE(room_rating_tests, room_rating_fixture)
 
-PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_0)
-{
-    const std::string protocol_version = "1.0.0+20190223";
-
-    room_id_type room = create_new_room(richregistrator, "room", protocol_version);
-
-    BOOST_CHECK_EQUAL(0, room(db).rating);
-}
 
 PLAYCHAIN_TEST_CASE(check_rating_changes_only_in_maintance)
 {
@@ -403,7 +396,9 @@ PLAYCHAIN_TEST_CASE(check_calculation_formula)
     const std::string meta = "Game";
 
     room_id_type room = create_new_room(richregistrator, "room", protocol_version);
+    room_id_type room2 = create_new_room(richregistrator, "room2", protocol_version);
     table_id_type table = create_new_table(richregistrator, room, 0u, meta);
+    table_id_type table2 = create_new_table(richregistrator, room2, 0u, meta);
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
     Actor player2 = create_new_player(richregistrator, "player2", asset(player_init_balance));
@@ -429,12 +424,22 @@ PLAYCHAIN_TEST_CASE(check_calculation_formula)
 
     generate_blocks(db.get_dynamic_global_properties().time + diff_time2);
 
+    // update parameter for test needs
+    db.modify(get_playchain_properties(db), [&](playchain_property_object& p) {
+        p.parameters.maximum_desired_number_of_players_for_tables_allocation = 2;
+    });
+    BOOST_REQUIRE_EQUAL(get_playchain_parameters(db).maximum_desired_number_of_players_for_tables_allocation, 2u);
+
     BOOST_TEST_MESSAGE("\nSTART BUYIN ON TABLE1 at time T2");
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player3, get_next_uid(actor(player3)), stake, meta, protocol_version));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player4, get_next_uid(actor(player4)), stake, meta, protocol_version));
     generate_block();
     BOOST_REQUIRE_EQUAL(table(db).get_pending_proposals(), 2u);
+    BOOST_REQUIRE_EQUAL(table2(db).get_pending_proposals(), 2u);
     BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table, table(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table2, table2(db).pending_proposals.begin()->second));
     generate_block();
 
 
@@ -444,24 +449,81 @@ PLAYCHAIN_TEST_CASE(check_calculation_formula)
 
     BOOST_REQUIRE_EQUAL(table(db).get_pending_proposals(), 0u);
 
-    auto room_rating_in_blockchain = room(db).rating;
+    auto room1_rating_in_blockchain = room(db).rating;
+    auto room2_rating_in_blockchain = room2(db).rating;
 
     //////////////////////////////////////////////////////////////////////////
     //      calculate room rating
     //////////////////////////////////////////////////////////////////////////
 
-    auto time_coef = K_factor(diff_time1/60) + K_factor(diff_time1 / 60) + K_factor(diff_time2 / 60) + K_factor(diff_time2 / 60);
-    auto weight_with_time_coef = 1*K_factor(diff_time1 / 60) + 0*K_factor(diff_time1 / 60) + 1*K_factor(diff_time2 / 60) + 0*K_factor(diff_time2 / 60);
+    auto room1_time_coef = K_factor(diff_time1/60) + K_factor(diff_time1 / 60) + K_factor(diff_time2 / 60) + K_factor(diff_time2 / 60);
+    auto room1_weight_with_time_coef = 1*K_factor(diff_time1 / 60) + 0*K_factor(diff_time1 / 60) + 1*K_factor(diff_time2 / 60) + 0*K_factor(diff_time2 / 60);
+
+    auto room2_time_coef = K_factor(diff_time2 / 60) + K_factor(diff_time2 / 60);
+    auto room2_weight_with_time_coef = 1 * K_factor(diff_time2 / 60) + 0 * K_factor(diff_time2 / 60);
 
     const auto M = stat_correction();
 
+    auto time_coef = room1_time_coef + room2_time_coef;
+    auto weight_with_time_coef = room1_weight_with_time_coef + room2_weight_with_time_coef;
+
     BOOST_TEST_MESSAGE("\n"<< weight_with_time_coef<<" "<< time_coef<< " " << M << " ");
 
-    const auto calculated_rating = (weight_with_time_coef + weight_with_time_coef * M/ time_coef) * 25 * f_N(4) / (time_coef + M);
+    const auto room1_calculated_rating = (room1_weight_with_time_coef + weight_with_time_coef * M/ time_coef) * 25 * f_N(4) / (room1_time_coef + M);
+    const auto room2_calculated_rating = (room2_weight_with_time_coef + weight_with_time_coef * M / time_coef) * 25 * f_N(2) / (room2_time_coef + M);
 
-    BOOST_CHECK_EQUAL(room_rating_in_blockchain, calculated_rating);
+    BOOST_CHECK_EQUAL(room1_rating_in_blockchain, room1_calculated_rating);
+    BOOST_CHECK_EQUAL(room2_rating_in_blockchain, room2_calculated_rating);
+}
+
+
+PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_0_before_playchain_5hf)
+{
+    const std::string protocol_version = "1.0.0+20190223";
+
+    room_id_type room = create_new_room(richregistrator, "room", protocol_version);
+
+    BOOST_CHECK_EQUAL(0, room(db).rating);
+}
+
+PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_avarage_rating_after_playchain_5hf)
+{
+    auto mi = db.get_global_properties().parameters.maintenance_interval;
+    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME - mi);
+
+
+    const std::string protocol_version = "1.0.0+20190223";
+    const std::string meta = "Game";
+
+    room_id_type room = create_new_room(richregistrator, "room", protocol_version);
+    BOOST_CHECK_EQUAL(0, room(db).rating);
+
+    table_id_type table = create_new_table(richregistrator, room, 0u, meta);
+    Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
+
+    auto stake = asset(player_init_balance / 3);
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE(!table(db).pending_proposals.empty());
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table, table(db).pending_proposals.begin()->second));
+    generate_block();
+
+
+    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+
+    BOOST_REQUIRE_NE(0, room(db).rating);
+    BOOST_REQUIRE_NE(0, db.get_dynamic_global_properties().average_room_rating);
+
+    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME - GRAPHENE_DEFAULT_BLOCK_INTERVAL);
+
+    room_id_type room2 = create_new_room(richregistrator, "room2", protocol_version);
+    BOOST_REQUIRE_EQUAL(room2(db).rating, 0);
+
+    generate_block();
+
+    room_id_type room3 = create_new_room(richregistrator, "room3", protocol_version);
+    BOOST_REQUIRE_EQUAL(room3(db).rating, db.get_dynamic_global_properties().average_room_rating);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
 }
-

@@ -31,6 +31,9 @@
 
 #include <playchain/chain/playchain_config.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
+
 namespace playchain { namespace chain {
 
 void_result room_create_evaluator::do_evaluate(const operation_type& op)
@@ -77,6 +80,15 @@ object_id_type room_create_evaluator::do_apply(const operation_type& op)
                        room.server_url = op.server_url;
                        room.metadata = op.metadata;
                        fc::from_variant(op.protocol_version, room.protocol_version);
+
+                       if (d.head_block_time() >= HARDFORK_PLAYCHAIN_5_TIME)
+                       {
+                           room.rating = d.get_dynamic_global_properties().average_room_rating;
+                       }
+                       else
+                       {
+                           room.rating = 0;
+                       }
                     });
 
         dlog("new room: ${r}", ("r", new_room));

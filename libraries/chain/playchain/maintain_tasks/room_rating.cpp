@@ -264,10 +264,18 @@ void update_room_rating(database &d)
         updated_rooms.emplace_back(std::cref(room));
     }
 
+    uint64_t average_room_rating = 0;
     for (const room_object& room: updated_rooms)
     {
         recalculate_room_rating(d, room, constC_weight_sum_by_time_factor, constC_measurement_sum_by_time_factor);
+
+        average_room_rating += room.rating;
     }
+    average_room_rating = average_room_rating / updated_rooms.size();
+
+    d.modify(d.get_dynamic_global_properties(), [&](dynamic_global_property_object &obj) {
+        obj.average_room_rating = average_room_rating;
+    });
 }
 
 /*void update_room_rating(database &d)

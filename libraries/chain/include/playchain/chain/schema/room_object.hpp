@@ -50,12 +50,12 @@ namespace playchain { namespace chain {
         string                              server_url;
         string                              metadata;
         version_ext                         protocol_version;
-        int32_t                             rating = 0;
+        int64_t                             rating = 0;
         ///used for rating calculation
         fc::time_point_sec                  last_rating_update = time_point_sec::min();
-        int32_t                             prev_rating = 0;
+        int64_t                             prev_rating = 0;
         table_id_type                       last_updated_table;
-
+        ///used for monitoring of rating calculation
         uint64_t                            weight_sum_by_time_factor = 1;
         uint64_t                            measurement_sum_by_time_factor = 1;
         uint32_t                            measurement_quantity = 1;
@@ -119,5 +119,16 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::room_object,
                     (graphene::db::object),
-                    (owner)(server_url)(metadata)(protocol_version)(rating)(last_rating_update)(prev_rating)(last_updated_table)(pending_rake)(balance)(weight_sum_by_time_factor)(measurement_sum_by_time_factor)(measurement_quantity) )
-
+                    (owner)
+                    (server_url)
+                    (metadata)
+                    (protocol_version)
+                    (rating)
+                    (last_rating_update)
+                    (prev_rating)
+                    (last_updated_table)
+                    (pending_rake)
+                    (balance)
+                    (weight_sum_by_time_factor)
+                    (measurement_sum_by_time_factor)
+                    (measurement_quantity) )
