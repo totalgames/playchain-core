@@ -17,11 +17,13 @@ struct table_alive_fixture: public playchain_common::playchain_fixture
 
     DECLARE_ACTOR(richregistrator)
     DECLARE_ACTOR(richregistrator2)
+    DECLARE_ACTOR(richregistrator3)
 
     table_alive_fixture()
     {
         actor(richregistrator).supply(asset(registrator_init_balance));
         actor(richregistrator2).supply(asset(registrator_init_balance));
+        actor(richregistrator3).supply(asset(registrator_init_balance));
 
         init_fees();
     }
@@ -148,6 +150,11 @@ PLAYCHAIN_TEST_CASE(check_table_become_alive_while_operated)
     room_id_type room = create_new_room(richregistrator, "room");
 
     table_id_type table = create_new_table(richregistrator, room, 0u, meta);
+
+    generate_block();
+
+    BOOST_REQUIRE_EQUAL( pplaychain_api->get_tables_info_by_id({table}).size(), 1u );
+    BOOST_CHECK( !pplaychain_api->get_tables_info_by_id({table})[0].alive );
 
     auto op = tables_alive_op(actor(richregistrator), {table});
 
@@ -280,6 +287,9 @@ PLAYCHAIN_TEST_CASE(check_table_become_alive_while_operated)
     generate_blocks(prev_ping + fc::seconds(params.table_alive_expiration_seconds / 2 ));
 
     BOOST_CHECK(is_table_alive(db, table));
+
+    BOOST_REQUIRE_EQUAL( pplaychain_api->get_tables_info_by_id({table}).size(), 1u );
+    BOOST_CHECK( pplaychain_api->get_tables_info_by_id({table})[0].alive );
 }
 
 PLAYCHAIN_TEST_CASE(check_negative_tables_alive_operation)
@@ -319,6 +329,47 @@ PLAYCHAIN_TEST_CASE(check_tables_alive_evaluator_asserts)
     tables.insert(create_new_table(richregistrator2, room2));
 
     BOOST_CHECK_THROW(tables_alive(richregistrator, tables), fc::exception);
+}
+
+PLAYCHAIN_TEST_CASE(check_table_find_with_game_witnesses)
+{
+    const std::string protocol_version = "1.3.0+20190610";
+
+    Actor player1 = create_new_player(richregistrator, "p1", asset(player_init_balance));
+    Actor player2 = create_new_player(richregistrator, "p2", asset(player_init_balance));
+
+    room_id_type main_room = create_new_room(richregistrator, "room1", protocol_version);
+    room_id_type w1_room = create_new_room(richregistrator2, "w1", protocol_version);
+    room_id_type w2_room = create_new_room(richregistrator3, "w2", protocol_version);
+
+    const std::string meta = "Game";
+
+    table_id_type table1 = create_new_table(richregistrator, main_room, 0u, meta);
+    table_id_type table2 = create_new_table(richregistrator, main_room, 0u, meta);
+    table_id_type table3 = create_new_table(richregistrator, main_room, 0u, meta);
+
+    generate_blocks(HARDFORK_PLAYCHAIN_2_TIME);
+
+    BOOST_REQUIRE_NO_THROW(tables_alive(richregistrator, {table1, table2, table3}));
+
+    BOOST_REQUIRE(is_table_alive(db, table1));
+    BOOST_REQUIRE(is_table_alive(db, table2));
+    BOOST_REQUIRE(is_table_alive(db, table3));
+
+    auto stake = asset(player_init_balance/2);
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
+
+    generate_block();
+
+    idump((table1(db)));
+    idump((table2(db)));
+    idump((table3(db)));
+
+    BOOST_CHECK(table1(db).get_pending_proposals() == 2u ||
+                table2(db).get_pending_proposals() == 2u ||
+                table3(db).get_pending_proposals() == 2u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

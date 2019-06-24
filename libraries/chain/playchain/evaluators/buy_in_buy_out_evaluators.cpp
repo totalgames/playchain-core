@@ -126,7 +126,7 @@ namespace
             prolong_life_for_by_in(d, *it);
         }
 
-        object_id_type alive_id = alife_for_table(d, table.id).get<object_id_type>();
+        object_id_type alive_id = alive_for_table(d, table.id).get<object_id_type>();
         if (ret_id == object_id_type{})
             ret_id = alive_id;
 

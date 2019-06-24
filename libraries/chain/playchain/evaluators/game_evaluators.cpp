@@ -1116,7 +1116,7 @@ namespace playchain{ namespace chain{
                 d.remove(vote_obj);
             }
 
-            return alife_for_table(d, table.id);
+            return alive_for_table(d, table.id);
         }FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -1189,7 +1189,7 @@ namespace playchain{ namespace chain{
                 d.remove(vote_obj);
             }
 
-            return alife_for_table(d, table.id);
+            return alive_for_table(d, table.id);
         }FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -1223,7 +1223,7 @@ namespace playchain{ namespace chain{
                 d.remove(*it);
             }
 
-            return alife_for_table(d, table.id);
+            return alive_for_table(d, table.id);
         }FC_CAPTURE_AND_RETHROW((op))
     }
 }}

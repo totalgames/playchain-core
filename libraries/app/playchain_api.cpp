@@ -143,6 +143,7 @@ public:
             info.state = playchain_table_state::free;
         }
 
+        info.alive = is_table_alive(_db, table.id);
         return info;
     }
 
