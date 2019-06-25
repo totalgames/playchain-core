@@ -48,7 +48,7 @@ namespace
         return ROOM_RATING_PRECISION * val;
     }
 
-    uint64_t K_factor(uint64_t x)
+    uint64_t time_factor(uint64_t x)
     {
         if (x <= TIME_FACTOR_FADE_START)
         {
@@ -60,7 +60,7 @@ namespace
         }
     }
 
-    uint64_t f_N(uint64_t N)
+    uint64_t quantity_factor(uint64_t N)
     {
         if (N <= QUANTITY_FACTOR_FADE_START)
         {
@@ -136,8 +136,6 @@ namespace
         while (measurements_by_expiration.begin() != measurements_by_expiration.end()
             && measurements_by_expiration.begin()->expiration <= d.head_block_time())
         {
-            wlog("______________Remove measurement ${m}, head_block_time==${t}", ("m", *measurements_by_expiration.begin())("t", d.head_block_time()));
-
             // remove the db object
             d.remove(*measurements_by_expiration.begin());
         }
@@ -159,18 +157,11 @@ namespace
             if(measurement.waiting_resolve)
                 continue;
 
-            wlog("______________ADD room ${r}, measurement=${m}", ("r", room)("m", measurement));
-
             std::chrono::seconds elapsed_secconds(d.head_block_time().sec_since_epoch() - measurement.created.sec_since_epoch());
             auto minutes_from_measurement_till_now = std::chrono::duration_cast<std::chrono::minutes> (elapsed_secconds);
 
-            wlog("______________elapsed seconds == ${s}, current_time == ${t}", ("s", elapsed_secconds.count())("t", d.get_dynamic_global_properties().time));
-
-            wlog("______________${s} + ${r} = ${t}", ("s", weight_sum_by_time_factor)("r", measurement.weight* K_factor(minutes_from_measurement_till_now.count()))("t", weight_sum_by_time_factor + measurement.weight* K_factor(minutes_from_measurement_till_now.count())));
-            wlog("______________${s} + ${r} = ${t}", ("s", measurement_sum_by_time_factor)("r", K_factor(minutes_from_measurement_till_now.count()))("t", measurement_sum_by_time_factor + K_factor(minutes_from_measurement_till_now.count())));
-
-            weight_sum_by_time_factor += measurement.weight* K_factor(minutes_from_measurement_till_now.count());
-            measurement_sum_by_time_factor += K_factor(minutes_from_measurement_till_now.count());
+            weight_sum_by_time_factor += measurement.weight* time_factor(minutes_from_measurement_till_now.count());
+            measurement_sum_by_time_factor += time_factor(minutes_from_measurement_till_now.count());
 
             ++measurements_used_to_rating_calculation;
         }
@@ -186,25 +177,18 @@ namespace
     {
         const auto& dprops = d.get_dynamic_global_properties();
 
-        wlog("______________recalculate_room_rating for room ${r}, c_weight=${w}, c_measurement=${m}", ("r", room)("w", constC_weight_sum_by_time_factor)("m", constC_measurement_sum_by_time_factor));
-
-
         constC_measurement_sum_by_time_factor = std::max(constC_measurement_sum_by_time_factor, (uint64_t)1);
 
 
         auto new_rating = (fc::uint128_t(room.weight_sum_by_time_factor) * constC_measurement_sum_by_time_factor + constC_weight_sum_by_time_factor * stat_correction())
-                                * 25 * f_N(room.measurement_quantity)
+                                * 25 * quantity_factor(room.measurement_quantity)
                                 / (constC_measurement_sum_by_time_factor * (room.measurement_sum_by_time_factor + stat_correction()));
-
-        wlog("______________rating == ${r} ", ("r", new_rating));
 
         d.modify(room, [&](room_object &obj) {
             obj.prev_rating = obj.rating;
             obj.rating = new_rating.to_integer();
             obj.last_rating_update = dprops.time;
         });
-
-        wlog("______________UPDATE_ROOM_RATING: ${r}", ("r", room));
     }
 }
 
@@ -239,19 +223,14 @@ void update_room_rating_simple_impl(database &d)
 
 void update_room_rating(database &d)
 {
+    remove_expired_room_rating_measurements(d);
+
     if (d.head_block_time() < HARDFORK_PLAYCHAIN_5_TIME)
     {
         return update_room_rating_simple_impl(d);
     }
 
-    remove_expired_room_rating_measurements(d);
-
     auto& rooms_by_last_update = d.get_index_type<room_index>().indices().get<by_last_rating_update>();
-
-    for (const room_object& room : rooms_by_last_update)
-    {
-        wlog("______________${r}", ("r", room));
-    }
 
     if (rooms_by_last_update.size() == 1) //only special room
         return;
@@ -277,8 +256,6 @@ void update_room_rating(database &d)
             --ci;
             continue;
         }
-
-        wlog("______________BEGIN RECALCULATION FOR room ${r}", ("r", room));
 
         recalculate_room_rating_factors(d, room);
 

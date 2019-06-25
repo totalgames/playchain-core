@@ -82,8 +82,6 @@ namespace
             auto it = measurements_by_buyin.find(buy_in.id);
             if (it != measurements_by_buyin.end())
             {
-                wlog("______________Remove measurement ${m} - buyin cancelled", ("m", *it));
-
                 d.remove(*it);
             }
             else
@@ -380,8 +378,6 @@ namespace
             {
                 d.modify(*it, [&](room_rating_measurement_object &obj)
                 {
-                    wlog("______________Push Succeeded measurement ${m}, expiration_secconds ${e}", ("m", obj)("e", get_playchain_parameters(d).room_rating_measurements_alive_periods * d.get_global_properties().parameters.maintenance_interval));
-
                     obj.waiting_resolve = false;
                     obj.weight = 1; // in this case poker server works as expected, so we push its rating up by assigning mark with value 1
                                     // If poker room does more useful work than only servicing client games(e.g it's also a poker witness for other rooms)

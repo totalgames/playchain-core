@@ -69,7 +69,7 @@ namespace
             obj.table = table.id;
         });
 
-        auto& m = d.create<room_rating_measurement_object>([&](room_rating_measurement_object& obj) {
+        d.create<room_rating_measurement_object>([&](room_rating_measurement_object& obj) {
             obj.created = d.head_block_time();
             obj.expiration = obj.created + get_playchain_parameters(d).room_rating_measurements_alive_periods * d.get_global_properties().parameters.maintenance_interval;
             obj.associated_buyin = buy_in.id;
@@ -78,8 +78,6 @@ namespace
             obj.weight = 0;
             obj.waiting_resolve = true;
         });
-
-        wlog("______________Push measurement ${m}", ("m", m));
 
         return prev_proposal;
     }
@@ -102,8 +100,6 @@ namespace
             {
                 d.modify(*it, [&](room_rating_measurement_object &obj)
                 {
-                    wlog("______________Push Failed measurement ${m}", ("m", obj));
-
                     obj.waiting_resolve = false;
                     obj.weight = 0; // expired buyins give zero contribution to rating
                 });
@@ -171,8 +167,6 @@ void update_expired_pending_buy_in(database &d)
 {
     auto& by_expiration= d.get_index_type<pending_buy_in_index>().indices().get<by_playchain_obj_expiration>();
 
-    //wlog("______________update_expired_pending_buy_in _____ size==${s}",("s", by_expiration.size()));
-
     while( !by_expiration.empty() && by_expiration.begin()->expiration <= d.head_block_time() )
     {
         const pending_buy_in_object &buy_in = *by_expiration.begin();
@@ -186,7 +180,6 @@ void update_expired_pending_buy_in(database &d)
 
             d.modify(table, [&](table_object &obj)
             {
-                //wlog("______________update_expired_pending_buy_in _____ remove allocated buy_in for player ${p}", ("p", player));
                 obj.remove_pending_proposal(player.id);
             });
         }
@@ -313,6 +306,7 @@ void allocation_of_vacancies(database &d)
             continue;
 
         const auto& tables_by_free_places = d.get_index_type<table_index>().indices().get<by_table_choose_algorithm>();
+
 
         bool lookup_out_range = false;
         bool last_loop = false;
