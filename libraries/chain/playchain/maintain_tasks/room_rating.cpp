@@ -25,6 +25,7 @@
 #include "room_rating.hpp"
 
 #include <graphene/chain/database.hpp>
+#include <graphene/chain/hardfork.hpp>
 
 #include <playchain/chain/schema/room_object.hpp>
 #include <playchain/chain/schema/room_rating_object.hpp>
@@ -105,12 +106,12 @@ namespace
         return (uint16_t)utils::get_pseudo_random(_entropy, _pos++, _MIN, _MAX);
     }
 
-    /*void recalculate_rating(database &d, const randomizing_context &rnd, const room_object &room)
+    void recalculate_rating_simple_impl(database &d, const randomizing_context &rnd, const room_object &room)
     {
         const auto& dprops = d.get_dynamic_global_properties();
         auto old_rating = room.rating;
 
-        assert(sizeof(old_rating) == 4);
+        assert(sizeof(old_rating) == 8);
 
         auto new_rating = old_rating;
 
@@ -126,7 +127,7 @@ namespace
             obj.rating = new_rating;
             obj.last_rating_update = dprops.time;
         });
-    }*/
+    }
 
     void remove_expired_room_rating_measurements(database &d)
     {
@@ -142,7 +143,7 @@ namespace
         }
     }
 
-    void recalculate_rating_factors(database &d, const room_object &room)
+    void recalculate_room_rating_factors(database &d, const room_object &room)
     {
         uint64_t weight_sum_by_time_factor = 0;
         uint64_t measurement_sum_by_time_factor = 0;
@@ -190,24 +191,16 @@ namespace
 
         constC_measurement_sum_by_time_factor = std::max(constC_measurement_sum_by_time_factor, (uint64_t)1);
 
-        auto new_rating = (room.weight_sum_by_time_factor + constC_weight_sum_by_time_factor * stat_correction() / constC_measurement_sum_by_time_factor)
-            * 25 * f_N(room.measurement_quantity)
-            / (room.measurement_sum_by_time_factor + stat_correction());
 
-
-        wlog("______________numerator == ${n}, denominator == ${d}",
-            ("n", (room.weight_sum_by_time_factor * constC_measurement_sum_by_time_factor + constC_weight_sum_by_time_factor * stat_correction()) * 25 * f_N(room.measurement_quantity))
-                ("d", (constC_measurement_sum_by_time_factor * (room.measurement_sum_by_time_factor + stat_correction()))));
-
-
-        auto new_rating2 = (fc::uint128_t(room.weight_sum_by_time_factor) * constC_measurement_sum_by_time_factor + constC_weight_sum_by_time_factor * stat_correction()) * 25 * f_N(room.measurement_quantity)
+        auto new_rating = (fc::uint128_t(room.weight_sum_by_time_factor) * constC_measurement_sum_by_time_factor + constC_weight_sum_by_time_factor * stat_correction())
+                                * 25 * f_N(room.measurement_quantity)
                                 / (constC_measurement_sum_by_time_factor * (room.measurement_sum_by_time_factor + stat_correction()));
 
-        wlog("______________${r}  ______  ${w}", ("r", new_rating)("w", new_rating2));
+        wlog("______________rating == ${r} ", ("r", new_rating));
 
         d.modify(room, [&](room_object &obj) {
             obj.prev_rating = obj.rating;
-            obj.rating = new_rating2.to_integer();
+            obj.rating = new_rating.to_uint64();
             obj.last_rating_update = dprops.time;
         });
 
@@ -215,9 +208,42 @@ namespace
     }
 }
 
+void update_room_rating_simple_impl(database &d)
+{
+    auto& rooms_by_last_update = d.get_index_type<room_index>().indices().get<by_last_rating_update>();
+
+    if (rooms_by_last_update.size() == 1) //only special room
+        return;
+
+    randomizing_context rnd{d};
+
+    const auto& parameters = get_playchain_parameters(d);
+    auto itr = rooms_by_last_update.begin();
+    size_t ci = 0;
+    while( itr != rooms_by_last_update.end() &&
+           ci++ < parameters.rooms_rating_recalculations_per_maintenance)
+    {
+        const room_object &room = *itr++;
+        if (room_object::is_special_room(room.id))
+            continue;
+
+        if (room.last_updated_table != table_id_type{})
+        {
+            --ci;
+            continue;
+        }
+        recalculate_rating_simple_impl(d, rnd, room);
+    }
+}
+
 
 void update_room_rating(database &d)
 {
+    if (d.head_block_time() < HARDFORK_PLAYCHAIN_5_TIME)
+    {
+        return update_room_rating_simple_impl(d);
+    }
+
     remove_expired_room_rating_measurements(d);
 
     auto& rooms_by_last_update = d.get_index_type<room_index>().indices().get<by_last_rating_update>();
@@ -229,8 +255,6 @@ void update_room_rating(database &d)
 
     if (rooms_by_last_update.size() == 1) //only special room
         return;
-
-    //randomizing_context rnd{ d };
 
     uint64_t constC_weight_sum_by_time_factor = 0;
     uint64_t constC_measurement_sum_by_time_factor = 0;
@@ -256,7 +280,7 @@ void update_room_rating(database &d)
 
         wlog("______________BEGIN RECALCULATION FOR room ${r}", ("r", room));
 
-        recalculate_rating_factors(d, room);
+        recalculate_room_rating_factors(d, room);
 
         constC_weight_sum_by_time_factor += room.weight_sum_by_time_factor;
         constC_measurement_sum_by_time_factor += room.measurement_sum_by_time_factor;
@@ -278,33 +302,6 @@ void update_room_rating(database &d)
     });
 }
 
-/*void update_room_rating(database &d)
-{
-    auto& rooms_by_last_update = d.get_index_type<room_index>().indices().get<by_last_rating_update>();
-
-    if (rooms_by_last_update.size() == 1) //only special room
-        return;
-
-    randomizing_context rnd{d};
-
-    const auto& parameters = get_playchain_parameters(d);
-    auto itr = rooms_by_last_update.begin();
-    size_t ci = 0;
-    while( itr != rooms_by_last_update.end() &&
-           ci++ < parameters.rooms_rating_recalculations_per_maintenance)
-    {
-        const room_object &room = *itr++;
-        if (room_object::is_special_room(room.id))
-            continue;
-
-        if (room.last_updated_table != table_id_type{})
-        {
-            --ci;
-            continue;
-        }
-        recalculate_rating(d, rnd, room);
-    }
-}*/
 
 void update_table_weight(database &d)
 {
