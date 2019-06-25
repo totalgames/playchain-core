@@ -385,5 +385,6 @@ void table_voting_statistics_index::object_removed( const object& obj )
                         std::back_inserter(missed));
 
     not_voted_last_time_players_by_table[table_voting.table] = std::move(missed);
+    voted_last_time_players_by_table[table_voting.table] = std::move(votes);
 }
 }}

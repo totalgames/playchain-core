@@ -247,10 +247,11 @@ namespace playchain { namespace chain {
 
             using accounts_type = std::vector<account_id_type>;
 
+            flat_map< table_id_type, accounts_type > voted_last_time_players_by_table;
             flat_map< table_id_type, accounts_type > not_voted_last_time_players_by_table;
 
         private:
-          const database& _db;
+            const database& _db;
     };
 
     struct by_room;

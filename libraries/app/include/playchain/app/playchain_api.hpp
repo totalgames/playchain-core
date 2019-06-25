@@ -133,6 +133,7 @@ struct playchain_table_info_ext: public playchain_table_info
     cash_data_type       cash;
     cash_data_type       playing_cash;
     accounts_data_type   missed_voters;
+    accounts_data_type   voters;
 };
 
 using player_invitation_object_with_blockchain_time = std::pair<player_invitation_object, fc::time_point_sec>;
@@ -512,7 +513,8 @@ FC_REFLECT_DERIVED(playchain::app::playchain_table_info_ext, (playchain::app::pl
                    (pending_proposals)
                    (cash)
                    (playing_cash)
-                   (missed_voters))
+                   (missed_voters)
+                   (voters))
 
 FC_REFLECT_ENUM(playchain::app::playchain_player_table_state,
                 (nop)
