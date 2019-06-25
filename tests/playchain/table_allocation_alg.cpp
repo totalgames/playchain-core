@@ -666,20 +666,19 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
     Actor player2 = create_new_player(richregistrator, "p2", asset(player_init_balance));
     Actor player3 = create_new_player(richregistrator, "p3", asset(player_init_balance));
 
-    auto stake = asset(player_init_balance/2);
+    auto stake = asset(player_init_balance / 2);
 
-    size_t ci = 0;
-    while(room1(db).rating <= room2(db).rating && ci++ < 10)
-    {
-        next_maintenance();
-    }
+    // update parameter for test needs
+    db.modify(room1(db), [&](room_object& r) {
+        r.rating = 10;
+    });
+    BOOST_REQUIRE_EQUAL(room1(db).rating, 10);
+    BOOST_REQUIRE_EQUAL(room2(db).rating, 0);
 
     BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
     BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
     BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_1));
     BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_2));
-
-    BOOST_REQUIRE_GT(room1(db).rating, room2(db).rating);
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta));
@@ -692,23 +691,27 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
     BOOST_CHECK_EQUAL(table2_1(db).get_pending_proposals(), 0u);
     BOOST_CHECK_EQUAL(table2_2(db).get_pending_proposals(), 0u);
 
-    ci = 0;
-    while(room1(db).rating >= room2(db).rating && ci++ < 10)
-    {
-        next_maintenance();
-    }
-
-    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
-    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
-    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_1));
-    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_2));
-
-    BOOST_REQUIRE_LT(room1(db).rating, room2(db).rating);
+    generate_blocks(db.get_dynamic_global_properties().time + get_playchain_properties(db).parameters.pending_buyin_proposal_lifetime_limit_in_seconds);
 
     BOOST_REQUIRE_EQUAL(table1_1(db).get_pending_proposals(), 0u);
     BOOST_REQUIRE_EQUAL(table1_2(db).get_pending_proposals(), 0u);
     BOOST_REQUIRE_EQUAL(table2_1(db).get_pending_proposals(), 0u);
     BOOST_REQUIRE_EQUAL(table2_2(db).get_pending_proposals(), 0u);
+
+    // update parameter for test needs
+    db.modify(room1(db), [&](room_object& r) {
+        r.rating = 10;
+    });
+    db.modify(room2(db), [&](room_object& r) {
+        r.rating = 20;
+    });
+    BOOST_REQUIRE_EQUAL(room1(db).rating, 10);
+    BOOST_REQUIRE_EQUAL(room2(db).rating, 20);
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table2_2));
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta));

@@ -45,7 +45,7 @@ namespace
     template <class T>
     T adjust_precision(const T& val)
     {
-        return GRAPHENE_BLOCKCHAIN_PRECISION * val;
+        return ROOM_RATING_PRECISION * val;
     }
 
     uint64_t K_factor(uint64_t x)
@@ -111,7 +111,7 @@ namespace
         const auto& dprops = d.get_dynamic_global_properties();
         auto old_rating = room.rating;
 
-        assert(sizeof(old_rating) == 8);
+        assert(sizeof(old_rating) == 4);
 
         auto new_rating = old_rating;
 
@@ -200,7 +200,7 @@ namespace
 
         d.modify(room, [&](room_object &obj) {
             obj.prev_rating = obj.rating;
-            obj.rating = new_rating.to_uint64();
+            obj.rating = new_rating.to_integer();
             obj.last_rating_update = dprops.time;
         });
 

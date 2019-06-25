@@ -50,10 +50,10 @@ namespace playchain { namespace chain {
         string                              server_url;
         string                              metadata;
         version_ext                         protocol_version;
-        int64_t                             rating = 0;
+        int32_t                             rating = 0;
         ///used for rating calculation
         fc::time_point_sec                  last_rating_update = time_point_sec::min();
-        int64_t                             prev_rating = 0;
+        int32_t                             prev_rating = 0;
         table_id_type                       last_updated_table;
         ///used for monitoring of rating calculation
         uint64_t                            weight_sum_by_time_factor = 1;

@@ -36,3 +36,5 @@
 #define QUANTITY_FACTOR_C2 double(0.005)
 #define QUANTITY_FACTOR_C3 double(20)
 #define QUANTITY_FACTOR_C4 double(0.76974)
+
+#define ROOM_RATING_PRECISION 1000

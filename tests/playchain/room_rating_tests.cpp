@@ -27,6 +27,13 @@ struct room_rating_fixture : public playchain_common::playchain_fixture
 
         generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
     }
+
+    table_id_type create_new_table(const Actor& owner, const room_id_type &room, const amount_type required_witnesses = 0u, const std::string &metadata = {})
+    {
+        table_id_type table = playchain_common::playchain_fixture::create_new_table(owner, room, required_witnesses, metadata);
+        table_alive(richregistrator, table);
+        return table;
+    }
 };
 
 BOOST_FIXTURE_TEST_SUITE(room_rating_tests, room_rating_fixture)
@@ -271,6 +278,7 @@ PLAYCHAIN_TEST_CASE(check_before_fade_start_buyins_give_the_same_contribution_to
 
 
     BOOST_TEST_MESSAGE("\nSTART BUYIN ON TABLE1");
+    table_alive(richregistrator, table);
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
     generate_block();
     BOOST_REQUIRE_EQUAL(table(db).get_pending_proposals(), 1u);
@@ -283,6 +291,7 @@ PLAYCHAIN_TEST_CASE(check_before_fade_start_buyins_give_the_same_contribution_to
 
 
     BOOST_TEST_MESSAGE("\nSTART BUYIN ON TABLE2");
+    table_alive(richregistrator, table2);
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
     generate_block();
     BOOST_TEST_MESSAGE("\n" << table(db).get_pending_proposals() << "  " << table2(db).get_pending_proposals());
@@ -338,6 +347,10 @@ PLAYCHAIN_TEST_CASE(check_notresolved_buyins_are_not_used_in_rating_count)
     });
     BOOST_REQUIRE_EQUAL(get_playchain_parameters(db).maximum_desired_number_of_players_for_tables_allocation, 2u);
 
+    table_alive(richregistrator, table);
+    table_alive(richregistrator, table2);
+
+
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player3, get_next_uid(actor(player3)), stake, meta, protocol_version));
@@ -368,7 +381,7 @@ namespace
     template <class T>
     T adjust_precision(const T& val)
     {
-        return GRAPHENE_BLOCKCHAIN_PRECISION * val;
+        return ROOM_RATING_PRECISION * val;
     }
 
     uint64_t K_factor(uint64_t x)
@@ -443,6 +456,9 @@ PLAYCHAIN_TEST_CASE(check_calculation_formula)
         p.parameters.maximum_desired_number_of_players_for_tables_allocation = 2;
     });
     BOOST_REQUIRE_EQUAL(get_playchain_parameters(db).maximum_desired_number_of_players_for_tables_allocation, 2u);
+
+    table_alive(richregistrator, table);
+    table_alive(richregistrator, table2);
 
     BOOST_TEST_MESSAGE("\nSTART BUYIN ON TABLE1 at time T2");
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
