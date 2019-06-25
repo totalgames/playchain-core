@@ -71,7 +71,7 @@ PLAYCHAIN_TEST_CASE(check_database_entropy)
     entropies.emplace_back(new_entr);
     auto last_entr = new_entr;
 
-    BOOST_REQUIRE_NO_THROW(transfer(alice, bob, asset(1), true))
+    BOOST_REQUIRE_NO_THROW(transfer(alice, bob, asset(1), true));
 
     new_entr = get_database_entropy(db);
 
@@ -80,7 +80,7 @@ PLAYCHAIN_TEST_CASE(check_database_entropy)
     entropies.emplace_back(new_entr);
     last_entr = new_entr;
 
-    BOOST_REQUIRE_NO_THROW(transfer(bob, alice, asset(1), true))
+    BOOST_REQUIRE_NO_THROW(transfer(bob, alice, asset(1), true));
 
     new_entr = get_database_entropy(db);
 
@@ -100,7 +100,7 @@ PLAYCHAIN_TEST_CASE(check_database_entropy)
     last_entr = new_entr;
 
     //it creates entropy by signatures if current block is not changed
-    BOOST_REQUIRE_NO_THROW(transfer(bob, alice, asset(1), false))
+    BOOST_REQUIRE_NO_THROW(transfer(bob, alice, asset(1), false));
 
     new_entr = get_database_entropy(db);
 

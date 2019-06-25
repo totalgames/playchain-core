@@ -210,6 +210,19 @@ public:
                 info.missed_voters.emplace(std::make_pair(account_id, account.name));
             }
         }
+
+        it = second_index.voted_last_time_players_by_table.find(table.id);
+        if (second_index.voted_last_time_players_by_table.end() != it)
+        {
+            auto &&voted_last_time_players_by_table = it->second;
+            info.voters.reserve(voted_last_time_players_by_table.size());
+
+            for (const auto &account_id: voted_last_time_players_by_table)
+            {
+                const account_object &account = account_id(_db);
+                info.voters.emplace(std::make_pair(account_id, account.name));
+            }
+        }
     }
 
     playchain_table_info get_table_info_by_id(const table_id_type& id) const

@@ -18,8 +18,16 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
   DECLARE_ACTOR(registrator)
   DECLARE_ACTOR(alice)
 
+  DECLARE_ACTOR(gwitness1)
+  DECLARE_ACTOR(gwitness2)
+  DECLARE_ACTOR(gwitness3)
+
   playchain_api_fixture() {
     actor(registrator).supply(asset(big_init_balance));
+
+    actor(gwitness1).supply(asset(big_init_balance));
+    actor(gwitness2).supply(asset(big_init_balance));
+    actor(gwitness3).supply(asset(big_init_balance));
 
     init_fees();
 
@@ -1803,6 +1811,138 @@ PLAYCHAIN_TEST_CASE(check_get_tables_info_by_id_with_missed_votes) {
     BOOST_CHECK(infos[0].state == playchain_table_state::free);
     BOOST_CHECK(infos[0].cash.size() == 2);
     BOOST_CHECK(infos[0].playing_cash.size() == 0);
+    BOOST_CHECK(infos[0].missed_voters.size() == 1);
+    auto info = (*infos[0].missed_voters.begin());
+    BOOST_CHECK(info.second == alice.name);
+  }
+}
+
+PLAYCHAIN_TEST_CASE(check_get_tables_info_by_id_with_votes_stat) {
+  using namespace playchain::app;
+
+  room_id_type room = create_new_room(registrator);
+  table_id_type table = create_new_table(registrator, room, 0u);
+
+  create_witness(gwitness1);
+  create_witness(gwitness2);
+
+  Actor bob = create_new_player(registrator, "bob", asset(big_init_balance));
+
+  BOOST_CHECK_NO_THROW(pplaychain_api->get_tables_info_by_id({table}));
+
+  {
+    auto &&infos = pplaychain_api->get_tables_info_by_id({table});
+
+    BOOST_REQUIRE_EQUAL(infos.size(), 1u);
+
+    BOOST_CHECK(infos[0].id == table);
+    BOOST_CHECK(infos[0].state == playchain_table_state::free);
+    BOOST_CHECK(infos[0].cash.size() == 0);
+    BOOST_CHECK(infos[0].playing_cash.size() == 0);
+    BOOST_CHECK(infos[0].voters.size() == 0);
+    BOOST_CHECK(infos[0].missed_voters.size() == 0);
+  }
+
+  auto &&table_obj = table(db);
+
+  BOOST_REQUIRE(table_obj.is_free());
+
+  auto stake = asset(big_init_balance / 2);
+
+  BOOST_REQUIRE_NO_THROW(buy_in_table(alice, registrator, table, stake));
+  BOOST_REQUIRE_NO_THROW(buy_in_table(bob, registrator, table, stake));
+
+  game_initial_data initial;
+  initial.cash[actor(alice)] = stake;
+  initial.cash[actor(bob)] = stake;
+  initial.info = "**** is diller";
+
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(registrator, table, initial));
+
+  BOOST_CHECK(pplaychain_api->get_tables_info_by_id({table})[0].state ==
+              playchain_table_state::voting_for_playing);
+
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
+
+  const auto &params = get_playchain_parameters(db);
+
+  generate_blocks(db.get_dynamic_global_properties().time +
+                  fc::seconds(params.voting_for_playing_expiration_seconds));
+
+  BOOST_REQUIRE(table_obj.is_free());
+
+  {
+    auto &&infos = pplaychain_api->get_tables_info_by_id({table});
+
+    BOOST_REQUIRE_EQUAL(infos.size(), 1u);
+
+    BOOST_CHECK(infos[0].id == table);
+    BOOST_CHECK(infos[0].state == playchain_table_state::free);
+    BOOST_CHECK(infos[0].cash.size() == 2);
+    BOOST_CHECK(infos[0].playing_cash.size() == 0);
+    BOOST_CHECK(infos[0].voters.size() == 2);
+    BOOST_CHECK(infos[0].missed_voters.size() == 1);
+    auto info = (*infos[0].missed_voters.begin());
+    BOOST_CHECK(info.second == bob.name);
+  }
+
+  generate_block();
+
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(registrator, table, initial));
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(gwitness1, table, initial));
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(gwitness2, table, initial));
+  BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
+
+  BOOST_REQUIRE(table_obj.is_playing());
+
+  {
+    auto &&infos = pplaychain_api->get_tables_info_by_id({table});
+
+    BOOST_REQUIRE_EQUAL(infos.size(), 1u);
+
+    BOOST_CHECK(infos[0].id == table);
+    BOOST_CHECK(infos[0].state == playchain_table_state::playing);
+    BOOST_CHECK(infos[0].cash.size() == 0);
+    BOOST_CHECK(infos[0].playing_cash.size() == 2);
+    BOOST_CHECK(infos[0].voters.size() == 5);
+    BOOST_CHECK(infos[0].missed_voters.size() == 0);
+  }
+
+  game_result result;
+  auto win = asset(stake.amount / 2);
+  auto win_rake = asset(win.amount / 20);
+  auto &winner_result = result.cash[actor(alice)];
+  winner_result.cash = stake + win - win_rake;
+  winner_result.rake = win_rake;
+  auto &last_result = result.cash[actor(bob)];
+  last_result.cash = stake - win;
+  result.log = "**** has A 4";
+
+  BOOST_REQUIRE_NO_THROW(game_result_check(registrator, table, result));
+
+  BOOST_CHECK(pplaychain_api->get_tables_info_by_id({table})[0].state ==
+              playchain_table_state::voting_for_results);
+
+  BOOST_REQUIRE_NO_THROW(game_result_check(bob, table, result));
+  BOOST_REQUIRE_NO_THROW(game_result_check(gwitness1, table, result));
+  BOOST_REQUIRE_NO_THROW(game_result_check(gwitness2, table, result));
+
+  generate_blocks(db.get_dynamic_global_properties().time +
+                  fc::seconds(params.voting_for_results_expiration_seconds));
+
+  BOOST_REQUIRE(table_obj.is_free());
+
+  {
+    auto &&infos = pplaychain_api->get_tables_info_by_id({table});
+
+    BOOST_REQUIRE_EQUAL(infos.size(), 1u);
+
+    BOOST_CHECK(infos[0].id == table);
+    BOOST_CHECK(infos[0].state == playchain_table_state::free);
+    BOOST_CHECK(infos[0].cash.size() == 2);
+    BOOST_CHECK(infos[0].playing_cash.size() == 0);
+    BOOST_CHECK(infos[0].voters.size() == 4);
     BOOST_CHECK(infos[0].missed_voters.size() == 1);
     auto info = (*infos[0].missed_voters.begin());
     BOOST_CHECK(info.second == alice.name);
