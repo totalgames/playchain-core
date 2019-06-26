@@ -24,17 +24,7 @@ RUN \
       libcurl4-openssl-dev \
       libssl-dev \
       libncurses-dev \
-      libboost-thread-dev \
-      libboost-iostreams-dev \
-      libboost-date-time-dev \
-      libboost-system-dev \
-      libboost-filesystem-dev \
-      libboost-program-options-dev \
-      libboost-chrono-dev \
-      libboost-test-dev \
-      libboost-context-dev \
-      libboost-regex-dev \
-      libboost-coroutine-dev \
+      libboost-all-dev \
       libtool \
       doxygen \
       ca-certificates \
@@ -56,6 +46,8 @@ RUN \
 	done && \
       git submodule sync --recursive ) && \
     git submodule update --init --recursive && \
+    mkdir build && \
+    cd build && \
     cmake \
         -DCMAKE_BUILD_TYPE=Release \
         -DGENESIS_TESTNET=${LIVE_TESTNET} \
