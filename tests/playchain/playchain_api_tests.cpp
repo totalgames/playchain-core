@@ -1662,8 +1662,8 @@ PLAYCHAIN_TEST_CASE(check_version_ext_conversions) {
   version_ext ver;
   fc::from_variant(ver_var, ver);
 
-  BOOST_CHECK(ver.base.major() == 1);
-  BOOST_CHECK(ver.base.minor() == 2);
+  BOOST_CHECK(ver.base.major_v() == 1);
+  BOOST_CHECK(ver.base.minor_v() == 2);
   BOOST_CHECK(ver.base.patch() == 3);
   BOOST_CHECK(ver.metadata == "20190501");
 

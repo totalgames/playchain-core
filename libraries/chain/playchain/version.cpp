@@ -56,12 +56,12 @@ version::version(uint8_t m, uint8_t h, uint16_t r)
     v_num = v_num | r;
 }
 
-uint8_t version::major() const
+uint8_t version::major_v() const
 {
     return ((v_num >> 24) & 0x000000FF);
 }
 
-uint8_t version::minor() const
+uint8_t version::minor_v() const
 {
     return ((v_num >> 16) & 0x000000FF);
 }
@@ -74,7 +74,7 @@ uint16_t version::patch() const
 version::operator fc::string() const
 {
     std::stringstream s;
-    s << (int)major() << '.' << (int)minor() << '.' << patch();
+    s << (int)major_v() << '.' << (int)minor_v() << '.' << patch();
 
     return s.str();
 }
@@ -101,21 +101,21 @@ void to_variant(const playchain::chain::version& v, variant& var)
 
 void from_variant(const variant& var, playchain::chain::version& v)
 {
-    uint32_t major = 0, hardfork = 0, revision = 0;
+    uint32_t major_ = 0, hardfork = 0, revision = 0;
     char dot_a = 0, dot_b = 0;
 
     std::stringstream s(var.as_string());
-    s >> major >> dot_a >> hardfork >> dot_b >> revision;
+    s >> major_ >> dot_a >> hardfork >> dot_b >> revision;
 
     // We'll accept either m.h.v or m_h_v as canonical version strings
     FC_ASSERT((dot_a == '.' || dot_a == '_') && dot_a == dot_b,
               "Variant does not contain proper dotted decimal format");
-    FC_ASSERT(major <= 0xFF, "Major version is out of range");
+    FC_ASSERT(major_ <= 0xFF, "Major version is out of range");
     FC_ASSERT(hardfork <= 0xFF, "Minor/Hardfork version is out of range");
     FC_ASSERT(revision <= 0xFFFF, "Patch/Revision version is out of range");
     FC_ASSERT(s.eof(), "Extra information at end of version string");
 
-    v.v_num = 0 | (major << 24) | (hardfork << 16) | revision;
+    v.v_num = 0 | (major_ << 24) | (hardfork << 16) | revision;
 }
 
 void to_variant(const playchain::chain::version_ext& v, variant& var)

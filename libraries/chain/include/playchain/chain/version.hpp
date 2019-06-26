@@ -70,8 +70,8 @@ struct version
         return v_num >= o.v_num;
     }
 
-    uint8_t major() const;
-    uint8_t minor() const;
+    uint8_t major_v() const;
+    uint8_t minor_v() const;
     uint16_t patch() const;
 
     operator fc::string() const;
@@ -88,8 +88,8 @@ struct version_ext
 
     friend bool operator==(const version_ext& a, const version_ext& b)
     {
-        return a.base.major() == b.base.major() &&
-               a.base.minor() == b.base.minor();
+        return a.base.major_v() == b.base.major_v() &&
+               a.base.minor_v() == b.base.minor_v();
     }
     friend bool operator!=(const version_ext& a, const version_ext& b)
     {
