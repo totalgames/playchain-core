@@ -29,10 +29,21 @@
 #include "room_rating.hpp"
 #include "committee_applying.hpp"
 
+#include <graphene/chain/asset_object.hpp>
+
 namespace playchain { namespace chain {
 
 void process_maintain_tasks(database &d)
 {
+    const auto &core_asset_dd = asset_dynamic_data_id_type(0)(d);
+    if (core_asset_dd.accumulated_fees.value > 0)
+    {
+        ilog("playchain ($): ${s} = ${cs} + ${accumulated_fees}",
+             ("s",  core_asset_dd.current_supply + core_asset_dd.accumulated_fees)
+             ("cs",  core_asset_dd.current_supply)
+             ("accumulated_fees", core_asset_dd.accumulated_fees));
+    }
+
     deposit_pending_fees(d);
 
     update_room_rating(d);

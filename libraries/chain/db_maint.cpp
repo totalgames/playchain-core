@@ -510,7 +510,24 @@ void database::process_budget()
 
       modify(core, [&]( asset_dynamic_data_object& _core )
       {
-         _core.current_supply = (_core.current_supply + rec.supply_delta );
+          bool show_reservation = rec.from_accumulated_fees.value > 0;
+          if (show_reservation)
+          {
+              ilog("core ($): ${s} += ${witness_budget} + ${worker_budget} - ${leftover_worker_funds} - ${from_accumulated_fees} - ${from_unused_witness_budget}",
+                                                  ("s",  _core.current_supply)
+                                                  ("witness_budget", rec.witness_budget)
+                                                  ("worker_budget", rec.worker_budget)
+                                                  ("leftover_worker_funds", rec.leftover_worker_funds)
+                                                  ("from_accumulated_fees", rec.from_accumulated_fees)
+                                                  ("from_unused_witness_budget", rec.from_unused_witness_budget));
+          }
+
+          _core.current_supply = (_core.current_supply + rec.supply_delta );
+
+          if (show_reservation)
+          {
+              ilog("core ($): ${s}", ("s", _core.current_supply));
+          }
 
          assert( rec.supply_delta ==
                                    witness_budget
