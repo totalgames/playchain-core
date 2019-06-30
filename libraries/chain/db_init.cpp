@@ -189,11 +189,11 @@ void database::initialize_indexes()
 
    //playchain:
    add_index< primary_index<player_invitation_index> >();
-   add_index< primary_index<player_index> >();
-   add_index< primary_index<room_index> >();
+   add_index< primary_index<player_index, 20> >();
+   add_index< primary_index<room_index, 10> >();
    add_index< primary_index<room_rating_measurement_index> >();
-   add_index< primary_index<game_witness_index> >();
-   auto tbl_index = add_index< primary_index<table_index> >();
+   add_index< primary_index<game_witness_index, 10> >();
+   auto tbl_index = add_index< primary_index<table_index, 10> >();
    tbl_index->add_secondary_index<table_owner_index>(std::cref(*this));
    tbl_index->add_secondary_index<table_players_index>(std::cref(*this));
    add_index< primary_index<pending_buy_out_index> >();
@@ -203,7 +203,7 @@ void database::initialize_indexes()
    add_index< primary_index<simple_index<playchain_property_object       >> >();
    add_index< primary_index<buy_in_index> >();
    add_index< primary_index<pending_table_vote_index> >();
-   add_index< primary_index<playchain_committee_member_index> >();
+   add_index< primary_index<playchain_committee_member_index, 8> >();
    add_index< primary_index<table_alive_index> >();
 }
 
