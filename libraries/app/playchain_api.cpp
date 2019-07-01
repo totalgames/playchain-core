@@ -195,7 +195,7 @@ public:
         }
 
         const auto& idx = _db.get_index_type<table_voting_index>();
-        const auto& idx_impl = dynamic_cast<const primary_index<table_voting_index>&>(idx);
+        const auto& idx_impl = dynamic_cast<const base_primary_index&>(idx);
         const auto& second_index = idx_impl.get_secondary_index<table_voting_statistics_index>();
 
         auto it = second_index.not_voted_last_time_players_by_table.find(table.id);
@@ -650,7 +650,7 @@ public:
             account_id_type account_id = get_account_id(owner_name_or_room_id);
 
             const auto& idx = _db.get_index_type<table_index>();
-            const auto& idx_impl = dynamic_cast<const primary_index<table_index>&>(idx);
+            const auto& idx_impl = dynamic_cast<const base_primary_index&>(idx);
             const auto& second_index = idx_impl.get_secondary_index<table_owner_index>();
 
             auto it = second_index.tables_by_owner.find(account_id);
@@ -875,7 +875,7 @@ public:
         FC_ASSERT(player_id.valid(), "Invalid player");
 
         const auto& idx = _db.get_index_type<table_index>();
-        const auto& idx_impl = dynamic_cast<const primary_index<table_index>&>(idx);
+        const auto& idx_impl = dynamic_cast<const base_primary_index&>(idx);
         const auto& second_index = idx_impl.get_secondary_index<table_players_index>();
 
         {

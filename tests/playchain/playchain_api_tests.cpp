@@ -703,8 +703,10 @@ PLAYCHAIN_TEST_CASE(check_list_tables_by_owner) {
   create_table(alice, alice_room);
   create_table(registrator, registrator_room);
 
-  BOOST_REQUIRE_NO_THROW(
-      pplaychain_api->list_tables(id_to_string(registrator), "", 1));
+  try{
+      pplaychain_api->list_tables(id_to_string(registrator), "", 1);
+  } FC_LOG_AND_RETHROW()
+
   BOOST_REQUIRE_NO_THROW(
       pplaychain_api->list_tables(id_to_string(alice), "", 1));
 
