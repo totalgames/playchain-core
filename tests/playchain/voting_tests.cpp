@@ -829,7 +829,6 @@ PLAYCHAIN_TEST_CASE(check_two_games_ok)
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
     BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_start_playing_validated_id));
 
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
