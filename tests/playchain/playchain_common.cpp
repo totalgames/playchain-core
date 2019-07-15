@@ -34,7 +34,7 @@ void playchain_fixture::init_fees()
 {
     enable_fees();
 
-    flat_set< fee_parameters > fees = db.get_global_properties().parameters.current_fees->parameters;
+    flat_set< fee_parameters > fees = db.get_global_properties().parameters.get_current_fees().parameters;
 
     transfer_operation::fee_parameters_type transfer_params;
     transfer_params.fee = 0;

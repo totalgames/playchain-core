@@ -25,7 +25,7 @@ struct donate_fixture: public playchain_common::playchain_fixture
     {
         playchain_common::playchain_fixture::init_fees();
 
-        flat_set< fee_parameters > fees = db.get_global_properties().parameters.current_fees->parameters;
+        flat_set< fee_parameters > fees = db.get_global_properties().parameters.get_current_fees().parameters;
 
         donate_to_playchain_operation::fee_parameters_type donate_params;
         donate_params.fee = minimum_donate;

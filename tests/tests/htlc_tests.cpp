@@ -107,18 +107,18 @@ void set_committee_parameters(database_fixture* db_fixture)
    const chain_parameters& existing_params = db_fixture->db.get_global_properties().parameters;
    const fee_schedule_type& existing_fee_schedule = *(existing_params.current_fees);
    // create a new fee_shedule
-   fee_schedule_type new_fee_schedule;
-   new_fee_schedule.scale = GRAPHENE_100_PERCENT;
+   std::shared_ptr<fee_schedule_type> new_fee_schedule = std::make_shared<fee_schedule_type>();
+   new_fee_schedule->scale = GRAPHENE_100_PERCENT;
    // replace the old with the new
    flat_map<uint64_t, graphene::chain::fee_parameters> params_map = get_htlc_fee_parameters();
    for(auto param : existing_fee_schedule.parameters)
    {
       auto itr = params_map.find(param.which());
       if (itr == params_map.end())
-         new_fee_schedule.parameters.insert(param);
+         new_fee_schedule->parameters.insert(param);
       else
       {
-         new_fee_schedule.parameters.insert( (*itr).second);
+         new_fee_schedule->parameters.insert( (*itr).second);
       }
    }
    // htlc parameters
@@ -450,18 +450,18 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
          const chain_parameters& existing_params = db.get_global_properties().parameters;
          const fee_schedule_type& existing_fee_schedule = *(existing_params.current_fees);
          // create a new fee_shedule
-         fee_schedule_type new_fee_schedule;
-         new_fee_schedule.scale = existing_fee_schedule.scale;
+         std::shared_ptr<fee_schedule_type> new_fee_schedule = std::make_shared<fee_schedule_type>();
+         new_fee_schedule->scale = existing_fee_schedule.scale;
          // replace the old with the new
          flat_map<uint64_t, graphene::chain::fee_parameters> params_map = get_htlc_fee_parameters();
          for(auto param : existing_fee_schedule.parameters)
          {
             auto itr = params_map.find(param.which());
             if (itr == params_map.end())
-               new_fee_schedule.parameters.insert(param);
+               new_fee_schedule->parameters.insert(param);
             else
             {
-               new_fee_schedule.parameters.insert( (*itr).second);
+               new_fee_schedule->parameters.insert( (*itr).second);
             }
          }
          proposal_create_operation cop = proposal_create_operation::committee_proposal(
@@ -488,18 +488,18 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
          const chain_parameters& existing_params = db.get_global_properties().parameters;
          const fee_schedule_type& existing_fee_schedule = *(existing_params.current_fees);
          // create a new fee_shedule
-         fee_schedule_type new_fee_schedule;
-         new_fee_schedule.scale = existing_fee_schedule.scale;
+         std::shared_ptr<fee_schedule_type> new_fee_schedule = std::make_shared<fee_schedule_type>();
+         new_fee_schedule->scale = existing_fee_schedule.scale;
          // replace the old with the new
          flat_map<uint64_t, graphene::chain::fee_parameters> params_map = get_htlc_fee_parameters();
          for(auto param : existing_fee_schedule.parameters)
          {
             auto itr = params_map.find(param.which());
             if (itr == params_map.end())
-               new_fee_schedule.parameters.insert(param);
+               new_fee_schedule->parameters.insert(param);
             else
             {
-               new_fee_schedule.parameters.insert( (*itr).second);
+               new_fee_schedule->parameters.insert( (*itr).second);
             }
          }
          proposal_create_operation cop = proposal_create_operation::committee_proposal(db.get_global_properties().parameters, db.head_block_time());
@@ -546,7 +546,7 @@ BOOST_AUTO_TEST_CASE( htlc_hardfork_test )
 
       BOOST_TEST_MESSAGE( "Verify that the change has been implemented" );
       BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_updatable_htlc_options()->max_preimage_size, 2048u);
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<htlc_create_operation>().fee, 2 * GRAPHENE_BLOCKCHAIN_PRECISION);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_current_fees().get<htlc_create_operation>().fee, 2 * GRAPHENE_BLOCKCHAIN_PRECISION);
       
 } FC_LOG_AND_RETHROW() }
 

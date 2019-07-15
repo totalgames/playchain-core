@@ -268,7 +268,7 @@ BOOST_AUTO_TEST_CASE(asset_claim_pool_test)
             claim_op.asset_id = asset_to_claim;
             claim_op.amount_to_claim = amount_to_fund;
 
-            const auto& curfees = *db.get_global_properties().parameters.current_fees;
+            const auto& curfees = db.get_global_properties().parameters.get_current_fees();
             const auto& proposal_create_fees = curfees.get<proposal_create_operation>();
             proposal_create_operation prop;
             prop.fee_paying_account = alice_id;
@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE( cashback_test )
    upgrade_to_lifetime_member(rog_id);
 
    BOOST_TEST_MESSAGE("Enable fees");
-   const auto& fees = db.get_global_properties().parameters.current_fees;
+   const auto& fees = db.get_global_properties().parameters.get_current_fees();
 
 #define CustomRegisterActor(actor_name, registrar_name, referrer_name, referrer_rate) \
    { \
@@ -474,7 +474,7 @@ BOOST_AUTO_TEST_CASE( cashback_test )
       op.options.memo_key = actor_name ## _private_key.get_public_key(); \
       op.active = authority(1, public_key_type(actor_name ## _private_key.get_public_key()), 1); \
       op.owner = op.active; \
-      op.fee = fees->calculate_fee(op); \
+      op.fee = fees.calculate_fee(op); \
       trx.operations = {op}; \
       sign( trx,  registrar_name ## _private_key ); \
       actor_name ## _id = PUSH_TX( db, trx ).operation_results.front().get<object_id_type>(); \
@@ -500,10 +500,10 @@ BOOST_AUTO_TEST_CASE( cashback_test )
       CustomAuditActor( pleb );                      \
    }
 
-   int64_t reg_fee    = fees->get< account_create_operation >().premium_fee;
-   int64_t xfer_fee   = fees->get< transfer_operation >().fee;
-   int64_t upg_an_fee = fees->get< account_upgrade_operation >().membership_annual_fee;
-   int64_t upg_lt_fee = fees->get< account_upgrade_operation >().membership_lifetime_fee;
+   int64_t reg_fee    = fees.get< account_create_operation >().premium_fee;
+   int64_t xfer_fee   = fees.get< transfer_operation >().fee;
+   int64_t upg_an_fee = fees.get< account_upgrade_operation >().membership_annual_fee;
+   int64_t upg_lt_fee = fees.get< account_upgrade_operation >().membership_lifetime_fee;
    // all percentages here are cut from whole pie!
    uint64_t network_pct = 20 * P1;
    uint64_t lt_pct = 375 * P100 / 1000;
@@ -709,29 +709,29 @@ BOOST_AUTO_TEST_CASE( account_create_fee_scaling )
    auto accounts_per_scale = db.get_global_properties().parameters.accounts_per_fee_scale;
    db.modify(global_property_id_type()(db), [](global_property_object& gpo)
    {
-      gpo.parameters.current_fees = fee_schedule::get_default();
-      gpo.parameters.current_fees->get<account_create_operation>().basic_fee = 1;
+      gpo.parameters.get_mutable_fees() = fee_schedule::get_default();
+      gpo.parameters.get_mutable_fees().get<account_create_operation>().basic_fee = 1;
    });
 
    for( int i = db.get_dynamic_global_properties().accounts_registered_this_interval; i < accounts_per_scale; ++i )
    {
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<account_create_operation>().basic_fee, 1u);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_current_fees().get<account_create_operation>().basic_fee, 1u);
       create_account("shill" + fc::to_string(i));
    }
    for( int i = 0; i < accounts_per_scale; ++i )
    {
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<account_create_operation>().basic_fee, 16u);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_current_fees().get<account_create_operation>().basic_fee, 16u);
       create_account("moreshills" + fc::to_string(i));
    }
    for( int i = 0; i < accounts_per_scale; ++i )
    {
-      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<account_create_operation>().basic_fee, 256u);
+      BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_current_fees().get<account_create_operation>().basic_fee, 256u);
       create_account("moarshills" + fc::to_string(i));
    }
-   BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<account_create_operation>().basic_fee, 4096u);
+   BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_current_fees().get<account_create_operation>().basic_fee, 4096u);
 
    generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
-   BOOST_CHECK_EQUAL(db.get_global_properties().parameters.current_fees->get<account_create_operation>().basic_fee, 1u);
+   BOOST_CHECK_EQUAL(db.get_global_properties().parameters.get_current_fees().get<account_create_operation>().basic_fee, 1u);
 } FC_LOG_AND_RETHROW() }
 
 BOOST_AUTO_TEST_CASE( fee_refund_test )
@@ -3694,7 +3694,7 @@ BOOST_AUTO_TEST_CASE( issue_429_test )
       // make sure the database requires our fee to be nonzero
       enable_fees();
 
-      auto fees_to_pay = db.get_global_properties().parameters.current_fees->get<asset_create_operation>();
+      auto fees_to_pay = db.get_global_properties().parameters.get_current_fees().get<asset_create_operation>();
 
       {
          signed_transaction tx;
@@ -3766,7 +3766,7 @@ BOOST_AUTO_TEST_CASE( issue_433_test )
       // make sure the database requires our fee to be nonzero
       enable_fees();
 
-      const auto& fees = *db.get_global_properties().parameters.current_fees;
+      const auto& fees = db.get_global_properties().parameters.get_current_fees();
       const auto asset_create_fees = fees.get<asset_create_operation>();
 
       fund_fee_pool( alice, myusd, 5*asset_create_fees.long_symbol );
@@ -3807,7 +3807,7 @@ BOOST_AUTO_TEST_CASE( issue_433_indirect_test )
       // make sure the database requires our fee to be nonzero
       enable_fees();
 
-      const auto& fees = *db.get_global_properties().parameters.current_fees;
+      const auto& fees = db.get_global_properties().parameters.get_current_fees();
       const auto asset_create_fees = fees.get<asset_create_operation>();
 
       fund_fee_pool( alice, myusd, 5*asset_create_fees.long_symbol );

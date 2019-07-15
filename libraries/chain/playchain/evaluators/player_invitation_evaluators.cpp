@@ -28,7 +28,6 @@
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/is_authorized_asset.hpp>
-#include <fc/smart_ref_impl.hpp>
 
 #include <playchain/chain/schema/player_invitation_object.hpp>
 
