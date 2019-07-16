@@ -217,6 +217,9 @@ void table_owner_index::object_inserted( const object& obj )
     assert( dynamic_cast<const table_object*>(&obj) ); // for debug only
     const table_object& table = static_cast<const table_object&>(obj);
 
+    if (PLAYCHAIN_NULL_ROOM == table.room)
+        return;
+
     auto owner = table.room(_db).owner;
 
     tables_by_owner[owner].insert(table.id);
@@ -226,6 +229,9 @@ void table_owner_index::object_removed( const object& obj )
 {
     assert( dynamic_cast<const table_object*>(&obj) ); // for debug only
     const table_object& table = static_cast<const table_object&>(obj);
+
+    if (PLAYCHAIN_NULL_ROOM == table.room)
+        return;
 
     account_id_type owner = GRAPHENE_NULL_ACCOUNT;
 
