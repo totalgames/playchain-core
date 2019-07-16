@@ -544,6 +544,9 @@ bool application_impl::handle_block(const graphene::net::block_message& blk_msg,
    try {
       const uint32_t skip = (_is_block_producer | _force_validate) ?
                                database::skip_nothing : database::skip_transaction_signatures;
+#if 1 // TODO: precompute_parallel causes the application thread freezing during synchronization
+      bool result = _chain_db->push_block( blk_msg.block, skip );
+#else
       bool result = valve.do_serial( [this,&blk_msg,skip] () {
          _chain_db->precompute_parallel( blk_msg.block, skip ).wait();
       }, [this,&blk_msg,skip] () {
@@ -553,7 +556,7 @@ bool application_impl::handle_block(const graphene::net::block_message& blk_msg,
          // leave that peer connected so that they can get sync blocks from us
          return _chain_db->push_block( blk_msg.block, skip );
       });
-
+#endif
       // the block was accepted, so we now know all of the transactions contained in the block
       if (!sync_mode)
       {
