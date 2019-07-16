@@ -78,4 +78,7 @@ namespace playchain { namespace chain {
 } } // playchain::chain
 
 FC_REFLECT_DERIVED( playchain::chain::playchain_committee_member_object, (graphene::db::object),
-                    (committee_member_game_witness)(vote_id)(total_votes)(url) )
+                    (committee_member_game_witness)
+                    (vote_id)
+                    (total_votes)
+                    (url))

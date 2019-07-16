@@ -78,4 +78,6 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::pending_buy_out_object,
                     (graphene::db::object),
-                    (player)(table)(amount) )
+                    (player)
+                    (table)
+                    (amount))

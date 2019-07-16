@@ -50,8 +50,14 @@ namespace graphene { namespace chain {
          virtual const object& insert( object&& obj )override
          {
             assert( nullptr != dynamic_cast<ObjectType*>(&obj) );
+            auto obj_id = obj.id.instance();
             auto insert_result = _indices.insert( std::move( static_cast<ObjectType&>(obj) ) );
-            FC_ASSERT( insert_result.second, "Could not insert object, most likely a uniqueness constraint was violated" );
+            if (!insert_result.second)
+            {
+                wlog("Inserting object into index = [${space_id}, ${type_id}] with id = ${i}",
+                     ("space_id", object_space_id())("type_id", object_type_id())("i", obj_id));
+                FC_ASSERT(false, "Could not insert object, most likely a uniqueness constraint was violated" );
+            }
             return *insert_result.first;
          }
 
@@ -59,9 +65,15 @@ namespace graphene { namespace chain {
          {
             ObjectType item;
             item.id = get_next_id();
+            auto obj_id = item.id.instance();
             constructor( item );
             auto insert_result = _indices.insert( std::move(item) );
-            FC_ASSERT(insert_result.second, "Could not create object! Most likely a uniqueness constraint is violated.");
+            if (!insert_result.second)
+            {
+                wlog("Creating object in index = [${space_id}, ${type_id}] with id = ${i}",
+                     ("space_id", object_space_id())("type_id", object_type_id())("i", obj_id));
+                FC_ASSERT(false, "Could not create object! Most likely a uniqueness constraint is violated.");
+            }
             use_next_id();
             return *insert_result.first;
          }
