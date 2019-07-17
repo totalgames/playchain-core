@@ -31,12 +31,14 @@
 #include <graphene/chain/operation_history_object.hpp>
 
 #include <graphene/chain/proposal_object.hpp>
-#include <graphene/chain/transaction_object.hpp>
+#include <graphene/chain/transaction_history_object.hpp>
 #include <graphene/chain/witness_object.hpp>
-#include <graphene/chain/protocol/fee_schedule.hpp>
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/evaluator.hpp>
 
+#include <graphene/protocol/fee_schedule.hpp>
+
+#include <fc/io/raw.hpp>
 #include <fc/thread/parallel.hpp>
 
 #include <playchain/chain/block_tasks.hpp>
@@ -681,7 +683,7 @@ processed_transaction database::_apply_transaction(const signed_transaction& trx
    //Insert transaction into unique transactions database.
    if( !(skip & skip_transaction_dupe_check) )
    {
-      create<transaction_object>([&trx](transaction_object& transaction) {
+      create<transaction_history_object>([&trx](transaction_history_object& transaction) {
          transaction.trx_id = trx.id();
          transaction.trx = trx;
       });

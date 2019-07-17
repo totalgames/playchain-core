@@ -53,8 +53,6 @@
 
 #include <playchain/chain/playchain_config.hpp>
 
-#include <graphene/chain/protocol/fee_schedule.hpp>
-
 #include <fc/uint128.hpp>
 #include <fc/crypto/digest.hpp>
 
