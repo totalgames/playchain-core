@@ -410,6 +410,9 @@ namespace fc
     void from_variant( const fc::variant& var, std::shared_ptr<const graphene::chain::fee_schedule>& vo,
                        uint32_t max_depth = 2 );
 }
+namespace fc {
+}
+
 
 FC_REFLECT( graphene::chain::public_key_type, (key_data) )
 FC_REFLECT( graphene::chain::public_key_type::binary_key, (data)(check) )

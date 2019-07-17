@@ -38,7 +38,7 @@ namespace graphene { namespace chain {
 
    struct chain_parameters
    {
-       /** using a shared_ptr breaks the circular dependency created between operations and the fee schedule */
+      /** using a shared_ptr breaks the circular dependency created between operations and the fee schedule */
       std::shared_ptr<const fee_schedule> current_fees;                  ///< current schedule of fees
       const fee_schedule& get_current_fees() const { FC_ASSERT(current_fees); return *current_fees; }
       fee_schedule& get_mutable_fees() { FC_ASSERT(current_fees); return const_cast<fee_schedule&>(*current_fees); }
@@ -79,7 +79,7 @@ namespace graphene { namespace chain {
 
       /** defined in fee_schedule.cpp */
       void validate()const;
-
+      
       chain_parameters();
       chain_parameters(const chain_parameters& other);
       chain_parameters(chain_parameters&& other);

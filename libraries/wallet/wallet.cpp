@@ -326,9 +326,10 @@ public:
 private:
    void claim_registered_account(const account_object& account)
    {
+      bool import_keys = false;
       auto it = _wallet.pending_account_registrations.find( account.name );
       FC_ASSERT( it != _wallet.pending_account_registrations.end() );
-      for (const std::string& wif_key : it->second)
+      for (const std::string& wif_key : it->second) {
          if( !import_key( account.name, wif_key ) )
          {
             // somebody else beat our pending registration, there is
@@ -341,8 +342,15 @@ private:
             //    possibility of migrating to a fork where the
             //    name is available, the user can always
             //    manually re-register)
+         } else {
+            import_keys = true;
          }
+      }
       _wallet.pending_account_registrations.erase( it );
+
+      if( import_keys ) {
+         save_wallet_file();
+      }
    }
 
    // after a witness registration succeeds, this saves the private key in the wallet permanently
@@ -584,7 +592,9 @@ public:
                                                                           " old");
       result["next_maintenance_time"] = fc::get_approximate_relative_time_string(dynamic_props.next_maintenance_time);
       result["chain_id"] = chain_props.chain_id;
-      result["participation"] = (100*dynamic_props.recent_slots_filled.popcount()) / 128.0;
+      stringstream participation;
+      participation << fixed << std::setprecision(2) << (100*dynamic_props.recent_slots_filled.popcount()) / 128.0;
+      result["participation"] = participation.str();
       result["active_witnesses"] = fc::variant(global_props.active_witnesses, GRAPHENE_MAX_NESTED_OBJECTS);
       result["active_committee_members"] = fc::variant(global_props.active_committee_members, GRAPHENE_MAX_NESTED_OBJECTS);
       return result;
@@ -864,6 +874,80 @@ public:
 
       return true;
    }
+   /**
+    * Get the required public keys to sign the transaction which had been
+    * owned by us
+    *
+    * NOTE, if `erase_existing_sigs` set to true, the original trasaction's
+    * signatures will be erased
+    *
+    * @param tx           The transaction to be signed
+    * @param erase_existing_sigs
+    *        The transaction could have been partially signed already,
+    *        if set to false, the corresponding public key of existing
+    *        signatures won't be returned.
+    *        If set to true, the existing signatures will be erased and
+    *        all required keys returned.
+   */
+   set<public_key_type> get_owned_required_keys( signed_transaction &tx,
+                                                    bool erase_existing_sigs = true)
+   {
+      set<public_key_type> pks = _remote_db->get_potential_signatures( tx );
+      flat_set<public_key_type> owned_keys;
+      owned_keys.reserve( pks.size() );
+      std::copy_if( pks.begin(), pks.end(),
+                    std::inserter( owned_keys, owned_keys.end() ),
+                    [this]( const public_key_type &pk ) {
+                       return _keys.find( pk ) != _keys.end();
+                    } );
+
+      if ( erase_existing_sigs )
+         tx.signatures.clear();
+
+      return _remote_db->get_required_signatures( tx, owned_keys );
+   }
+
+   signed_transaction add_transaction_signature( signed_transaction tx,
+                                                 bool broadcast )
+   {
+      set<public_key_type> approving_key_set = get_owned_required_keys(tx, false);
+
+      if ( ( ( tx.ref_block_num == 0 && tx.ref_block_prefix == 0 ) ||
+             tx.expiration == fc::time_point_sec() ) &&
+           tx.signatures.empty() )
+      {
+         auto dyn_props = get_dynamic_global_properties();
+         auto parameters = get_global_properties().parameters;
+         fc::time_point_sec now = dyn_props.time;
+         tx.set_reference_block( dyn_props.head_block_id );
+         tx.set_expiration( now + parameters.maximum_time_until_expiration );
+      }
+      for ( const public_key_type &key : approving_key_set )
+         tx.sign( get_private_key( key ), _chain_id );
+
+      if ( broadcast )
+      {
+         try
+         {
+            _remote_net_broadcast->broadcast_transaction( tx );
+         }
+         catch ( const fc::exception &e )
+         {
+            elog( "Caught exception while broadcasting tx ${id}:  ${e}",
+                  ( "id", tx.id().str() )( "e", e.to_detail_string() ) );
+            FC_THROW( "Caught exception while broadcasting tx" );
+         }
+      }
+
+      return tx;
+   }
+
+   void quit()
+   {
+      ilog( "Quitting Cli Wallet ..." );
+        
+      throw fc::canceled_exception();
+   }
    void save_wallet_file(string wallet_filename = "")
    {
       //
@@ -1044,7 +1128,6 @@ public:
       _builder_transactions.erase(handle);
    }
 
-
    signed_transaction register_account(string name,
                                        public_key_type owner,
                                        public_key_type active,
@@ -1084,8 +1167,7 @@ public:
 
       tx.operations.push_back( account_create_op );
 
-      auto current_fees = _remote_db->get_global_properties().parameters.get_current_fees();
-      set_operation_fees( tx, current_fees );
+      set_operation_fees( tx, _remote_db->get_global_properties().parameters.get_current_fees() );
 
       vector<public_key_type> paying_keys = registrar_account_object.active.get_keys();
 
@@ -1113,7 +1195,6 @@ public:
       return tx;
    } FC_CAPTURE_AND_RETHROW( (name)(owner)(active)(registrar_account)(referrer_account)(referrer_percent)(broadcast) ) }
 
-
    signed_transaction upgrade_account(string name, bool broadcast)
    { try {
       FC_ASSERT( !self.is_locked() );
@@ -1130,7 +1211,6 @@ public:
 
       return sign_transaction( tx, broadcast );
    } FC_CAPTURE_AND_RETHROW( (name) ) }
-
 
    // This function generates derived keys starting with index 0 and keeps incrementing
    // the index until it finds a key that isn't registered in the block chain.  To be
@@ -1293,10 +1373,7 @@ public:
       optional<account_id_type> new_issuer_account_id;
       if (new_issuer)
       {
-        FC_ASSERT( _remote_db->get_dynamic_global_properties().time < HARDFORK_CORE_199_TIME,
-              "The use of 'new_issuer' is no longer supported. Please use `update_asset_issuer' instead!");
-        account_object new_issuer_account = get_account(*new_issuer);
-        new_issuer_account_id = new_issuer_account.id;
+        FC_ASSERT( false, "The use of 'new_issuer' is no longer supported. Please use `update_asset_issuer' instead!");
       }
 
       asset_update_operation update_op;
@@ -1522,6 +1599,8 @@ public:
       optional<asset_object> debt_asset = find_asset(debt_symbol);
       if (!debt_asset)
         FC_THROW("No asset with that symbol exists!");
+
+      FC_ASSERT(debt_asset->bitasset_data_id.valid(), "Not a bitasset, bidding not possible.");
       const asset_object& collateral = get_asset(get_object(*debt_asset->bitasset_data_id).options.short_backing_asset);
 
       bid_collateral_operation op;
@@ -2339,13 +2418,8 @@ public:
 
    signed_transaction sign_transaction(signed_transaction tx, bool broadcast = false)
    {
-      set<public_key_type> pks = _remote_db->get_potential_signatures( tx );
-      flat_set<public_key_type> owned_keys;
-      owned_keys.reserve( pks.size() );
-      std::copy_if( pks.begin(), pks.end(), std::inserter(owned_keys, owned_keys.end()),
-                    [this](const public_key_type& pk){ return _keys.find(pk) != _keys.end(); } );
-      tx.clear_signatures();
-      set<public_key_type> approving_key_set = _remote_db->get_required_signatures( tx, owned_keys );
+
+      set<public_key_type> approving_key_set = get_owned_required_keys(tx);
 
       auto dyn_props = get_dynamic_global_properties();
 #ifndef NO_BROADCAST_SIGNED_TRX_BUT_TEST_DIGEST_ONLY
@@ -2406,6 +2480,16 @@ public:
       }
 
       return tx;
+   }
+
+   flat_set<public_key_type> get_transaction_signers(const signed_transaction &tx) const
+   {
+      return tx.get_signature_keys(_chain_id);
+   }
+
+   vector<vector<account_id_type>> get_key_references(const vector<public_key_type> &keys) const
+   {
+       return _remote_db->get_key_references(keys);
    }
 
    memo_data sign_memo(string from, string to, string memo)
@@ -4855,12 +4939,11 @@ signed_transaction wallet_api::register_account(string name,
 }
 signed_transaction wallet_api::create_account_with_brain_key(string brain_key, string account_name,
                                                              string registrar_account, string referrer_account,
-                                                             bool broadcast /* = false */,
-                                                             bool save_wallet /* = true */)
+                                                             bool broadcast /* = false */)
 {
    return my->create_account_with_brain_key(
             brain_key, account_name, registrar_account,
-            referrer_account, broadcast, save_wallet
+            referrer_account, broadcast
             );
 }
 signed_transaction wallet_api::issue_asset(string to_account, string amount, string symbol,
@@ -5147,6 +5230,16 @@ void wallet_api::set_wallet_filename(string wallet_filename)
             } FC_CAPTURE_AND_RETHROW( (signature)(digest) )
         }
 
+flat_set<public_key_type> wallet_api::get_transaction_signers(const signed_transaction &tx) const
+{ try {
+   return my->get_transaction_signers(tx);
+} FC_CAPTURE_AND_RETHROW( (tx) ) }
+
+vector<vector<account_id_type>> wallet_api::get_key_references(const vector<public_key_type> &keys) const
+{ try {
+   return my->get_key_references(keys);
+} FC_CAPTURE_AND_RETHROW( (keys) ) }
+
 operation wallet_api::get_prototype_operation(string operation_name)
 {
    return my->get_prototype_operation( operation_name );
@@ -5254,6 +5347,12 @@ dynamic_global_property_object wallet_api::get_dynamic_global_properties() const
             return my->get_playchain_properties();
         }
 
+signed_transaction wallet_api::add_transaction_signature( signed_transaction tx,
+                                                          bool broadcast )
+{
+   return my->add_transaction_signature( tx, broadcast );
+}
+
 string wallet_api::help()const
 {
    std::vector<std::string> method_names = my->method_documentation.get_method_names();
@@ -5333,6 +5432,11 @@ string wallet_api::gethelp(const string& method)const
 bool wallet_api::load_wallet_file( string wallet_filename )
 {
    return my->load_wallet_file( wallet_filename );
+}
+
+void wallet_api::quit()
+{
+   my->quit();
 }
 
 void wallet_api::save_wallet_file( string wallet_filename )

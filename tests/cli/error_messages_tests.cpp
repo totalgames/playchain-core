@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(error_message_on_creation_existed_account)
         BOOST_CHECK(con.api()->import_key("init1", key_to_wif(registrator_key)));
 
         //try to create existed account
-        con.api()->create_account_with_brain_key("ABBB3568368", "nathan", "init1", "init1", true, false);
+        con.api()->create_account_with_brain_key("ABBB3568368", "nathan", "init1", "init1", true);
 
         BOOST_ERROR("Must not be here");
     }
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(error_message_on_invalid_name_account_creation)
         BOOST_CHECK(con.api()->import_key("init1", key_to_wif(registrator_key)));
 
         //try to create existed account
-        con.api()->create_account_with_brain_key("ABBB3568368", "---", "init1", "init1", true, false);
+        con.api()->create_account_with_brain_key("ABBB3568368", "---", "init1", "init1", true);
 
         BOOST_ERROR("Must not be here");
     }
