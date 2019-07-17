@@ -111,7 +111,10 @@ namespace graphene { namespace db {
          const object&              get( object_id_type id )const
          {
             auto maybe_found = find( id );
-            FC_ASSERT( maybe_found != nullptr, "Unable to find Object ${id}", ("id",id) );
+            if (nullptr == maybe_found)
+            {
+                FC_ASSERT( false, "Unable to find Object ${id}", ("id",id) );
+            }
             return *maybe_found;
          }
 

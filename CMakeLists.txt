@@ -53,6 +53,7 @@ else()
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
+set(GRAPHENE_EGENESIS_JSON "${CMAKE_CURRENT_SOURCE_DIR}/libraries/egenesis/genesis.json" )
 
 #set (ENABLE_INSTALLER 1)
 #set (USE_PCH 1)
@@ -75,12 +76,9 @@ LIST(APPEND BOOST_COMPONENTS thread
                              system
                              filesystem
                              program_options
-                             signals
-                             serialization
                              chrono
                              unit_test_framework
-                             context
-                             locale)
+                             context)
 SET( Boost_USE_STATIC_LIBS ON CACHE STRING "ON or OFF" )
 
 IF( WIN32 )
@@ -109,12 +107,15 @@ if( WIN32 )
 
     set(CRYPTO_LIB)
 
-    #looks like this flag can have different default on some machines.
-    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
-    SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
+    if( MSVC )
+	add_definitions(-DWIN32_LEAN_AND_MEAN)
+        #looks like this flag can have different default on some machines.
+        SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /SAFESEH:NO")
+        SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SAFESEH:NO")
 
-    # Probably cmake has a bug and vcxproj generated for executable in Debug conf. has disabled debug info
-    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+        # Probably cmake has a bug and vcxproj generated for executable in Debug conf. has disabled debug info
+        set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /DEBUG")
+    endif ( MSVC )
 
     # On windows tcl should be installed to the directory pointed by setenv.bat script
     SET(TCL_INCLUDE_PATH $ENV{TCL_ROOT}/include)

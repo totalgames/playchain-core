@@ -45,8 +45,6 @@
 
 #include <graphene/chain/hardfork.hpp>
 
-#include <fc/smart_ref_impl.hpp>
-
 #include <algorithm>
 
 #include <boost/range/algorithm/merge.hpp>

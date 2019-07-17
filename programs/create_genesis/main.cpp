@@ -13,7 +13,6 @@
 #include "genesis_tester.hpp"
 
 #include <graphene/chain/protocol/fee_schedule.hpp>
-#include <fc/smart_ref_impl.hpp>
 
 using graphene::chain::genesis_state_type;
 

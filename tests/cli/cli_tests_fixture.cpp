@@ -63,7 +63,7 @@ void cli_tests_fixture::create_new_account(const std::string &new_account)
     graphene::wallet::brain_key_info bki = connection->api()->suggest_brain_key();
     BOOST_CHECK(!bki.brain_priv_key.empty());
     signed_transaction create_acct_tx = connection->api()->create_account_with_brain_key(bki.brain_priv_key, new_account,
-          "nathan", "nathan", true, false);
+          "nathan", "nathan", true);
     // save the private key for this new account in the wallet file
     BOOST_CHECK(connection->api()->import_key(new_account, bki.wif_priv_key));
     connection->api()->save_wallet_file(connection->wallet_filename());

@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE( cli_vote_for_2_witnesses )
       // create a new account
       graphene::wallet::brain_key_info bki = con.api()->suggest_brain_key();
       BOOST_CHECK(!bki.brain_priv_key.empty());
-      signed_transaction create_acct_tx = con.api()->create_account_with_brain_key(bki.brain_priv_key, "jmjatlanta", "nathan", "nathan", true, false);
+      signed_transaction create_acct_tx = con.api()->create_account_with_brain_key(bki.brain_priv_key, "jmjatlanta", "nathan", "nathan", true);
       // save the private key for this new account in the wallet file
       BOOST_CHECK(con.api()->import_key("jmjatlanta", bki.wif_priv_key));
       con.api()->save_wallet_file(con.wallet_filename());
@@ -209,7 +209,7 @@ BOOST_AUTO_TEST_CASE( cli_set_voting_proxy )
       // create a new account
       graphene::wallet::brain_key_info bki = con.api()->suggest_brain_key();
       BOOST_CHECK(!bki.brain_priv_key.empty());
-      signed_transaction create_acct_tx = con.api()->create_account_with_brain_key(bki.brain_priv_key, "jmjatlanta", "nathan", "nathan", true, false);
+      signed_transaction create_acct_tx = con.api()->create_account_with_brain_key(bki.brain_priv_key, "jmjatlanta", "nathan", "nathan", true);
       // save the private key for this new account in the wallet file
       BOOST_CHECK(con.api()->import_key("jmjatlanta", bki.wif_priv_key));
       con.api()->save_wallet_file(con.wallet_filename());

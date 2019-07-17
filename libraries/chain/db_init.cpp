@@ -189,11 +189,11 @@ void database::initialize_indexes()
 
    //playchain:
    add_index< primary_index<player_invitation_index> >();
-   add_index< primary_index<player_index> >();
-   add_index< primary_index<room_index> >();
+   add_index< primary_index<player_index, 20> >();
+   add_index< primary_index<room_index, 10> >();
    add_index< primary_index<room_rating_measurement_index> >();
-   add_index< primary_index<game_witness_index> >();
-   auto tbl_index = add_index< primary_index<table_index> >();
+   add_index< primary_index<game_witness_index, 10> >();
+   auto tbl_index = add_index< primary_index<table_index, 10> >();
    tbl_index->add_secondary_index<table_owner_index>(std::cref(*this));
    tbl_index->add_secondary_index<table_players_index>(std::cref(*this));
    add_index< primary_index<pending_buy_out_index> >();
@@ -203,7 +203,7 @@ void database::initialize_indexes()
    add_index< primary_index<simple_index<playchain_property_object       >> >();
    add_index< primary_index<buy_in_index> >();
    add_index< primary_index<pending_table_vote_index> >();
-   add_index< primary_index<playchain_committee_member_index> >();
+   add_index< primary_index<playchain_committee_member_index, 8> >();
    add_index< primary_index<table_alive_index> >();
 }
 
@@ -399,7 +399,7 @@ void database::init_genesis(const genesis_state_type& genesis_state)
        p.parameters = genesis_state.initial_parameters;
        // Set fees to zero initially, so that genesis initialization needs not pay them
        // We'll fix it at the end of the function
-       p.parameters.current_fees->zero_all_fees();
+       p.parameters.get_mutable_fees().zero_all_fees();
 
    });
    _p_dyn_global_prop_obj = & create<dynamic_global_property_object>([&genesis_state](dynamic_global_property_object& p) {
@@ -686,7 +686,7 @@ void database::init_genesis(const genesis_state_type& genesis_state)
 
    // Enable fees
    modify(get_global_properties(), [&genesis_state](global_property_object& p) {
-      p.parameters.current_fees->init_fees(genesis_state.initial_parameters.current_fees);
+      p.parameters.get_mutable_fees().init_fees(genesis_state.initial_parameters.get_current_fees());
    });
 
    // Create witness scheduler

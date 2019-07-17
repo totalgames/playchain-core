@@ -74,5 +74,6 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::game_witness_object,
                     (graphene::db::object),
-                    (account)(balance) )
+                    (account)
+                    (balance) )
 

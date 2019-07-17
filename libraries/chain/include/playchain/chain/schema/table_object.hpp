@@ -362,18 +362,39 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::table_object,
                     (graphene::db::object),
-                    (room)(metadata)(required_witnesses)(min_accepted_proposal_asset)(pending_proposals)
-                    (cash)(playing_cash)(game_created)(game_expiration)(voted_witnesses)(weight)(occupied_places))
+                    (room)
+                    (metadata)
+                    (required_witnesses)
+                    (min_accepted_proposal_asset)
+                    (pending_proposals)
+                    (cash)
+                    (playing_cash)
+                    (game_created)
+                    (game_expiration)
+                    (voted_witnesses)
+                    (weight)
+                    (occupied_places))
 
 FC_REFLECT_DERIVED( playchain::chain::pending_table_vote_object,
                     (graphene::db::object),
-                    (table)(voter)(vote))
+                    (table)
+                    (voter)
+                    (vote))
 
 FC_REFLECT_DERIVED( playchain::chain::table_voting_object,
                     (graphene::db::object),
-                    (table)(created)(expiration)(votes)(witnesses_allowed_for_substitution)
-                    (required_player_voters)(required_witness_voters)(voted_witnesses)(etalon_vote))
+                    (table)
+                    (created)
+                    (expiration)
+                    (votes)
+                    (witnesses_allowed_for_substitution)
+                    (required_player_voters)
+                    (required_witness_voters)
+                    (voted_witnesses)
+                    (etalon_vote))
 
 FC_REFLECT_DERIVED( playchain::chain::table_alive_object,
                     (graphene::db::object),
-                    (table)(created)(expiration))
+                    (table)
+                    (created)
+                    (expiration))

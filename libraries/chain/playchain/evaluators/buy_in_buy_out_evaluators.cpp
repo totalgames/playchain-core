@@ -261,7 +261,11 @@ namespace
 
             const table_object &table = op.table(d);
 
-            return buy_out_table(d, player, table, op.amount);
+            operation_result result = buy_out_table(d, player, table, op.amount);
+
+            //TODO: remove buy_in object
+
+            return result;
         } FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -367,13 +371,13 @@ namespace
             database& d = db();
 
             const table_object& table = op.table(d);
-            const pending_buy_in_object& buyin = op.pending_buyin(d);
-            const player_object &player = get_player(d, buyin.player);
+            const pending_buy_in_object& pending_buy_in = op.pending_buyin(d);
+            const player_object &player = get_player(d, pending_buy_in.player);
 
             assert(table.pending_proposals.find(player.id) != table.pending_proposals.end());
 
             auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
-            auto it = measurements_by_buyin.find(buyin.id);
+            auto it = measurements_by_buyin.find(pending_buy_in.id);
             if (it != measurements_by_buyin.end())
             {
                 d.modify(*it, [&](room_rating_measurement_object &obj)
@@ -386,17 +390,17 @@ namespace
             }
             else
             {
-                elog("Buyin ${b} doesn't take part in room rating calculation! Something is wrong.", ("b", buyin));
+                elog("Buyin ${b} doesn't take part in room rating calculation! Something is wrong.", ("b", pending_buy_in));
             }
 
             d.modify(table, [&](table_object &obj)
             {
                 obj.remove_pending_proposal(player.id);
 
-                obj.adjust_cash(player.id, buyin.amount);
+                obj.adjust_cash(player.id, pending_buy_in.amount);
             });
 
-            d.remove(buyin);
+            d.remove(pending_buy_in);
 
             return register_buy_in(d, player, table);
         } FC_CAPTURE_AND_RETHROW((op))
@@ -458,7 +462,10 @@ namespace
         asset new_amount = table.get_cash_balance(player.id);
         if (new_amount.amount < 1)
         {
-            d.push_applied_operation( buy_in_expire_operation{ buy_in.player(d).account, table.id, table.room(d).owner, amount } );
+            if (amount.amount > 0)
+            {
+                d.push_applied_operation( buy_in_expire_operation{ buy_in.player(d).account, table.id, table.room(d).owner, amount } );
+            }
             d.remove(buy_in);
         }else
         {

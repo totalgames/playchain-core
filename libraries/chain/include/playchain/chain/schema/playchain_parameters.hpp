@@ -26,7 +26,6 @@
 
 #include <graphene/chain/protocol/base.hpp>
 #include <graphene/chain/protocol/types.hpp>
-#include <fc/smart_ref_fwd.hpp>
 
 #include <playchain/chain/playchain_config.hpp>
 

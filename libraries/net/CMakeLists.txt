@@ -1,5 +1,11 @@
 file(GLOB HEADERS "include/graphene/net/*.hpp")
 
+option(NET_VERBOSE_NODE "Switch additional debug logs for p2p (ON OR OFF)" OFF)
+
+if ( NET_VERBOSE_NODE )
+    add_definitions(-DVERBOSE_NODE)
+endif()
+
 set(SOURCES node.cpp
             stcp_socket.cpp
             core_messages.cpp

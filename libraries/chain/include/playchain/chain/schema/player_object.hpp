@@ -167,4 +167,8 @@ FC_REFLECT_DERIVED( playchain::chain::player_pending_fee_data, (playchain::chain
 
 FC_REFLECT_DERIVED( playchain::chain::player_object,
                     (graphene::db::object),
-                    (account)(inviter)(pending_fees)(pending_parent_invitation_fees)(balance) )
+                    (account)
+                    (inviter)
+                    (pending_fees)
+                    (pending_parent_invitation_fees)
+                    (balance))

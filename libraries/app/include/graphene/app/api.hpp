@@ -465,6 +465,7 @@ namespace graphene { namespace app {
          vector<asset_holders> get_all_asset_holders() const;
 
       private:
+         graphene::app::application& _app;
          graphene::chain::database& _db;
          graphene::app::database_api database_api;
    };

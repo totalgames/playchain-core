@@ -730,6 +730,12 @@ class wallet_api
        */
       bool    load_wallet_file(string wallet_filename = "");
 
+      /** Quitting from BitShares wallet.
+       *
+       * The current wallet will be closed.
+       */
+      void    quit();
+
       /** Saves the current wallet to the given filename.
        * 
        * @warning This does not change the wallet filename that will be used for future
@@ -1124,8 +1130,7 @@ class wallet_api
                                                        string account_name,
                                                        string registrar_account,
                                                        string referrer_account,
-                                                       bool broadcast = false,
-                                                       bool save_wallet = true);
+                                                       bool broadcast = false);
 
       /** Transfer an amount from one account to another.
        * @param from the name or id of the account sending the funds
@@ -1965,6 +1970,23 @@ class wallet_api
       signature_type sign_digest(const digest_type &d, const public_key_type &pubkey);
       public_key_type get_signature_key(const signature_type &signature, const digest_type &digest);
 
+      /** Get transaction signers.
+       *
+       * Returns information about who signed the transaction, specifically,
+       * the corresponding public keys of the private keys used to sign the transaction.
+       * @param tx the signed transaction
+       * @return the set of public_keys
+       */
+      flat_set<public_key_type> get_transaction_signers(const signed_transaction &tx) const;
+
+      /** Get key references.
+       *
+       * Returns accounts related to given public keys.
+       * @param keys public keys to search for related accounts
+       * @return the set of related accounts
+       */
+      vector<vector<account_id_type>> get_key_references(const vector<public_key_type> &keys) const;
+
       /** Returns an uninitialized object representing a given blockchain operation.
        *
        * This returns a default-initialized object of the given type; it can be used 
@@ -2048,6 +2070,20 @@ class wallet_api
          );
          
       order_book get_order_book( const string& base, const string& quote, unsigned limit = 50);
+
+      /** Signs a transaction.
+       *
+       * Given a fully-formed transaction with or without signatures, signs
+       * the transaction with the owned keys and optionally broadcasts the
+       * transaction.
+       *
+       * @param tx the unsigned transaction
+       * @param broadcast true if you wish to broadcast the transaction
+       *
+       * @return the signed transaction
+       */
+      signed_transaction add_transaction_signature( signed_transaction tx,
+                                                    bool broadcast = false );
 
       void dbg_make_uia(string creator, string symbol);
       void dbg_make_mia(string creator, string symbol);
@@ -2298,6 +2334,9 @@ FC_API( graphene::wallet::wallet_api,
         (sign_transaction)
         (sign_digest)
         (get_signature_key)
+        (add_transaction_signature)
+        (get_transaction_signers)
+        (get_key_references)
         (get_prototype_operation)
         (propose_parameter_change)
         (propose_playchain_parameter_change)
@@ -2328,4 +2367,5 @@ FC_API( graphene::wallet::wallet_api,
         (receive_blind_transfer)
         (get_order_book)
         (donate)
+        (quit)
       )

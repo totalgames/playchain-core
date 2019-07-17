@@ -147,7 +147,18 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::pending_buy_in_object,
                     (graphene::db::object),
-                    (player)(uid)(amount)(metadata)(protocol_version)(created)(expiration)(table)(player_iternal) )
+                    (player)
+                    (uid)
+                    (amount)
+                    (metadata)
+                    (protocol_version)
+                    (created)
+                    (expiration)
+                    (table)
+                    (player_iternal))
 FC_REFLECT_DERIVED( playchain::chain::buy_in_object,
                     (graphene::db::object),
-                    (player)(table)(created)(expiration) )
+                    (player)
+                    (table)
+                    (created)
+                    (expiration))

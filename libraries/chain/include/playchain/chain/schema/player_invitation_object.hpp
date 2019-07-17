@@ -81,4 +81,8 @@ namespace playchain { namespace chain {
 
 FC_REFLECT_DERIVED( playchain::chain::player_invitation_object,
                     (graphene::db::object),
-                    (inviter)(uid)(created)(expiration)(metadata) )
+                    (inviter)
+                    (uid)
+                    (created)
+                    (expiration)
+                    (metadata) )

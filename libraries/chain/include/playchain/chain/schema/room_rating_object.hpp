@@ -90,5 +90,11 @@ namespace playchain {
 
 FC_REFLECT_DERIVED(playchain::chain::room_rating_measurement_object,
                     (graphene::db::object),
-                    (created)(expiration)(room)(table)(weight))
+                    (created)
+                    (expiration)
+                    (room)
+                    (table)
+                    (associated_buyin)
+                    (weight)
+                    (waiting_resolve))
 
