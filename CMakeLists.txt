@@ -53,7 +53,6 @@ else()
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "ON")
-set(GRAPHENE_EGENESIS_JSON "${CMAKE_CURRENT_SOURCE_DIR}/libraries/egenesis/genesis.json" )
 
 #set (ENABLE_INSTALLER 1)
 #set (USE_PCH 1)
