@@ -33,7 +33,7 @@
 
 //use 0.0.1 after genesis restart
 //and 0.x.x after harforks (when hard forks selection mechanism will be created ...)
-#define PLAYCHAIN_VERSION       ( version(1, 1, 0) )
+#define PLAYCHAIN_VERSION       ( version(1, 1, 1) )
 
 #define PLAYCHAIN_SYMBOL         GRAPHENE_SYMBOL
 #define PLAYCHAIN_ADDRESS_PREFIX GRAPHENE_ADDRESS_PREFIX
