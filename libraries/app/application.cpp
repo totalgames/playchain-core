@@ -136,30 +136,21 @@ namespace detail {
 
 namespace graphene { namespace app { namespace detail {
 
-void application_impl::reset_p2p_node(const fc::path& data_dir)
+void application_impl::reset_p2p_node(const fc::path& data_dir, const seeds_type &external_seeds)
 { try {
    _p2p_network = std::make_shared<net::node>("BitShares Reference Implementation");
 
    _p2p_network->load_configuration(data_dir / "p2p");
    _p2p_network->set_node_delegate(this);
 
+   std::set<string> uniq_seeds;
+
    if( _options->count("seed-node") )
    {
       auto seeds = _options->at("seed-node").as<vector<string>>();
       for( const string& endpoint_string : seeds )
       {
-         try {
-            std::vector<fc::ip::endpoint> endpoints = resolve_string_to_ip_endpoints(endpoint_string);
-            for (const fc::ip::endpoint& endpoint : endpoints)
-            {
-               ilog("Adding seed node ${endpoint}", ("endpoint", endpoint));
-               _p2p_network->add_node(endpoint);
-               _p2p_network->connect_to_endpoint(endpoint);
-            }
-         } catch( const fc::exception& e ) {
-            wlog( "caught exception ${e} while adding seed node ${endpoint}",
-                     ("e", e.to_detail_string())("endpoint", endpoint_string) );
-         }
+         uniq_seeds.emplace(endpoint_string);
       }
    }
 
@@ -169,38 +160,38 @@ void application_impl::reset_p2p_node(const fc::path& data_dir)
       auto seeds = fc::json::from_string(seeds_str).as<vector<string>>(2);
       for( const string& endpoint_string : seeds )
       {
-         try {
-            std::vector<fc::ip::endpoint> endpoints = resolve_string_to_ip_endpoints(endpoint_string);
-            for (const fc::ip::endpoint& endpoint : endpoints)
-            {
-               ilog("Adding seed node ${endpoint}", ("endpoint", endpoint));
-               _p2p_network->add_node(endpoint);
-            }
-         } catch( const fc::exception& e ) {
-            wlog( "caught exception ${e} while adding seed node ${endpoint}",
-                     ("e", e.to_detail_string())("endpoint", endpoint_string) );
-         }
+         uniq_seeds.emplace(endpoint_string);
       }
    }
    else
    {
       vector<string> seeds = {
-      // TODO
+      // TODO: Embeded defaults
       };
       for( const string& endpoint_string : seeds )
       {
-         try {
-            std::vector<fc::ip::endpoint> endpoints = resolve_string_to_ip_endpoints(endpoint_string);
-            for (const fc::ip::endpoint& endpoint : endpoints)
-            {
-               ilog("Adding seed node ${endpoint}", ("endpoint", endpoint));
-               _p2p_network->add_node(endpoint);
-            }
-         } catch( const fc::exception& e ) {
-            wlog( "caught exception ${e} while adding seed node ${endpoint}",
-                     ("e", e.to_detail_string())("endpoint", endpoint_string) );
-         }
+         uniq_seeds.emplace(endpoint_string);
       }
+   }
+
+   for( const string& endpoint_string : external_seeds )
+   {
+      uniq_seeds.emplace(endpoint_string);
+   }
+
+   for(const auto &endpoint_string: uniq_seeds)
+   {
+       try {
+          std::vector<fc::ip::endpoint> endpoints = resolve_string_to_ip_endpoints(endpoint_string);
+          for (const fc::ip::endpoint& endpoint : endpoints)
+          {
+             ilog("Adding seed node ${endpoint}", ("endpoint", endpoint));
+             _p2p_network->add_node(endpoint);
+          }
+       } catch( const fc::exception& e ) {
+          wlog( "caught exception ${e} while adding seed node ${endpoint}",
+                   ("e", e.to_detail_string())("endpoint", endpoint_string) );
+       }
    }
 
    if( _options->count("p2p-endpoint") )
@@ -347,7 +338,7 @@ void application_impl::set_api_limit() {
    }
 }
 
-void application_impl::startup()
+void application_impl::startup(const seeds_type &external_seeds)
 { try {
    fc::create_directories(_data_dir / "blockchain");
 
@@ -500,7 +491,7 @@ void application_impl::startup()
       _apiaccess.permission_map["*"] = wild_access;
    }
 
-   reset_p2p_node(_data_dir);
+   reset_p2p_node(_data_dir, external_seeds);
    reset_websocket_server();
    reset_websocket_tls_server();
 } FC_LOG_AND_RETHROW() }
@@ -1098,10 +1089,10 @@ void application::initialize(const fc::path& data_dir, const boost::program_opti
    }
 }
 
-void application::startup()
+void application::startup(const seeds_type &external_seeds)
 {
    try {
-      my->startup();
+      my->startup(external_seeds);
    } catch ( const fc::exception& e ) {
       elog( "${e}", ("e",e.to_detail_string()) );
       throw;
@@ -1393,7 +1384,8 @@ namespace
        out_cfg.close();
     }
 
-    fc::optional<fc::logging_config> get_logging_config_from_ini_file(const fc::path& config_ini_path)
+    fc::optional<fc::logging_config> get_ext_config_from_ini_file(
+            const fc::path& config_ini_path, seeds_type &external_seeds)
     {
        try
        {
@@ -1414,6 +1406,7 @@ namespace
              const std::string file_appender_section_prefix = "log.file_appender.";
              const std::string gelf_appender_section_prefix = "log.gelf_appender.";
              const std::string logger_section_prefix = "logger.";
+             const std::string seed_section_prefix = "seed.";
 
              if (boost::starts_with(section_name, console_appender_section_prefix))
              {
@@ -1480,7 +1473,13 @@ namespace
                 logging_config.loggers.push_back(logger_config);
                 found_logging_config = true;
              }
+             else if (boost::starts_with(section_name, seed_section_prefix))
+             {
+                std::string node_string = section_tree.get<std::string>("node");
+                external_seeds.emplace_back(node_string);
+             }
           }
+
           if (found_logging_config)
              return logging_config;
           else
@@ -1509,7 +1508,8 @@ void options_helper::create_config_file_if_not_exist(const fc::path& config_ini_
 
 void options_helper::load_config_file(const fc::path& config_ini_path,
                              const boost::program_options::options_description& cfg_options,
-                             boost::program_options::variables_map& options)
+                             boost::program_options::variables_map& options,
+                             seeds_type &external_seeds)
 {
     std::cout << "Load configuration from " << config_ini_path.preferred_string() << std::endl;
 
@@ -1519,7 +1519,7 @@ void options_helper::load_config_file(const fc::path& config_ini_path,
     // try to get logging options from the config file.
     try
     {
-       fc::optional<fc::logging_config> logging_config = get_logging_config_from_ini_file(config_ini_path);
+       auto logging_config = get_ext_config_from_ini_file(config_ini_path, external_seeds);
        if (logging_config)
           fc::configure_logging(*logging_config);
     }

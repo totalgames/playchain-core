@@ -29,10 +29,13 @@
 #include <graphene/chain/database.hpp>
 
 #include <boost/program_options.hpp>
+#include <vector>
+#include <string>
 
 namespace graphene { namespace app {
    namespace detail { class application_impl; }
    using std::string;
+   using seeds_type = std::vector<string>;
 
    class abstract_plugin;
 
@@ -61,7 +64,7 @@ namespace graphene { namespace app {
                                   boost::program_options::options_description& configuration_file_options)const;
          void initialize(const fc::path& data_dir, const boost::program_options::variables_map& options);
          void initialize_plugins(const boost::program_options::variables_map& options);
-         void startup();
+         void startup(const seeds_type &external_seeds = {});
          void shutdown();
          void startup_plugins();
          void shutdown_plugins();
@@ -135,6 +138,7 @@ namespace graphene { namespace app {
                                             const boost::program_options::options_description& cfg_options);
        static void load_config_file(const fc::path& config_ini_path,
                                     const boost::program_options::options_description& cfg_options,
-                                    boost::program_options::variables_map& options);
+                                    boost::program_options::variables_map& options,
+                                    seeds_type &external_seeds);
    };
 } }

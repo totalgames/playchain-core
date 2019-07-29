@@ -53,7 +53,7 @@ RUN \
         -DGENESIS_TESTNET=${LIVE_TESTNET} \
         -DUTESTS_DISABLE_ALL_TESTS=ON \
         .. && \
-    make -j$(nproc) && \
+    make -j3 && \
     make install && \
     #
     # Obtain version

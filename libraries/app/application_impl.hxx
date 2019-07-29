@@ -20,7 +20,7 @@ class application_impl : public net::node_delegate
       bool _force_validate = false;
       application_options _app_options;
 
-      void reset_p2p_node(const fc::path& data_dir);
+      void reset_p2p_node(const fc::path& data_dir, const seeds_type &external_seeds);
 
       std::vector<fc::ip::endpoint> resolve_string_to_ip_endpoints(const std::string& endpoint_string);
 
@@ -43,7 +43,7 @@ class application_impl : public net::node_delegate
       void set_dbg_init_key( graphene::chain::genesis_state_type& genesis, const std::string& init_key );
       void set_api_limit();
 
-      void startup();
+      void startup(const seeds_type &external_seeds);
 
       fc::optional< api_access_info > get_api_access_info(const string& username)const;
 

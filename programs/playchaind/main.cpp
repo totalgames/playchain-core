@@ -185,7 +185,8 @@ int main(int argc, char** argv) {
 
       app::options_helper::create_config_file_if_not_exist(config_file_path, cfg_options);
 
-      app::options_helper::load_config_file(config_file_path, cfg_options, options);
+      app::seeds_type external_seeds;
+      app::options_helper::load_config_file(config_file_path, cfg_options, options, external_seeds);
 
       const fc::path data_dir = app::options_helper::get_data_dir_path(options);
 
@@ -195,7 +196,7 @@ int main(int argc, char** argv) {
       node->initialize(data_dir, options);
       node->initialize_plugins( options );
 
-      node->startup();
+      node->startup(external_seeds);
       node->startup_plugins();
 
       std::cout << PLAYCHAIN << " network started. ";
