@@ -20,7 +20,7 @@ We recommend building on Ubuntu 16.04 LTS, and the build dependencies may be ins
 
 To build after all dependencies are installed:
 
-    git clone https://bitbucket.org/total-games/playchain-core.git
+    git clone https://github.com/totalgames/playchain-core.git
     cd playchain-core
     git checkout <LATEST_RELEASE_TAG>
     git submodule update --init --recursive
@@ -37,13 +37,15 @@ Example: ``cmake -DBOOST_ROOT=/path/to/boost .``
 
 **NOTE:** PlayChain requires a 64-bit operating system to build, and will not build on a 32-bit OS.
 
-**NOTE:** PlayChain now supports Ubuntu 18.04 LTS
+**NOTE:** PlayChain now supports Ubuntu 18.04 LTS, Ubuntu 19.04
 
-**NOTE:** PlayChain now supports OpenSSL 1.1.0
+**NOTE:** PlayChain now supports OpenSSL 1.1.0, OpenSSL 1.1.1
 
 **After Building**, the `witness_node` can be launched with:
 
     ./build/programs/playchaind/playchaind --plugins witness
+
+> but recommended way is using config file!
 
 The node will automatically create a data directory including a config file. It may take several hours to fully synchronize
 the blockchain. After syncing, you can exit the node using Ctrl+C and setup the command-line wallet by editing
@@ -74,7 +76,7 @@ We provide several different API's.  Each API has its own ID.
 When running `playchaind`, initially three API's are available:
 API 0 (or `database`) provides read-only access to the database, API 1 (or `login`) is
 used to login and gain access to additional, restricted API's
-add API `playchain` provides read-only access to the playchain logic database
+add API `playchain` provides read-only access to the PlayChain logic database
 
 Here is an example using `wscat` package from `npm` for websockets:
 
