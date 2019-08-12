@@ -49,6 +49,10 @@
 
 #include <boost/range/algorithm/merge.hpp>
 
+#include <playchain/chain/evaluators/db_helpers.hpp>
+
+#include <iostream>
+
 namespace playchain{ namespace chain{
 
     namespace
@@ -106,7 +110,7 @@ namespace playchain{ namespace chain{
                                            const game_initial_data &initial_data)
         {
             if (initial_data.cash.empty())
-                return true; //special voting
+                return d.head_block_time() < HARDFORK_PLAYCHAIN_6_TIME;
 
             decltype(table.cash) cash_initial;
             for (const decltype(initial_data.cash)::value_type &data: initial_data.cash)
@@ -245,11 +249,7 @@ namespace playchain{ namespace chain{
 
         struct get_game_digest_visitor
         {
-            get_game_digest_visitor(const database& d,
-                                    const table_object &table):
-                d(d), table(table)
-            {
-            }
+            get_game_digest_visitor() = default;
 
             using result_type = game_digest_type;
 
@@ -274,29 +274,21 @@ namespace playchain{ namespace chain{
                 fc::raw::pack( enc, data.log );
                 return enc.result();
             }
-
-        private:
-
-            const database& d;
-            const table_object &table;
         };
 
         using account_votes_type = flat_map<account_id_type, voting_data_type>;
 
-        bool voting(database& d,
-                    const table_voting_object &table_voting,
+        bool voting(const table_voting_object &table_voting,
                     const percent_type requied,
                     voting_data_type &valid_vote,
                     account_votes_type &accounts_with_invalid_vote)
         {
-            const table_object &table = table_voting.table(d);
-
             flat_map<game_digest_type, account_votes_type> votes_by_content;
 
             std::for_each(begin(table_voting.votes), end(table_voting.votes),
                            [&](const decltype(table_voting.votes)::value_type &data)
             {
-                get_game_digest_visitor get_digest{d, table};
+                get_game_digest_visitor get_digest;
                 auto digest = data.second.visit(get_digest);
                 votes_by_content[digest].insert(std::make_pair(data.first, data.second));
             });
@@ -521,7 +513,7 @@ namespace playchain{ namespace chain{
                                    game_witnesses_type &required_witnesses,
                                    account_votes_type &accounts_with_invalid_vote)
         {
-            bool voting_consensus = voting(d, table_voting, voting_requied_percent, valid_vote, accounts_with_invalid_vote);
+            bool voting_consensus = voting(table_voting, voting_requied_percent, valid_vote, accounts_with_invalid_vote);
             if (!voting_consensus)
             {
                 if (table.is_free())
@@ -607,15 +599,17 @@ namespace playchain{ namespace chain{
         {
             const auto& bin_by_table = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table>();
             auto range = bin_by_table.equal_range(table.id);
-            for (auto iter = range.first; iter != range.second;) {
-                const buy_in_object& bin_obj = *iter++;
 
-                if (clear || !table.cash.count(bin_obj.player))
+            auto buy_ins = get_objects_from_index<buy_in_object>(range.first, range.second,
+                                                                 get_playchain_parameters(d).maximum_desired_number_of_players_for_tables_allocation);
+            for (const buy_in_object& buy_in: buy_ins) {
+
+                if (clear || !table.cash.count(buy_in.player))
                 {
-                    d.remove(bin_obj);
-                }else
+                    d.remove(buy_in);
+                }else if (d.head_block_time() < HARDFORK_PLAYCHAIN_7_TIME)
                 {
-                    prolong_life_for_by_in(d, bin_obj);
+                    prolong_life_for_by_in(d, buy_in);
                 }
             }
         }
@@ -624,11 +618,11 @@ namespace playchain{ namespace chain{
         {
             const auto& bout_by_table = d.get_index_type<pending_buy_out_index>().indices().get<by_table>();
             auto range = bout_by_table.equal_range(table.id);
-            for (auto iter = range.first; iter != range.second;) {
-                const pending_buy_out_object& bout_obj = *iter++;
-                const auto &player = bout_obj.player;
+            for (auto itr = range.first; itr != range.second;) {
+                const pending_buy_out_object& buyout = *itr++;
+                const auto &player = buyout.player;
                 const auto &account_id = player(d).account;
-                auto rest = bout_obj.amount;
+                auto rest = buyout.amount;
 
                 if (!result.cash.empty())
                 {
@@ -668,7 +662,7 @@ namespace playchain{ namespace chain{
                     });
                 }
 
-                auto allowed = bout_obj.amount - rest;
+                auto allowed = buyout.amount - rest;
                 if (allowed.amount > 0)
                 {
                     d.adjust_balance(account_id, allowed);
@@ -681,7 +675,7 @@ namespace playchain{ namespace chain{
                     d.push_applied_operation(game_event_operation{table.id, table_owner, fraud_buy_out{account_id, rest, allowed}});
                 }
 
-                d.remove(bout_obj);
+                d.remove(buyout);
             }
         }
 
@@ -807,8 +801,8 @@ namespace playchain{ namespace chain{
             {
                 const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
                 auto range = index_pending.equal_range(table.id);
-                for (auto iter = range.first; iter != range.second;) {
-                    const pending_table_vote_object & vote_obj = *iter++;
+                for (auto itr = range.first; itr != range.second;) {
+                    const pending_table_vote_object & vote_obj = *itr++;
 
                     push_fail_vote_operation(d, vote_obj);
                     d.remove(vote_obj);
@@ -918,24 +912,15 @@ namespace playchain{ namespace chain{
                     {
                         const auto &player_id = data.first;
                         const auto &player_cash = data.second;
-                        if (player_cash.amount > 0)
+
+                        obj.adjust_playing_cash(player_id, player_cash);
+
+                        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_1_TIME)
                         {
-                            obj.adjust_playing_cash(player_id, player_cash);
-
-                            if (d.head_block_time() >= HARDFORK_PLAYCHAIN_1_TIME)
-                            {
-                                assert(obj.cash.find(player_id) != obj.cash.end());
-                            }
-
-                            obj.adjust_cash(player_id, -player_cash);
-                        }else
-                        {
-                            assert(player_cash.amount == 0);
-
-                            const auto &account_id = player_id(d).account;
-
-                            d.push_applied_operation(game_event_operation{table.id, op.table_owner, buy_in_return{account_id, player_cash}});
+                            assert(obj.cash.find(player_id) != obj.cash.end());
                         }
+
+                        obj.adjust_cash(player_id, -player_cash);
                     });
 
                     obj.game_created = dyn_props.time;
@@ -1088,8 +1073,8 @@ namespace playchain{ namespace chain{
             bool wait_next_vote = apply_start_playing_check_voting(d, table, op);
             const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
             auto range = index_pending.equal_range(table.id);
-            for (auto iter = range.first; iter != range.second;) {
-                const pending_table_vote_object & vote_obj = *iter++;
+            for (auto itr = range.first; itr != range.second;) {
+                const pending_table_vote_object & vote_obj = *itr++;
 
                 if (wait_next_vote)
                 {
@@ -1127,7 +1112,22 @@ namespace playchain{ namespace chain{
             const table_object &table = op.table(d);
 
             FC_ASSERT(is_table_owner(d, table, op.table_owner), "Wrong table owner");
+
+#if defined(PLAYCHAIN_TESTNET)
+            //The BRoKEN block fix
+            if (d.get_dynamic_global_properties().head_block_number == 3578350 &&
+                    !table.is_playing())
+            {
+                edump((op));
+                idump((table));
+
+                _ignore = true;
+
+                return void_result();
+            }
+#endif
             FC_ASSERT(table.is_playing(), "Wrong type of voting. There is no game on table");
+
 
             FC_ASSERT( !is_table_voting_for_playing(d, table.id), "Wrong type of voting" );
 
@@ -1143,6 +1143,9 @@ namespace playchain{ namespace chain{
     {
         try {
             database& d = db();
+
+            if (_ignore)
+                return void_result();
 
             const table_object &table = op.table(d);
 
@@ -1161,8 +1164,8 @@ namespace playchain{ namespace chain{
             bool wait_next_vote = apply_game_result_check_voting(d, table, op);
             const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
             auto range = index_pending.equal_range(table.id);
-            for (auto iter = range.first; iter != range.second;) {
-                const pending_table_vote_object & vote_obj = *iter++;
+            for (auto itr = range.first; itr != range.second;) {
+                const pending_table_vote_object & vote_obj = *itr++;
 
                 if (wait_next_vote)
                 {

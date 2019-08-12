@@ -621,9 +621,9 @@ public:
         FC_ASSERT(room_id.valid());
 
         auto table_range = _db.get_index_type<table_index>().indices().get<by_room_and_metadata>().equal_range(std::make_tuple(*room_id, metadata));
-        for (auto it = table_range.first; it !=table_range.second && limit--;)
+        for (auto itr = table_range.first; itr !=table_range.second && limit--;)
         {
-            const auto &table = *it++;
+            const auto &table = *itr++;
             playchain_table_info info = get_table_info_by_id(table.id);
             result.emplace_back(std::move(info));
         }

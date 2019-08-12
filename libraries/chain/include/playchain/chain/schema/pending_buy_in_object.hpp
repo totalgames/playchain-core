@@ -73,6 +73,7 @@ namespace playchain { namespace chain {
         player_id_type                      player;
         table_id_type                       table;
         fc::time_point_sec                  created; //< for monitoring only
+        fc::time_point_sec                  updated; //< for monitoring only
         fc::time_point_sec                  expiration;
     };
 
@@ -161,4 +162,5 @@ FC_REFLECT_DERIVED( playchain::chain::buy_in_object,
                     (player)
                     (table)
                     (created)
+                    (updated)
                     (expiration))

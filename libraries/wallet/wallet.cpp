@@ -173,6 +173,11 @@ public:
 
     template<typename T>
     std::string operator()(const T& op)const;
+
+    std::string operator()(const buy_in_return& op) const;
+    std::string operator()(const game_cash_return& op) const;
+    std::string operator()(const buy_out_allowed& op) const;
+    std::string operator()(const fraud_buy_out& op) const;
 };
 
 template<class T>
@@ -4191,7 +4196,7 @@ std::string operation_printer::operator()(const buy_in_reserving_resolve_operati
 
  std::string operation_printer::operator()(const buy_in_table_operation& op) const
  {
-     auto a = wallet.get_asset( op.fee.asset_id );
+     auto a = wallet.get_asset( op.amount.asset_id );
      out << get_op_name<buy_in_table_operation>();
      out << get_table_uid(wallet, op);
      out << "; ";
@@ -4203,7 +4208,7 @@ std::string operation_printer::operator()(const buy_in_reserving_resolve_operati
 
   std::string operation_printer::operator()(const buy_out_table_operation& op) const
   {
-      auto a = wallet.get_asset( op.fee.asset_id );
+      auto a = wallet.get_asset( op.amount.asset_id );
       out << get_op_name<buy_out_table_operation>();
       out << get_table_uid(wallet, op);
       out << "; ";
@@ -4215,7 +4220,7 @@ std::string operation_printer::operator()(const buy_in_reserving_resolve_operati
 
 std::string operation_printer::operator()(const buy_in_expire_operation& op) const
 {
-    auto a = wallet.get_asset( op.fee.asset_id );
+    auto a = wallet.get_asset( op.amount.asset_id );
     out << get_op_name<buy_in_expire_operation>();
     out << get_table_uid(wallet, op);
     out << "; ";
@@ -4230,6 +4235,45 @@ template<typename T>
 std::string game_event_operation_printer::operator()(const T&)const
 {
     out << get_op_name<T>();
+    return {};
+}
+
+std::string game_event_operation_printer::operator()(const buy_in_return& op) const
+{
+    auto a = wallet.get_asset( op.amount.asset_id );
+    out << get_op_name<buy_in_return>();
+    out << " (";
+    out << a.amount_to_pretty_string(op.amount);
+    out << ")";
+    return {};
+}
+std::string game_event_operation_printer::operator()(const game_cash_return& op) const
+{
+    auto a = wallet.get_asset( op.amount.asset_id );
+    out << get_op_name<game_cash_return>();
+    out << " (";
+    out << a.amount_to_pretty_string(op.amount);
+    out << ")";
+    return {};
+}
+std::string game_event_operation_printer::operator()(const buy_out_allowed& op) const
+{
+    auto a = wallet.get_asset( op.amount.asset_id );
+    out << get_op_name<buy_out_allowed>();
+    out << " (";
+    out << a.amount_to_pretty_string(op.amount);
+    out << ")";
+    return {};
+}
+std::string game_event_operation_printer::operator()(const fraud_buy_out& op) const
+{
+    auto a = wallet.get_asset( op.fail_amount.asset_id );
+    out << get_op_name<fraud_buy_out>();
+    out << " (";
+    out << a.amount_to_pretty_string(op.fail_amount);
+    out << " vs. ";
+    out << a.amount_to_pretty_string(op.allowed_amount);
+    out << ")";
     return {};
 }
 

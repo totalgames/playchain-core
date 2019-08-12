@@ -127,37 +127,7 @@ namespace
 #else
     {
 #if defined(PRINT_PLAYCHAIN_TABLES_RANGE)
-        auto itr = range_first;
-        std::vector<string> table_list;
-
-        size_t ci = 0;
-        while(itr != range_second)
-        {
-            const auto &table = *itr++;
-
-            std::stringstream ss;
-
-            if (ci > 0)
-                ss << ", ";
-            ss << '"' << ci++ << '"' << ": ";
-            ss << fc::json::to_string( table.to_variant() );
-
-            table_list.emplace_back(ss.str());
-        }
-
-        if (!table_list.empty())
-        {
-            std::stringstream ss;
-
-            ss << preffix << " >> ";
-
-            for(auto &&r: table_list)
-            {
-                ss << r;
-            }
-
-            std::cerr << ss.str() << std::endl;
-        }
+        print_objects_in_range(range_first, range_second, preffix);
 #endif //PRINT_PLAYCHAIN_TABLES_RANGE
     }
 #endif //DEBUG
@@ -361,15 +331,16 @@ void allocation_of_vacancies(database &d)
 void update_expired_buy_in(database &d)
 {
     auto& by_expiration= d.get_index_type<buy_in_index>().indices().get<by_playchain_obj_expiration>();
-    while( !by_expiration.empty() && by_expiration.begin()->expiration <= d.head_block_time() )
+    auto buy_ins = get_objects_from_index<buy_in_object>(by_expiration.begin(), by_expiration.end(),
+                                                        0, [&](const auto &buy_in)
     {
-        const buy_in_object &buy_in = *by_expiration.begin();
+        return buy_in.expiration <= d.head_block_time();
+    });
+    for (const buy_in_object& buy_in: buy_ins) {
         const table_object &table = buy_in.table(d);
         if (table.is_playing(buy_in.player))
         {
             prolong_life_for_by_in(d, buy_in);
-
-            continue;
         }
         else
         {

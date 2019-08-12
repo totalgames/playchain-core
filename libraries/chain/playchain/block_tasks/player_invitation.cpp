@@ -33,10 +33,9 @@ namespace playchain { namespace chain {
 void update_expired_invitations(database &d)
 {
     auto& invitations_by_expiration= d.get_index_type<player_invitation_index>().indices().get<by_playchain_obj_expiration>();
-    auto itr = invitations_by_expiration.begin();
-    while( itr != invitations_by_expiration.end() && itr->expiration <= d.head_block_time() )
+    while( !invitations_by_expiration.empty() && invitations_by_expiration.begin()->expiration <= d.head_block_time() )
     {
-        const player_invitation_object &invitation = *itr++;
+        const player_invitation_object &invitation = *invitations_by_expiration.begin();
         d.push_applied_operation( player_invitation_expire_operation{ invitation.inviter, invitation.uid } );
         d.remove(invitation);
     }

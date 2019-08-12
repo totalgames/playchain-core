@@ -27,6 +27,9 @@
 #include <playchain/chain/protocol/playchain_types.hpp>
 #include <playchain/chain/schema/playchain_property_object.hpp>
 
+#include <functional>
+#include <vector>
+
 namespace graphene { namespace chain {
     class database;
 }}
@@ -43,5 +46,73 @@ namespace playchain { namespace chain {
 
     const playchain_parameters  &get_playchain_parameters(const database& d);
 
-}}
+    //Use this helper to iterate probably removing objects (will call d.remove(o) or break index in some branch of complex logic)
+    //Note: This helper protect index but not protect object (double remove)
+    template<typename ObjectType, typename IteratorType>
+    auto get_objects_from_index(IteratorType &&from, IteratorType &&to, const size_t max_items,
+                                std::function<bool (const ObjectType &)> until_f = nullptr)
+    {
+        using object_type = ObjectType;
+        using object_reff_type = std::reference_wrapper<const object_type>;
+        std::vector<object_reff_type> result;
 
+        if (max_items > 0)
+        {
+            result.reserve(max_items);
+        }
+
+        for (auto itr = from; itr != to;) {
+            const object_type& obj = *itr++;
+
+            if (until_f && !until_f(obj))
+                break;
+
+            result.emplace_back(std::cref(obj));
+        }
+
+        return result;
+    }
+
+    //For DEBUG:
+    template<typename Iterator>
+    void print_objects_in_range(const Iterator &range_first, const Iterator &range_second, const string &preffix = "")
+#ifdef NDEBUG
+    {
+        //SLOW OP. SKIPPED
+    }
+#else
+    {
+        auto itr = range_first;
+        std::vector<string> obj_list;
+
+        size_t ci = 0;
+        while(itr != range_second)
+        {
+            const auto &obj = *itr++;
+
+            std::stringstream ss;
+
+            if (ci > 0)
+                ss << ", ";
+            ss << '"' << ci++ << '"' << ": ";
+            ss << fc::json::to_string( obj.to_variant() );
+
+            obj_list.emplace_back(ss.str());
+        }
+
+        if (!obj_list.empty())
+        {
+            std::stringstream ss;
+
+            ss << preffix << " >> ";
+
+            for(auto &&r: obj_list)
+            {
+                ss << r;
+            }
+
+            std::cerr << ss.str() << std::endl;
+        }
+    }
+#endif //DEBUG
+}}

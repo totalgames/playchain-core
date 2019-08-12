@@ -48,6 +48,9 @@ namespace playchain { namespace chain {
 
           void_result do_evaluate( const operation_type& o );
           operation_result do_apply( const operation_type& o );
+
+       private:
+          bool _ignore = false;
     };
 
     class game_reset_evaluator : public evaluator<game_reset_evaluator>

@@ -37,20 +37,23 @@ namespace playchain { namespace chain {
 
 void update_expired_table_voting(database &d)
 {
-   auto& voting_by_expiration= d.get_index_type<table_voting_index>().indices().get<by_table_expiration>();
-   while( !voting_by_expiration.empty() && voting_by_expiration.begin()->expiration <= d.head_block_time() )
-   {
-       const table_voting_object &voting = *voting_by_expiration.begin();
-       const table_object &table = voting.table(d);
+    auto& voting_by_expiration= d.get_index_type<table_voting_index>().indices().get<by_table_expiration>();
+    auto votings = get_objects_from_index<table_voting_object>(voting_by_expiration.begin(), voting_by_expiration.end(),
+                                                        0, [&](const auto &voting)
+    {
+        return voting.expiration <= d.head_block_time();
+    });
+    for (const table_voting_object& voting: votings) {
+        const table_object &table = voting.table(d);
 
-       if (voting.is_voting_for_playing())
-       {
-           expire_voting_for_playing(d, voting, table);
-       }else if (voting.is_voting_for_results())
-       {
-           expire_voting_for_results(d, voting, table);
-       }
-   }
+        if (voting.is_voting_for_playing())
+        {
+            expire_voting_for_playing(d, voting, table);
+        }else if (voting.is_voting_for_results())
+        {
+            expire_voting_for_results(d, voting, table);
+        }
+    }
 }
 
 void update_expired_table_game(database &d, const bool maintenance)
@@ -64,11 +67,12 @@ void update_expired_table_game(database &d, const bool maintenance)
         return;
 
     auto& game_by_expiration= d.get_index_type<table_index>().indices().get<by_playchain_obj_expiration>();
-    auto itr = game_by_expiration.begin();
-    while( itr != game_by_expiration.end() && itr->game_expiration <= d.head_block_time() )
+    auto tables = get_objects_from_index<table_object>(game_by_expiration.begin(), game_by_expiration.end(),
+                                                        0, [&](const auto &table)
     {
-        const table_object &table = *itr++;
-
+        return table.game_expiration <= d.head_block_time();
+    });
+    for (const table_object& table: tables) {
         d.push_applied_operation(
                     game_event_operation{ table.id, table.room(d).owner, fail_expire_game_lifetime{} } );
 

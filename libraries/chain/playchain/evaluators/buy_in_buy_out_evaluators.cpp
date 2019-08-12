@@ -79,10 +79,10 @@ namespace
             assert(table.pending_proposals.find(player.id) != table.pending_proposals.end());
 
             auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
-            auto it = measurements_by_buyin.find(buy_in.id);
-            if (it != measurements_by_buyin.end())
+            auto itr = measurements_by_buyin.find(buy_in.id);
+            if (itr != measurements_by_buyin.end())
             {
-                d.remove(*it);
+                d.remove(*itr);
             }
             else
             {
@@ -106,8 +106,8 @@ namespace
         object_id_type ret_id;
 
         auto& index = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table_and_player>();
-        auto it = index.find(boost::make_tuple(table.id, player.id));
-        if (it == index.end())
+        auto itr = index.find(boost::make_tuple(table.id, player.id));
+        if (itr == index.end())
         {
             const auto& dyn_props = d.get_dynamic_global_properties();
             const auto& parameters = get_playchain_parameters(d);
@@ -116,12 +116,13 @@ namespace
                buyin.player = player.id;
                buyin.table = table.id;
                buyin.created = dyn_props.time;
-               buyin.expiration = buyin.created + fc::seconds(parameters.buy_in_expiration_seconds);
+               buyin.updated = buyin.created;
+               buyin.expiration = buyin.updated + fc::seconds(parameters.buy_in_expiration_seconds);
             }).id;
         }
         else
         {
-            prolong_life_for_by_in(d, *it);
+            prolong_life_for_by_in(d, *itr);
         }
 
         object_id_type alive_id = alive_for_table(d, table.id).get<object_id_type>();
@@ -138,15 +139,15 @@ namespace
         bool allow_buy_out = !table.is_playing(player.id);
         if (!allow_buy_out)
         {
-            auto it = table.cash.find(player.id);
-            if (table.cash.end() != it)
+            auto itr = table.cash.find(player.id);
+            if (table.cash.end() != itr)
             {
-                allow_buy_out = (amount <= it->second);
+                allow_buy_out = (amount <= itr->second);
             }
         }
 
         const auto& idx = d.get_index_type<pending_buy_out_index>().indices().get<by_player_at_table>();
-        auto it = idx.find(std::make_tuple(player.id, table.id));
+        auto itr = idx.find(std::make_tuple(player.id, table.id));
 
         if (allow_buy_out)
         {
@@ -157,15 +158,15 @@ namespace
                 obj.adjust_cash(player.id, -amount);
             });
 
-            if (idx.end() != it)
+            if (idx.end() != itr)
             {
-                d.remove(*it);
+                d.remove(*itr);
             }
         }else
         {
             if (amount.amount > 0)
             {
-                if (idx.end() == it)
+                if (idx.end() == itr)
                 {
                     return d.create<pending_buy_out_object>([&](pending_buy_out_object &obj)
                     {
@@ -175,14 +176,14 @@ namespace
                     }).id;
                 }else
                 {
-                    d.modify(*it, [&](pending_buy_out_object &obj)
+                    d.modify(*itr, [&](pending_buy_out_object &obj)
                     {
                         obj.amount = amount;
                     });
                 }
-            }else if (idx.end() != it)
+            }else if (idx.end() != itr)
             {
-                d.remove(*it);
+                d.remove(*itr);
             }
         }
 
@@ -377,10 +378,10 @@ namespace
             assert(table.pending_proposals.find(player.id) != table.pending_proposals.end());
 
             auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
-            auto it = measurements_by_buyin.find(pending_buy_in.id);
-            if (it != measurements_by_buyin.end())
+            auto itr = measurements_by_buyin.find(pending_buy_in.id);
+            if (itr != measurements_by_buyin.end())
             {
-                d.modify(*it, [&](room_rating_measurement_object &obj)
+                d.modify(*itr, [&](room_rating_measurement_object &obj)
                 {
                     obj.waiting_resolve = false;
                     obj.weight = 1; // in this case poker server works as expected, so we push its rating up by assigning mark with value 1
@@ -427,11 +428,11 @@ namespace
 
             auto& buy_in_by_player = d.get_index_type<pending_buy_in_index>().indices().get<by_pending_buy_in_player>();
 
-            auto it = buy_in_by_player.find(op.player);
-            while (it != buy_in_by_player.end())
+            auto itr = buy_in_by_player.find(op.player);
+            while (itr != buy_in_by_player.end())
             {
-                cancel_pending_buyin(d, *it);
-                it = buy_in_by_player.find(op.player);
+                cancel_pending_buyin(d, *itr);
+                itr = buy_in_by_player.find(op.player);
             }
 
             return void_result();
@@ -445,7 +446,8 @@ namespace
 
         d.modify(buy_in, [&](buy_in_object &obj)
         {
-            obj.expiration = dyn_props.time + fc::seconds(parameters.buy_in_expiration_seconds);
+            obj.updated = dyn_props.time;
+            obj.expiration = obj.updated + fc::seconds(parameters.buy_in_expiration_seconds);
         });
     }
 
