@@ -4,7 +4,7 @@
         //15 August 2019 14:00:00
         #define HARDFORK_PLAYCHAIN_7_TIME (fc::time_point_sec( 1565877600 ))
     #elif defined(PLAYCHAIN_TESTNET)
-        //17 August 2019 06:00:00
-        #define HARDFORK_PLAYCHAIN_7_TIME (fc::time_point_sec( 1566021600 ))
+        //20 August 2019 09:00:00 GMT
+        #define HARDFORK_PLAYCHAIN_7_TIME (fc::time_point_sec( 1566291600 ))
     #endif
 #endif
