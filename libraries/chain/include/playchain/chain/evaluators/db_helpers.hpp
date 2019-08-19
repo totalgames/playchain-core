@@ -30,6 +30,8 @@
 #include <functional>
 #include <vector>
 
+#include <boost/core/ignore_unused.hpp>
+
 namespace graphene { namespace chain {
     class database;
 }}
@@ -79,6 +81,8 @@ namespace playchain { namespace chain {
 #ifdef NDEBUG
     {
         //SLOW OP. SKIPPED
+
+        boost::ignore_unused(range_first, range_second, preffix);
     }
 #else
     {
@@ -111,7 +115,7 @@ namespace playchain { namespace chain {
                 ss << r;
             }
 
-            std::cerr << ss.str() << std::endl;
+            ilog(ss.str());
         }
     }
 #endif //DEBUG

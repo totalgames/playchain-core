@@ -42,8 +42,6 @@
 #include <boost/multi_index/detail/unbounded.hpp>
 
 #include <limits>
-#include <sstream>
-#include <iostream>
 
 namespace playchain { namespace chain {
 
@@ -120,17 +118,13 @@ namespace
 
     template<typename Iterator>
     void print_tables_range(const Iterator &range_first, const Iterator &range_second, const string &preffix = "")
-#ifdef NDEBUG
-    {
-        //SLOW OP. SKIPPED
-    }
-#else
     {
 #if defined(PRINT_PLAYCHAIN_TABLES_RANGE)
         print_objects_in_range(range_first, range_second, preffix);
-#endif //PRINT_PLAYCHAIN_TABLES_RANGE
+#else
+        boost::ignore_unused(range_first, range_second, preffix);
+#endif
     }
-#endif //DEBUG
 }
 
 void update_expired_pending_buy_in(database &d)
