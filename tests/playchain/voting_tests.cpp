@@ -2183,7 +2183,10 @@ PLAYCHAIN_TEST_CASE(check_rollback_game_when_consensus_broken)
 
     BOOST_REQUIRE_NO_THROW(game_result_check(richregistrator1, table, result1));
     BOOST_REQUIRE_NO_THROW(game_result_check(b1, table, result2));
-    BOOST_REQUIRE_NO_THROW(game_result_check(b3, table, result3));
+    try
+    {
+        game_result_check(b3, table, result3);
+    }FC_LOG_AND_RETHROW()
 
     generate_blocks(db.get_dynamic_global_properties().time +
                     fc::seconds(params.voting_for_results_expiration_seconds));

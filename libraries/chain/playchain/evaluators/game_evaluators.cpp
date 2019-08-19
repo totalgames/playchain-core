@@ -278,7 +278,7 @@ namespace playchain{ namespace chain{
 
         using account_votes_type = flat_map<account_id_type, voting_data_type>;
 
-        bool voting(const table_voting_object &table_voting,
+        bool voting_impl(const table_voting_object &table_voting,
                     const percent_type requied,
                     voting_data_type &valid_vote,
                     account_votes_type &accounts_with_invalid_vote)
@@ -505,7 +505,7 @@ namespace playchain{ namespace chain{
             const table_voting_object &table_voting;
         };
 
-        bool sumup_vote_collecting(database& d,
+        bool voting(database& d,
                                    const table_voting_object &table_voting,
                                    const table_object &table,
                                    const percent_type voting_requied_percent,
@@ -513,38 +513,20 @@ namespace playchain{ namespace chain{
                                    game_witnesses_type &required_witnesses,
                                    account_votes_type &accounts_with_invalid_vote)
         {
-            bool voting_consensus = voting(table_voting, voting_requied_percent, valid_vote, accounts_with_invalid_vote);
-            if (!voting_consensus)
+            bool voting_consensus = voting_impl(table_voting, voting_requied_percent, valid_vote, accounts_with_invalid_vote);
+            if (voting_consensus)
             {
-                if (table.is_free())
+                required_witnesses = table_voting.voted_witnesses;
+                if (!required_witnesses.empty())
                 {
-                    wlog("There is no consensus to start game at table '${t}'", ("t", table_voting.table));
+                    for(const auto &data: accounts_with_invalid_vote)
+                    {
+                        const game_witness_object *pwitness = get_witness_if_exist(d, table, data.first);
+                        if (!pwitness)
+                            continue;
 
-                    d.push_applied_operation(
-                                game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_start_playing{} } );
-                }else
-                {
-                    wlog("There is no consensus to apply game results at table '${t}'", ("t", table_voting.table));
-
-                    d.push_applied_operation(
-                                game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_result{} } );
-
-                    rollback_game(d, table);
-                    return false;
-                }
-            }
-
-            required_witnesses = table_voting.voted_witnesses;
-
-            if (voting_consensus && !required_witnesses.empty())
-            {
-                for(const auto &data: accounts_with_invalid_vote)
-                {
-                    const game_witness_object *pwitness = get_witness_if_exist(d, table, data.first);
-                    if (!pwitness)
-                        continue;
-
-                    required_witnesses.erase(pwitness->id);
+                        required_witnesses.erase(pwitness->id);
+                    }
                 }
             }
 
@@ -554,22 +536,20 @@ namespace playchain{ namespace chain{
         }
 
         template<typename T>
-        bool collect_votes(database& d,
+        const table_voting_object &collect_votes(database& d,
                            const table_object &table,
                            const account_id_type &voter,
                            T &vote_data,
                            const uint32_t voting_seconds,
-                           const percent_type voting_requied_percent,
                            const percent_type pv_witness_substitution,
-                           voting_data_type &valid_vote,
                            game_witnesses_type &required_witnesses,
-                           account_votes_type &accounts_with_invalid_vote)
+                           bool &voters_collected)
         {
             const auto& dyn_props = d.get_dynamic_global_properties();
 
             if (!is_table_voting(d, table.id))
             {
-                d.create<table_voting_object>([&](table_voting_object& table_voting) {
+                return d.create<table_voting_object>([&](table_voting_object& table_voting) {
                    table_voting.table = table.id;
                    table_voting.created = dyn_props.time;
                    table_voting.expiration = table_voting.created + fc::seconds(voting_seconds);
@@ -577,8 +557,6 @@ namespace playchain{ namespace chain{
                    set_required_voters{d, table, table_voting, voter, pv_witness_substitution}(vote_data);
                    set_voter{d, table, table_voting, voter}(vote_data);
                 });
-
-                return false;
             }
 
             const table_voting_object &table_voting = (*d.get_index_type<table_voting_index>().indices().get<by_table>().find(table.id));
@@ -587,12 +565,9 @@ namespace playchain{ namespace chain{
                 set_voter{d, table, obj, voter}(vote_data);
             });
 
-            if (is_the_required_number_of_voters{table, table_voting}(vote_data))
-            {
-                return sumup_vote_collecting(d, table_voting, table, voting_requied_percent, valid_vote, required_witnesses, accounts_with_invalid_vote);
-            }
+            voters_collected = is_the_required_number_of_voters{table, table_voting}(vote_data);
 
-            return false;
+            return table_voting;
         }
 
         void buyins_resolve(database& d, const table_object &table, bool clear)
@@ -679,7 +654,65 @@ namespace playchain{ namespace chain{
             }
         }
 
-        void apply_game_results_with_consensus(database& d, const table_object &table,
+        void apply_start_playing_with_consensus(database& d, const table_object &table,
+                                               const voting_data_type &valid_vote,
+                                               const game_witnesses_type &required_witnesses,
+                                               const account_votes_type &accounts_with_invalid_vote)
+        {
+            game_initial_data initial_data = valid_vote.get<game_initial_data>();
+
+            account_id_type table_owner = table.room(d).owner;
+
+            const auto& dyn_props = d.get_dynamic_global_properties();
+
+            const auto& parameters = get_playchain_parameters(d);
+
+            d.modify(table, [&](table_object &obj)
+            {
+                decltype(obj.cash) cash_playing;
+                std::for_each(begin(initial_data.cash), end(initial_data.cash),
+                               [&](const decltype(initial_data.cash)::value_type &data)
+                {
+                    const player_object &player = get_player(d, data.first);
+
+                    cash_playing[player.id] = data.second;
+                });
+
+                std::for_each(begin(cash_playing), end(cash_playing),
+                              [&](const decltype(obj.cash)::value_type &data)
+                {
+                    const auto &player_id = data.first;
+                    const auto &player_cash = data.second;
+
+                    obj.adjust_playing_cash(player_id, player_cash);
+
+                    if (d.head_block_time() >= HARDFORK_PLAYCHAIN_1_TIME)
+                    {
+                        assert(obj.cash.find(player_id) != obj.cash.end());
+                    }
+
+                    obj.adjust_cash(player_id, -player_cash);
+                });
+
+                obj.game_created = dyn_props.time;
+                obj.game_expiration = obj.game_created + fc::seconds(parameters.game_lifetime_limit_in_seconds);
+
+                obj.voted_witnesses = required_witnesses;
+            });
+
+            d.push_applied_operation(
+                        game_event_operation{ table.id, table_owner, game_start_playing_validated{ initial_data } } );
+
+            for(const auto &data: accounts_with_invalid_vote)
+            {
+                const auto &fail_info = data.second.get<game_initial_data>().info;
+                d.push_applied_operation(
+                            game_event_operation{ table.id, table_owner,
+                                                  fraud_game_start_playing_check{data.first, fail_info, initial_data.info} } );
+            }
+        }
+
+        void apply_game_result_with_consensus(database& d, const table_object &table,
                                                const voting_data_type &valid_vote,
                                                const game_witnesses_type &required_witnesses,
                                                const account_votes_type &accounts_with_invalid_vote)
@@ -883,61 +916,25 @@ namespace playchain{ namespace chain{
             voting_data_type valid_vote;
             account_votes_type accounts_with_invalid_vote;
             game_witnesses_type required_witnesses;
+            const percent_type voting_requied_percent = parameters.voting_for_playing_requied_percent;
+            bool voters_collected = false;
 
-            if (collect_votes(d, table, op.voter, op.initial_data,
-                              parameters.voting_for_playing_expiration_seconds,
-                              parameters.voting_for_playing_requied_percent,
-                              parameters.percentage_of_voter_witness_substitution_while_voting_for_playing,
-                              valid_vote,
-                              required_witnesses,
-                              accounts_with_invalid_vote))
+            const table_voting_object &table_voting = collect_votes(d, table, op.voter, op.initial_data,
+                                                                    parameters.voting_for_playing_expiration_seconds,
+                                                                    parameters.percentage_of_voter_witness_substitution_while_voting_for_playing,
+                                                                    required_witnesses,
+                                                                    voters_collected);
+            if (voters_collected)
             {
-                game_initial_data initial_data = valid_vote.get<game_initial_data>();
-
-                const auto& dyn_props = d.get_dynamic_global_properties();
-
-                d.modify(table, [&](table_object &obj)
+                if (voting(d, table_voting, table, voting_requied_percent, valid_vote, required_witnesses, accounts_with_invalid_vote))
                 {
-                    decltype(obj.cash) cash_playing;
-                    std::for_each(begin(initial_data.cash), end(initial_data.cash),
-                                   [&](const decltype(initial_data.cash)::value_type &data)
-                    {
-                        const player_object &player = get_player(d, data.first);
-
-                        cash_playing[player.id] = data.second;
-                    });
-
-                    std::for_each(begin(cash_playing), end(cash_playing),
-                                  [&](const decltype(obj.cash)::value_type &data)
-                    {
-                        const auto &player_id = data.first;
-                        const auto &player_cash = data.second;
-
-                        obj.adjust_playing_cash(player_id, player_cash);
-
-                        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_1_TIME)
-                        {
-                            assert(obj.cash.find(player_id) != obj.cash.end());
-                        }
-
-                        obj.adjust_cash(player_id, -player_cash);
-                    });
-
-                    obj.game_created = dyn_props.time;
-                    obj.game_expiration = obj.game_created + fc::seconds(parameters.game_lifetime_limit_in_seconds);
-
-                    obj.voted_witnesses = required_witnesses;
-                });
-
-                d.push_applied_operation(
-                            game_event_operation{ table.id, op.table_owner, game_start_playing_validated{ initial_data } } );
-
-                for(const auto &data: accounts_with_invalid_vote)
+                    apply_start_playing_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
+                }else
                 {
-                    const auto &fail_info = data.second.get<game_initial_data>().info;
+                    wlog("There is no consensus to start game at table '${t}'", ("t", table_voting.table));
+
                     d.push_applied_operation(
-                                game_event_operation{ table.id, op.table_owner,
-                                                      fraud_game_start_playing_check{data.first, fail_info, initial_data.info} } );
+                                game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_start_playing{} } );
                 }
 
                 return false;
@@ -953,21 +950,58 @@ namespace playchain{ namespace chain{
             voting_data_type valid_vote;
             account_votes_type accounts_with_invalid_vote;
             game_witnesses_type required_witnesses = table.voted_witnesses;
+            const percent_type voting_requied_percent = parameters.voting_for_results_requied_percent;
+            bool voters_collected = false;
 
-            if (collect_votes(d, table, op.voter, op.result,
-                              parameters.voting_for_results_expiration_seconds,
-                              parameters.voting_for_results_requied_percent,
-                              parameters.percentage_of_voter_witness_substitution_while_voting_for_results,
-                              valid_vote,
-                              required_witnesses,
-                              accounts_with_invalid_vote))
+            const table_voting_object &table_voting = collect_votes(d, table, op.voter, op.result,
+                                             parameters.voting_for_results_expiration_seconds,
+                                             parameters.percentage_of_voter_witness_substitution_while_voting_for_results,
+                                             required_witnesses,
+                                             voters_collected);
+            if (voters_collected)
             {
-                apply_game_results_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
+                if (voting(d, table_voting, table, voting_requied_percent, valid_vote, required_witnesses, accounts_with_invalid_vote))
+                {
+                    apply_game_result_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
+                }else
+                {
+                    wlog("There is no consensus to apply game results at table '${t}'", ("t", table_voting.table));
+
+                    d.push_applied_operation(
+                                game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_result{} } );
+
+                    rollback_game(d, table);
+                }
 
                 return false;
             }
 
             return true;
+        }
+
+        template<typename Operation>
+        bool ignore_op_in_broken_block(const database &d, const Operation &op)
+        {
+#if defined(PLAYCHAIN_TESTNET)
+            auto b_num = d.get_dynamic_global_properties().head_block_number;
+            switch(b_num + 1)
+            {
+            case 3578351:
+            case 3746879:
+            case 3746880:
+            case 3746881:
+            case 3746885:
+            case 3746886:
+            case 3746891:
+            case 3746892:
+            case 3746893:
+                wlog("Historically BRoKEN block !!! ${f}, b=${b}, op=${op}", ("f", __FUNCTION__)("b", b_num)("op", op));
+
+                return true;
+            default:;
+            }
+#endif
+            return false;
         }
     }
 
@@ -1008,20 +1042,23 @@ namespace playchain{ namespace chain{
             allow_result = votes >= parameters.min_votes_for_results;
         }
         if (allow_result &&
-                sumup_vote_collecting(d,
-                                  table_voting,
-                                   table,
-                                   parameters.voting_for_results_requied_percent,
-                                   valid_vote,
-                                   required_witnesses,
-                                   accounts_with_invalid_vote))
+                voting(d,
+                       table_voting,
+                       table,
+                       parameters.voting_for_results_requied_percent,
+                       valid_vote,
+                       required_witnesses,
+                       accounts_with_invalid_vote))
         {
-            apply_game_results_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
+            apply_game_result_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
 
             cleanup_pending_votes(d, table);
         }else
         {
-            d.remove(table_voting);
+            if (!allow_result)
+            {
+                d.remove(table_voting);
+            }
 
             d.push_applied_operation(
                         game_event_operation{ table.id, table.room(d).owner, fail_expire_game_result{} } );
@@ -1032,7 +1069,7 @@ namespace playchain{ namespace chain{
 
     void_result game_start_playing_check_evaluator::do_evaluate( const operation_type& op )
     {
-        try {
+        try { try {
             const database& d = db();
             FC_ASSERT(is_table_exists(d, op.table), "Table does not exist");
 
@@ -1049,12 +1086,20 @@ namespace playchain{ namespace chain{
             FC_ASSERT(validate_game_start_ivariants(d, table, op.initial_data), "Invalid initial data");
 
             return void_result();
-        }FC_CAPTURE_AND_RETHROW((op))
+        } catch ( const fc::assert_exception& ) {
+            _ignore = ignore_op_in_broken_block(db(), op);
+            if (_ignore)
+                return void_result();
+             throw;
+        }}FC_CAPTURE_AND_RETHROW((op))
     }
 
     operation_result game_start_playing_check_evaluator::do_apply( const operation_type& op )
     {
         try {
+            if (_ignore)
+                return void_result();
+
             database& d = db();
 
             const table_object &table = op.table(d);
@@ -1105,7 +1150,7 @@ namespace playchain{ namespace chain{
 
     void_result game_result_check_evaluator::do_evaluate( const operation_type& op )
     {
-        try {
+        try { try {
             const database& d = db();
             FC_ASSERT(is_table_exists(d, op.table), "Table does not exist");
 
@@ -1113,19 +1158,6 @@ namespace playchain{ namespace chain{
 
             FC_ASSERT(is_table_owner(d, table, op.table_owner), "Wrong table owner");
 
-#if defined(PLAYCHAIN_TESTNET)
-            //The BRoKEN block fix
-            if (d.get_dynamic_global_properties().head_block_number == 3578350 &&
-                    !table.is_playing())
-            {
-                edump((op));
-                idump((table));
-
-                _ignore = true;
-
-                return void_result();
-            }
-#endif
             FC_ASSERT(table.is_playing(), "Wrong type of voting. There is no game on table");
 
 
@@ -1136,16 +1168,21 @@ namespace playchain{ namespace chain{
             FC_ASSERT(validate_game_result_ivariants(d, table, op.result), "Invalid result");
 
             return void_result();
-        }FC_CAPTURE_AND_RETHROW((op))
+        } catch ( const fc::assert_exception& ) {
+            _ignore = ignore_op_in_broken_block(db(), op);
+            if (_ignore)
+                return void_result();
+             throw;
+        }}FC_CAPTURE_AND_RETHROW((op))
     }
 
     operation_result game_result_check_evaluator::do_apply( const operation_type& op )
     {
         try {
-            database& d = db();
-
             if (_ignore)
                 return void_result();
+
+            database& d = db();
 
             const table_object &table = op.table(d);
 

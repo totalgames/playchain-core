@@ -566,20 +566,6 @@ void database::_apply_block( const signed_block& next_block )
 
    _issue_453_affected_assets.clear();
 
-#if defined(PLAYCHAIN_TESTNET)
-   auto _next_block_num = get_dynamic_global_properties().head_block_number;
-   switch (_next_block_num)
-   {
-   case 3578350:
-       ilog("Historically BRoKEN block !!! ${f}, b=${b}", ("f", __FUNCTION__)("b", _next_block_num));
-       for( const auto& trx : next_block.transactions )
-       {
-           idump((trx));
-       }
-       break;
-   default:;
-   }
-#endif
    for( const auto& trx : next_block.transactions )
    {
       /* We do not need to push the undo state for each transaction
