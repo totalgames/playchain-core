@@ -50,6 +50,18 @@
 
 namespace playchain{ namespace chain{
 
+    template<typename ImplInterface>
+    ImplInterface &find_implementation(const database &d, flat_map<fc::time_point_sec, std::unique_ptr<ImplInterface>> &impls)
+    {
+        assert(!impls.empty());
+
+        auto &&current_time_point = d.head_block_time();
+        auto it = impls.begin();
+        while (++it != impls.end() && it->first < current_time_point);
+        --it;
+        return (*it->second);
+    }
+
     void rollback_table(database& d, const table_object &table)
     {
         roolback(d, table, true);
@@ -86,18 +98,9 @@ namespace playchain{ namespace chain{
             auto votes =  table.playing_cash.size() - table_voting.required_player_voters.size();
             allow_voting = votes >= parameters.min_votes_for_results;
         }
-        if (allow_voting &&
-                voting(d,
-                       table_voting,
-                       table,
-                       parameters.voting_for_results_requied_percent,
-                       valid_vote,
-                       required_witnesses,
-                       accounts_with_invalid_vote))
+        if (allow_voting)
         {
-            apply_game_result_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
-
-            cleanup_pending_votes(d, table);
+            scheduled_voting_for_results(d, table_voting, table);
         }else
         {
             if (!allow_voting)
@@ -112,36 +115,96 @@ namespace playchain{ namespace chain{
         }
     }
 
+    void scheduled_voting_for_playing(database& d, const table_voting_object &table_voting, const table_object &table)
+    {
+        const auto& parameters = get_playchain_parameters(d);
+
+        voting_data_type valid_vote;
+        account_votes_type accounts_with_invalid_vote;
+        game_witnesses_type required_witnesses;
+
+        if (voting(d,
+                       table_voting,
+                       table,
+                       parameters.voting_for_playing_requied_percent,
+                       valid_vote,
+                       required_witnesses,
+                       accounts_with_invalid_vote))
+        {
+            apply_start_playing_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
+        }else
+        {
+            wlog("There is no consensus to start game at table '${t}'", ("t", table_voting.table));
+
+            d.push_applied_operation(
+                        game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_start_playing{} } );
+        }
+
+        cleanup_pending_votes(d, table);
+    }
+
+    void scheduled_voting_for_results(database& d, const table_voting_object &table_voting, const table_object &table)
+    {
+        const auto& parameters = get_playchain_parameters(d);
+
+        voting_data_type valid_vote;
+        account_votes_type accounts_with_invalid_vote;
+        game_witnesses_type required_witnesses = table.voted_witnesses;
+
+        if (voting(d,
+                       table_voting,
+                       table,
+                       parameters.voting_for_results_requied_percent,
+                       valid_vote,
+                       required_witnesses,
+                       accounts_with_invalid_vote))
+        {
+            apply_game_result_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
+        }else
+        {
+            wlog("There is no consensus to apply game results at table '${t}'", ("t", table_voting.table));
+
+            d.push_applied_operation(
+                        game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_result{} } );
+
+            rollback_game(d, table);
+        }
+
+        cleanup_pending_votes(d, table);
+    }
+
     game_start_playing_check_evaluator::game_start_playing_check_evaluator()
     {
         _impls.emplace(fc::time_point_sec{}, new game_start_playing_check_evaluator_impl_v1{*this});
+        _impls.emplace(HARDFORK_PLAYCHAIN_8_TIME, new game_start_playing_check_evaluator_impl_v2{*this});
     }
     game_start_playing_check_evaluator::~game_start_playing_check_evaluator(){}
 
     void_result game_start_playing_check_evaluator::do_evaluate( const operation_type& op )
     {
-        return _impls[fc::time_point_sec{}]->do_evaluate(op);
+        return find_implementation<game_start_playing_check_evaluator_impl>(db(), _impls).do_evaluate(op);
     }
 
     operation_result game_start_playing_check_evaluator::do_apply( const operation_type& op )
     {
-         return _impls[fc::time_point_sec{}]->do_apply(op);
+        return find_implementation<game_start_playing_check_evaluator_impl>(db(), _impls).do_apply(op);
     }
 
     game_result_check_evaluator::game_result_check_evaluator()
     {
         _impls.emplace(fc::time_point_sec{}, new game_result_check_evaluator_impl_v1{*this});
+        _impls.emplace(HARDFORK_PLAYCHAIN_8_TIME, new game_result_check_evaluator_impl_v2{*this});
     }
     game_result_check_evaluator::~game_result_check_evaluator(){}
 
     void_result game_result_check_evaluator::do_evaluate( const operation_type& op )
     {
-        return _impls[fc::time_point_sec{}]->do_evaluate(op);
+        return find_implementation<game_result_check_evaluator_impl>(db(), _impls).do_evaluate(op);
     }
 
     operation_result game_result_check_evaluator::do_apply( const operation_type& op )
     {
-        return _impls[fc::time_point_sec{}]->do_apply(op);
+        return find_implementation<game_result_check_evaluator_impl>(db(), _impls).do_apply(op);
     }
 
     void_result game_reset_evaluator::do_evaluate( const operation_type& op )

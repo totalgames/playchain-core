@@ -1,0 +1,11 @@
+// #playchain-8 Game voting algorithm changed to v.2
+// +++++++++++++++++++++++++++++++++++++++++++++++++
+#ifndef HARDFORK_PLAYCHAIN_8_TIME
+    #if defined(PLAYCHAIN_MAINNET)
+        // 22 August 2019 22:45:00 GMT
+        #define HARDFORK_PLAYCHAIN_8_TIME (fc::time_point_sec( 1566513900 ))
+    #elif defined(PLAYCHAIN_TESTNET)
+        // 20 August 2019 15:00:00 GMT
+        #define HARDFORK_PLAYCHAIN_8_TIME (fc::time_point_sec( 1566313200 ))
+    #endif
+#endif

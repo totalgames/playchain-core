@@ -1,10 +1,10 @@
 // #playchain-6 Fix for the start playing check validation
 #ifndef HARDFORK_PLAYCHAIN_6_TIME
     #if defined(PLAYCHAIN_MAINNET)
-        //08/14/2019 @ 9:00am
-        #define HARDFORK_PLAYCHAIN_6_TIME (fc::time_point_sec( 1565773200 ))
+        // 22 August 2019 22:00:00 GMT
+        #define HARDFORK_PLAYCHAIN_6_TIME (fc::time_point_sec( 1566511200 ))
     #elif defined(PLAYCHAIN_TESTNET)
-        //20 August 2019 03:00:00 GMT
+        // 20 August 2019 00:00:00 GMT
         #define HARDFORK_PLAYCHAIN_6_TIME (fc::time_point_sec( 1566259200 ))
     #endif
 #endif

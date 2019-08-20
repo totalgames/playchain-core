@@ -72,7 +72,7 @@ namespace playchain { namespace chain {
                        const game_initial_data &vote_data,
                        const uint32_t voting_seconds,
                        const percent_type pv_witness_substitution,
-                       game_witnesses_type &required_witnesses,
+                       const game_witnesses_type &required_witnesses,
                        bool &voters_collected);
 
     const table_voting_object &collect_votes(database& d,
@@ -81,7 +81,7 @@ namespace playchain { namespace chain {
                        const game_result &vote_data,
                        const uint32_t voting_seconds,
                        const percent_type pv_witness_substitution,
-                       game_witnesses_type &required_witnesses,
+                       const game_witnesses_type &required_witnesses,
                        bool &voters_collected);
 
     void apply_start_playing_with_consensus(database& d, const table_object &table,

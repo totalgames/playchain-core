@@ -83,4 +83,7 @@ namespace playchain { namespace chain {
 
     void expire_voting_for_playing(database& d, const table_voting_object &table_voting, const table_object &table);
     void expire_voting_for_results(database& d, const table_voting_object &table_voting, const table_object &table);
+
+    void scheduled_voting_for_playing(database& d, const table_voting_object &table_voting, const table_object &table);
+    void scheduled_voting_for_results(database& d, const table_voting_object &table_voting, const table_object &table);
 }}

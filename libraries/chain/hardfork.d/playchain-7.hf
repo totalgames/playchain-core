@@ -1,10 +1,10 @@
 // #playchain-7 Fix for the buyin expiration algorithm
 #ifndef HARDFORK_PLAYCHAIN_7_TIME
     #if defined(PLAYCHAIN_MAINNET)
-        //15 August 2019 14:00:00
-        #define HARDFORK_PLAYCHAIN_7_TIME (fc::time_point_sec( 1565877600 ))
+        // 22 August 2019 22:30:00 GMT
+        #define HARDFORK_PLAYCHAIN_7_TIME (fc::time_point_sec( 1566513000 ))
     #elif defined(PLAYCHAIN_TESTNET)
-        //20 August 2019 09:00:00 GMT
+        // 20 August 2019 09:00:00 GMT
         #define HARDFORK_PLAYCHAIN_7_TIME (fc::time_point_sec( 1566291600 ))
     #endif
 #endif

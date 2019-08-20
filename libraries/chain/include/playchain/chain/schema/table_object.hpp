@@ -147,6 +147,7 @@ namespace playchain { namespace chain {
 
         fc::time_point_sec                          created; //< for monitoring only
         fc::time_point_sec                          expiration;
+        fc::time_point_sec                          scheduled_voting;
 
         flat_map<account_id_type, voting_data_type> votes;
 
@@ -302,6 +303,8 @@ namespace playchain { namespace chain {
 
     struct by_table;
     struct by_table_expiration;
+    struct by_voting_expiration;
+    struct by_voting_scheduled;
 
     /**
      * @ingroup object_index
@@ -313,9 +316,13 @@ namespace playchain { namespace chain {
           ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
           ordered_unique< tag<by_table>,
                     member<table_voting_object, table_id_type, &table_voting_object::table> >,
-          ordered_unique<tag<by_table_expiration>,
+          ordered_unique<tag<by_voting_expiration>,
                     composite_key<table_voting_object,
                     member<table_voting_object, time_point_sec, &table_voting_object::expiration>,
+                    member<object, object_id_type, &object::id > >>,
+          ordered_unique<tag<by_voting_scheduled>,
+                    composite_key<table_voting_object,
+                    member<table_voting_object, time_point_sec, &table_voting_object::scheduled_voting>,
                     member<object, object_id_type, &object::id > >>
     >>;
 
@@ -386,6 +393,7 @@ FC_REFLECT_DERIVED( playchain::chain::table_voting_object,
                     (table)
                     (created)
                     (expiration)
+                    (scheduled_voting)
                     (votes)
                     (witnesses_allowed_for_substitution)
                     (required_player_voters)

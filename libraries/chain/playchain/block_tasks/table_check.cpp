@@ -37,7 +37,7 @@ namespace playchain { namespace chain {
 
 void update_expired_table_voting(database &d)
 {
-    auto& voting_by_expiration= d.get_index_type<table_voting_index>().indices().get<by_table_expiration>();
+    auto& voting_by_expiration= d.get_index_type<table_voting_index>().indices().get<by_voting_expiration>();
     auto votings = get_objects_from_index<table_voting_object>(voting_by_expiration.begin(), voting_by_expiration.end(),
                                                         0, [&](const auto &voting)
     {
@@ -94,6 +94,27 @@ void update_expired_table_alive(database &d)
         d.remove(alive);
 
         table.set_weight(d);
+    }
+}
+
+void update_scheduled_voting(database &d)
+{
+    auto& voting_by_scheduled= d.get_index_type<table_voting_index>().indices().get<by_voting_scheduled>();
+    auto votings = get_objects_from_index<table_voting_object>(voting_by_scheduled.begin(), voting_by_scheduled.end(),
+                                                        0, [&](const auto &voting)
+    {
+        return voting.scheduled_voting <= d.head_block_time();
+    });
+    for (const table_voting_object& voting: votings) {
+        const table_object &table = voting.table(d);
+
+        if (voting.is_voting_for_playing())
+        {
+            scheduled_voting_for_playing(d, voting, table);
+        }else if (voting.is_voting_for_results())
+        {
+            scheduled_voting_for_results(d, voting, table);
+        }
     }
 }
 

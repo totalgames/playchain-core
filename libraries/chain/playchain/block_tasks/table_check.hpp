@@ -31,5 +31,6 @@ namespace playchain { namespace chain {
 void update_expired_table_voting(database &d);
 void update_expired_table_game(database &d, const bool maintenance);
 void update_expired_table_alive(database &d);
+void update_scheduled_voting(database &d);
 
 }}
