@@ -151,7 +151,8 @@ struct set_required_voters
             }
 
             table_voting.etalon_vote = vote_data;
-            calculate_witnesses_allowed_for_substitution(table_voting.required_player_voters.size(),
+            table_voting.witnesses_allowed_for_substitution =
+                    calculate_witnesses_allowed_for_substitution(table_voting.required_player_voters.size(),
                                                          pv_witness_substitution);
         }
     }
@@ -166,18 +167,19 @@ struct set_required_voters
             table_voting.required_player_voters.emplace(id(d).account);
         }
 
-        calculate_witnesses_allowed_for_substitution(table_voting.required_player_voters.size(),
+        table_voting.witnesses_allowed_for_substitution =
+                calculate_witnesses_allowed_for_substitution(table_voting.required_player_voters.size(),
                                                      pv_witness_substitution);
     }
 
 private:
 
-    void calculate_witnesses_allowed_for_substitution(const size_t required_voters,
+    static size_t calculate_witnesses_allowed_for_substitution(const size_t required_voters,
                                                       const percent_type percent)
     {
         size_t r = required_voters * percent;
         r /= GRAPHENE_100_PERCENT;
-        table_voting.witnesses_allowed_for_substitution = r;
+        return r;
     }
 
     const database& d;
