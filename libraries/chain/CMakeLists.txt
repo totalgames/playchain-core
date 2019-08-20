@@ -16,6 +16,7 @@ file(GLOB_RECURSE PLAYCHAIN_HEADERS "include/playchain/chain/*.hpp")
 file(GLOB PROTOCOL_HEADERS "include/graphene/chain/protocol/*.hpp")
 file(GLOB BLOCK_TASKS_HEADERS "playchain/block_tasks/*.hpp")
 file(GLOB MAINTAIN_TASKS_HEADERS "playchain/maintain_tasks/*.hpp")
+file(GLOB EVALUATOR_IMPL_HEADERS "playchain/evaluators/*.hpp")
 
 if( GRAPHENE_DISABLE_UNITY_BUILD )
    set( GRAPHENE_DB_FILES
@@ -120,6 +121,8 @@ add_library( graphene_chain
              playchain/protocol/common_operations.cpp
              playchain/protocol/playchain_committee_member.cpp
              playchain/evaluators/game_evaluators.cpp
+             playchain/evaluators/game_evaluators_impl.cpp
+             playchain/evaluators/game_evaluators_obsolete.cpp
              playchain/evaluators/table_evaluators.cpp
              playchain/evaluators/buy_in_buy_out_evaluators.cpp
              playchain/evaluators/player_invitation_evaluators.cpp
@@ -138,6 +141,7 @@ add_library( graphene_chain
              playchain/schema/playchain_objects.cpp
              playchain/schema/table_object.cpp
 
+             ${EVALUATOR_IMPL_HEADERS}
              ${BLOCK_TASKS_HEADERS}
              ${MAINTAIN_TASKS_HEADERS}
              ${PLAYCHAIN_HEADERS}

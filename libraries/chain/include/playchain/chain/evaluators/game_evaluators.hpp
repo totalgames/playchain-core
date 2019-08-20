@@ -25,35 +25,48 @@
 #pragma once
 
 #include <graphene/chain/protocol/operations.hpp>
+#include <graphene/chain/protocol/types.hpp>
 
 #include <graphene/chain/evaluator.hpp>
+
+#include <memory>
 
 namespace playchain { namespace chain {
 
     using namespace graphene::chain;
 
+    class game_start_playing_check_evaluator_impl;
+
     class game_start_playing_check_evaluator : public evaluator<game_start_playing_check_evaluator>
     {
        public:
+          game_start_playing_check_evaluator();
+          ~game_start_playing_check_evaluator();
+
           using operation_type = game_start_playing_check_operation;
 
           void_result do_evaluate( const operation_type& o );
           operation_result do_apply( const operation_type& o );
 
         private:
-           bool _ignore = false;
+           flat_map<fc::time_point_sec, std::unique_ptr<game_start_playing_check_evaluator_impl>> _impls;
     };
+
+    class game_result_check_evaluator_impl;
 
     class game_result_check_evaluator : public evaluator<game_result_check_evaluator>
     {
        public:
+         game_result_check_evaluator();
+         ~game_result_check_evaluator();
+
           using operation_type = game_result_check_operation;
 
           void_result do_evaluate( const operation_type& o );
           operation_result do_apply( const operation_type& o );
 
-       private:
-          bool _ignore = false;
+      private:
+         flat_map<fc::time_point_sec, std::unique_ptr<game_result_check_evaluator_impl>> _impls;
     };
 
     class game_reset_evaluator : public evaluator<game_reset_evaluator>
