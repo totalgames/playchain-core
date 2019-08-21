@@ -39,6 +39,7 @@ void process_block_tasks(database &d, const bool maintenance)
     update_expired_pending_buy_in(d);
     update_expired_buy_in(d);
     update_expired_table_alive(d);
+    update_scheduled_voting(d);
 
     allocation_of_vacancies(d);
 }

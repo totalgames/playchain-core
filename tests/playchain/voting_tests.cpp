@@ -35,6 +35,9 @@ struct voting_fixture: public playchain_common::playchain_fixture
         CREATE_PLAYER(richregistrator1, bob);
         CREATE_PLAYER(richregistrator1, sam);
         CREATE_PLAYER(richregistrator1, jon);
+
+        //test only with latest voting algorithm!!!
+        generate_blocks(HARDFORK_PLAYCHAIN_8_TIME);
     }
 };
 
@@ -120,6 +123,8 @@ PLAYCHAIN_TEST_CASE(check_with_negative_start_playing_check_evaluate)
     //finish voting
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, data));
 
+    generate_block();
+
     BOOST_REQUIRE(table(db).is_playing(get_player(alice)));
     BOOST_REQUIRE(table(db).is_playing(get_player(bob)));
 }
@@ -141,6 +146,8 @@ PLAYCHAIN_TEST_CASE(check_with_negative_result_check_evaluate)
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
+
+    generate_block();
 
     BOOST_REQUIRE(table(db).is_playing(get_player(alice)));
     BOOST_REQUIRE(table(db).is_playing(get_player(bob)));
@@ -175,6 +182,8 @@ PLAYCHAIN_TEST_CASE(check_with_negative_result_check_evaluate)
 
     //finish voting
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
+
+    generate_block();
 
     BOOST_CHECK(table(db).is_free());
 
@@ -239,6 +248,8 @@ PLAYCHAIN_TEST_CASE(check_validated_with_one_fraud)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial_wrong1));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_playing());
     BOOST_REQUIRE_EQUAL(table_obj.cash.size(), 1u);
     BOOST_CHECK_EQUAL(to_string(table_obj.cash.at(get_player(jon))), to_string(stake));
@@ -248,8 +259,6 @@ PLAYCHAIN_TEST_CASE(check_validated_with_one_fraud)
     BOOST_REQUIRE(!table(db).is_waiting_at_table(get_player(alice)));
     BOOST_REQUIRE(!table(db).is_waiting_at_table(get_player(bob)));
     BOOST_REQUIRE(table(db).is_waiting_at_table(get_player(jon)));
-
-    generate_blocks(2);
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
     auto history = phistory_api->get_account_history(richregistrator1.name,
@@ -297,10 +306,10 @@ PLAYCHAIN_TEST_CASE(check_game_roolback_by_vote_for_result)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(bob)));
-
-    generate_blocks(2);
 
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, game_result()));
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, game_result()));
@@ -308,13 +317,12 @@ PLAYCHAIN_TEST_CASE(check_game_roolback_by_vote_for_result)
     //extra vote
     BOOST_CHECK_THROW(game_result_check(richregistrator2, table, game_result()), fc::exception);
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_free());
 
     BOOST_CHECK(table(db).is_waiting_at_table(get_player(alice)));
     BOOST_CHECK(table(db).is_waiting_at_table(get_player(bob)));
-
-//    print_block_operations();
-    generate_blocks(2);
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -383,6 +391,8 @@ PLAYCHAIN_TEST_CASE(check_failed_consensus_to_start_playing)
     BOOST_CHECK_THROW(game_start_playing_check(bob, table, initial_wrong_not_acceptable_for_voting), fc::exception);
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial_wrong2));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
 
     //cash is not reset if consensus failed when start playing voting
@@ -442,6 +452,8 @@ PLAYCHAIN_TEST_CASE(check_game_lifetime_expiration_with_special_starting)
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing());
 
@@ -516,11 +528,11 @@ PLAYCHAIN_TEST_CASE(check_game_start_playing_voting_expiration)
     //voting round has started again and owner required
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_free());
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(bob)));
-
-    generate_blocks(2);
 
     //print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -563,6 +575,8 @@ PLAYCHAIN_TEST_CASE(check_game_result_voting_expiration)
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(bob)));
@@ -651,6 +665,8 @@ PLAYCHAIN_TEST_CASE(check_two_games_ok)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial1));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial1));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
     BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(bob)));
@@ -673,6 +689,8 @@ PLAYCHAIN_TEST_CASE(check_two_games_ok)
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, result1));
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result1));
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result1));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(alice)));
@@ -702,6 +720,8 @@ PLAYCHAIN_TEST_CASE(check_two_games_ok)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial2));
     BOOST_CHECK_NO_THROW(game_start_playing_check(sam, table, initial2));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
     BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(sam)));
@@ -725,13 +745,13 @@ PLAYCHAIN_TEST_CASE(check_two_games_ok)
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result2));
     BOOST_CHECK_NO_THROW(game_result_check(sam, table, result2));
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_free());
     BOOST_REQUIRE(!table_obj.is_waiting_at_table(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(sam)));
 
     BOOST_CHECK_EQUAL(to_string(table_obj.cash.at(get_player(sam))), to_string(result2.cash[actor(sam)].cash));
-
-    generate_blocks(2);
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -846,6 +866,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_special_when_playing)
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(sam, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(bob)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(sam)));
@@ -885,6 +907,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_special_when_playing)
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(sam, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(alice)));
@@ -960,6 +984,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_forbiddance_for_players_when_voting_for
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -974,6 +1000,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_forbiddance_for_players_when_voting_for
     result.log = "alice has A 4";
 
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing());
 
@@ -990,9 +1018,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_forbiddance_for_players_when_voting_for
         game_result_check(bob, table, result);
     } FC_LOG_AND_RETHROW()
 
-    BOOST_REQUIRE(table_obj.is_free());
-
     generate_blocks(2);
+
+    BOOST_REQUIRE(table_obj.is_free());
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -1054,6 +1082,8 @@ PLAYCHAIN_TEST_CASE(check_double_buy_out_for_pending)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     BOOST_CHECK_NO_THROW(buy_out_table(alice, table, stake));
@@ -1075,10 +1105,12 @@ PLAYCHAIN_TEST_CASE(check_double_buy_out_for_pending)
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result));
 
+    generate_blocks(2);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
     BOOST_CHECK_EQUAL(to_string(db.get_balance(actor(alice), asset_id_type())), to_string(alice_balance_rest + asset(stake.amount/2)) );
     BOOST_CHECK_EQUAL(to_string(db.get_balance(actor(bob), asset_id_type())), to_string(bob_balance_rest) );
-
-    generate_blocks(2);
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -1135,6 +1167,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_for_free_players)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     //new player
@@ -1174,6 +1208,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_for_free_players)
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_free());
 
     auto stake_rest = stake - asset(stake.amount / 3) - asset(stake.amount / 3);
@@ -1183,8 +1219,6 @@ PLAYCHAIN_TEST_CASE(check_buy_in_buy_out_for_free_players)
     BOOST_CHECK_EQUAL(to_string(db.get_balance(actor(sam), asset_id_type())), to_string(sam_balance) );
     BOOST_CHECK_EQUAL(to_string(db.get_balance(actor(jon), asset_id_type())),
                       to_string(jon_balance - stake_rest) );
-
-    generate_blocks(2);
 
 //    print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -1244,6 +1278,8 @@ PLAYCHAIN_TEST_CASE(check_game_reset_game)
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing());
 
@@ -1308,19 +1344,21 @@ PLAYCHAIN_TEST_CASE(check_game_reset_table)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator1));
 
     BOOST_CHECK_NO_THROW(game_reset(richregistrator1, table, true));
 
+    generate_blocks(2);
+
     BOOST_REQUIRE(table_obj.is_free());
 
     BOOST_REQUIRE_EQUAL(to_string(get_account_balance(alice)), to_string(asset(player_init_balance)));
     BOOST_REQUIRE_EQUAL(to_string(get_account_balance(bob)), to_string(asset(player_init_balance)));
     BOOST_REQUIRE_EQUAL(to_string(get_account_balance(sam)), to_string(asset(player_init_balance)));
-
-    generate_blocks(2);
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -1371,6 +1409,8 @@ PLAYCHAIN_TEST_CASE(check_game_result_voting_expiration_with_min_votes)
     BOOST_CHECK_NO_THROW(game_start_playing_check(sam, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(jon, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(bob)));
     BOOST_REQUIRE(table_obj.is_playing(get_player(sam)));
@@ -1402,253 +1442,14 @@ PLAYCHAIN_TEST_CASE(check_game_result_voting_expiration_with_min_votes)
     BOOST_CHECK_NO_THROW(game_result_check(jon, table, result));
     // alice and jon have lag with connection
 
-    BOOST_REQUIRE(table_obj.is_playing());
-
-    generate_blocks(db.get_dynamic_global_properties().time +
-                    fc::seconds(params.voting_for_results_expiration_seconds));
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    generate_blocks(2);
-
-    print_last_operations(actor(richregistrator1), next_history_record);
-
-    auto history = phistory_api->get_account_history(richregistrator1.name,
-                                                next_history_record,
-                                                100,
-                                                operation_history_id_type());
-
-    std::reverse(begin(history), end(history));
-
-    auto record_offset = 0u;
-
-    BOOST_CHECK_EQUAL(history[record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_start_playing_validated_id));
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_result_validated_id));
-}
-
-PLAYCHAIN_TEST_CASE(check_diff_playing_members_problem)
-{
-    room_id_type room = create_new_room(richregistrator1);
-    table_id_type table = create_new_table(richregistrator1, room);
-
-    const auto& params = get_playchain_parameters(db);
-
-    Actor b1 = create_new_player(richregistrator1, "b1", asset(new_player_balance));
-    Actor b2 = create_new_player(richregistrator1, "b2", asset(new_player_balance));
-    Actor b3 = create_new_player(richregistrator1, "b3", asset(new_player_balance));
-    Actor b4 = create_new_player(richregistrator1, "b4", asset(new_player_balance));
-    Actor b5 = create_new_player(richregistrator1, "b5", asset(new_player_balance));
-
-    auto stake = asset(new_player_balance/4);
-
-    const table_object &table_obj = table(db);
-
-    auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator1));
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    BOOST_CHECK_NO_THROW(buy_in_table(b1, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b2, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b3, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b4, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b5, richregistrator1, table, stake));
-
-    game_initial_data initial1;
-    initial1.cash[actor(b1)] = stake;
-    initial1.cash[actor(b2)] = stake;
-    initial1.info = "b1 is diller";
-
-    game_initial_data initial2;
-    initial2.cash[actor(b1)] = stake;
-    initial2.cash[actor(b2)] = stake;
-    initial2.cash[actor(b3)] = stake;
-    initial2.cash[actor(b4)] = stake;
-    initial2.cash[actor(b5)] = stake;
-    initial2.info = "b1 is diller";
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    try {
-        game_start_playing_check(richregistrator1, table, initial1);
-        game_start_playing_check(b1, table, initial2);
-        game_start_playing_check(b2, table, initial2);
-    } FC_LOG_AND_RETHROW()
-
-    BOOST_REQUIRE(table_obj.is_playing());
-
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b1)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b2)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b3)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b4)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b5)));
-
     generate_block();
 
-    game_result result;
-    auto win = asset(stake.amount/2);
-    auto win_rake = asset(win.amount/20);
-    auto &winner_result = result.cash[actor(b1)];
-    winner_result.cash = stake + win - win_rake;
-    winner_result.rake = win_rake;
-    auto &last_result = result.cash[actor(b2)];
-    last_result.cash = stake - win;
-    result.log = "**** has A 4";
-
-    BOOST_REQUIRE_NO_THROW(game_result_check(richregistrator1, table, result));
-    BOOST_REQUIRE_NO_THROW(game_result_check(b1, table, result));
-    BOOST_REQUIRE_NO_THROW(game_result_check(b2, table, result));
-
-    generate_blocks(db.get_dynamic_global_properties().time +
-                    fc::seconds(params.voting_for_results_expiration_seconds));
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    BOOST_CHECK(table_obj.cash.count(get_player(b1)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b2)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b3)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b4)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b5)));
-
-    BOOST_CHECK(table_obj.playing_cash.empty());
-
-    generate_blocks(db.get_dynamic_global_properties().time +
-                    fc::seconds(params.buy_in_expiration_seconds));
-
-    print_last_operations(actor(richregistrator1), next_history_record);
-
-    auto history = phistory_api->get_account_history(richregistrator1.name,
-                                                next_history_record,
-                                                100,
-                                                operation_history_id_type());
-
-    std::reverse(begin(history), end(history));
-
-    auto record_offset = 0u;
-
-    BOOST_CHECK_EQUAL(history[record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_start_playing_validated_id));
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.fraud_game_start_playing_check_id));
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_result_validated_id));
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-}
-
-PLAYCHAIN_TEST_CASE(check_pending_buy_out_while_diff_playing_members_problem)
-{
-    room_id_type room = create_new_room(richregistrator1);
-    table_id_type table = create_new_table(richregistrator1, room);
-
-    const auto& params = get_playchain_parameters(db);
-
-    Actor b1 = create_new_player(richregistrator1, "b1", asset(new_player_balance));
-    Actor b2 = create_new_player(richregistrator1, "b2", asset(new_player_balance));
-    Actor b3 = create_new_player(richregistrator1, "b3", asset(new_player_balance));
-    Actor b4 = create_new_player(richregistrator1, "b4", asset(new_player_balance));
-    Actor b5 = create_new_player(richregistrator1, "b5", asset(new_player_balance));
-
-    auto stake = asset(new_player_balance/4);
-
-    const table_object &table_obj = table(db);
-
-    auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator1));
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    BOOST_CHECK_NO_THROW(buy_in_table(b1, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b2, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b3, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b4, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(b5, richregistrator1, table, stake));
-
-    game_initial_data initial1;
-    initial1.cash[actor(b1)] = stake;
-    initial1.cash[actor(b2)] = stake;
-    initial1.info = "b1 is diller";
-
-    game_initial_data initial2;
-    initial2.cash[actor(b1)] = stake;
-    initial2.cash[actor(b2)] = stake;
-    initial2.cash[actor(b3)] = stake;
-    initial2.cash[actor(b4)] = stake;
-    initial2.cash[actor(b5)] = stake;
-    initial2.info = "b1 is diller";
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    try {
-        game_start_playing_check(richregistrator1, table, initial1);
-        game_start_playing_check(b1, table, initial2);
-        game_start_playing_check(b2, table, initial2);
-    } FC_LOG_AND_RETHROW()
-
     BOOST_REQUIRE(table_obj.is_playing());
 
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b1)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b2)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b3)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b4)));
-    BOOST_REQUIRE(table_obj.is_playing(get_player(b5)));
-
-    generate_block();
-
-    BOOST_CHECK_NO_THROW(buy_out_table(b1, table, asset(stake.amount / 3)));
-    BOOST_CHECK_NO_THROW(buy_out_table(b4, table, asset(stake.amount / 3)));
-    BOOST_CHECK_NO_THROW(buy_out_table(b5, table, asset(2 * stake.amount)));
-
-    game_result result;
-    auto win = asset(stake.amount/2);
-    auto win_rake = asset(win.amount/20);
-    auto &winner_result = result.cash[actor(b1)];
-    winner_result.cash = stake + win - win_rake;
-    winner_result.rake = win_rake;
-    auto &last_result = result.cash[actor(b2)];
-    last_result.cash = stake - win;
-    result.log = "**** has A 4";
-
-    BOOST_REQUIRE_NO_THROW(game_result_check(richregistrator1, table, result));
-    BOOST_REQUIRE_NO_THROW(game_result_check(b1, table, result));
-    BOOST_REQUIRE_NO_THROW(game_result_check(b2, table, result));
-
     generate_blocks(db.get_dynamic_global_properties().time +
                     fc::seconds(params.voting_for_results_expiration_seconds));
 
     BOOST_REQUIRE(table_obj.is_free());
-
-    BOOST_CHECK(table_obj.cash.count(get_player(b1)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b2)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b3)));
-    BOOST_CHECK(table_obj.cash.count(get_player(b4)));
-    BOOST_CHECK(!table_obj.cash.count(get_player(b5)));
-
-    BOOST_CHECK(table_obj.playing_cash.empty());
-
-    generate_blocks(db.get_dynamic_global_properties().time +
-                    fc::seconds(params.buy_in_expiration_seconds));
 
     print_last_operations(actor(richregistrator1), next_history_record);
 
@@ -1665,27 +1466,16 @@ PLAYCHAIN_TEST_CASE(check_pending_buy_out_while_diff_playing_members_problem)
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_table_id);
+    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
+    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_start_playing_check_id);
     BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_start_playing_validated_id));
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.fraud_game_start_playing_check_id));
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_out_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_out_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_out_table_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), game_result_check_id);
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.buy_out_allowed_id));
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.buy_out_allowed_id));
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.buy_out_allowed_id));
-    BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.fraud_buy_out_id));
     BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.game_result_validated_id));
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_expire_id);
 }
 
 PLAYCHAIN_TEST_CASE(check_reset_game_by_voters)
@@ -1724,9 +1514,9 @@ PLAYCHAIN_TEST_CASE(check_reset_game_by_voters)
         game_start_playing_check(b2, table, initial);
     } FC_LOG_AND_RETHROW()
 
-    BOOST_REQUIRE(table_obj.is_playing());
-
     generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
     auto win = asset(stake.amount/2);
@@ -1743,6 +1533,8 @@ PLAYCHAIN_TEST_CASE(check_reset_game_by_voters)
     BOOST_REQUIRE_NO_THROW(game_result_check(richregistrator1, table, result));
     BOOST_REQUIRE_NO_THROW(game_result_check(b1, table, reset_result));
     BOOST_REQUIRE_NO_THROW(game_result_check(b2, table, reset_result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 
@@ -1823,11 +1615,11 @@ PLAYCHAIN_TEST_CASE(check_buy_out_after_reset)
         game_start_playing_check(b3, table, initial);
     } FC_LOG_AND_RETHROW()
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     BOOST_CHECK_NO_THROW(buy_out_table(b3, table, stake));
-
-    generate_block();
 
     game_reset(richregistrator1, table, false);
 
@@ -1865,6 +1657,8 @@ PLAYCHAIN_TEST_CASE(check_rollback_game_when_consensus_broken)
     BOOST_CHECK_NO_THROW(buy_in_table(b2, richregistrator1, table, stake));
     BOOST_CHECK_NO_THROW(buy_in_table(b3, richregistrator1, table, stake));
 
+    BOOST_REQUIRE_EQUAL(to_string(get_account_balance(b1)), to_string(asset(new_player_balance) - stake));
+
     game_initial_data initial;
     initial.cash[actor(b1)] = stake;
     initial.cash[actor(b2)] = stake;
@@ -1880,11 +1674,11 @@ PLAYCHAIN_TEST_CASE(check_rollback_game_when_consensus_broken)
         game_start_playing_check(b3, table, initial);
     } FC_LOG_AND_RETHROW()
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     BOOST_CHECK_NO_THROW(buy_out_table(b2, table, stake));
-
-    generate_block();
 
     game_result result1;
     auto win = asset(stake.amount/2);
@@ -1903,6 +1697,8 @@ PLAYCHAIN_TEST_CASE(check_rollback_game_when_consensus_broken)
     game_result result3 = result1;
     result3.log =  "**** has A 6";
 
+    BOOST_REQUIRE_EQUAL(to_string(get_account_balance(b1)), to_string(asset(new_player_balance) - stake));
+
     BOOST_REQUIRE_NO_THROW(game_result_check(richregistrator1, table, result1));
     BOOST_REQUIRE_NO_THROW(game_result_check(b1, table, result2));
     try
@@ -1915,7 +1711,7 @@ PLAYCHAIN_TEST_CASE(check_rollback_game_when_consensus_broken)
 
     BOOST_REQUIRE(table_obj.is_free());
 
-    generate_block();
+    BOOST_REQUIRE_EQUAL(to_string(get_account_balance(b1)), to_string(asset(new_player_balance) - stake));
 }
 
 PLAYCHAIN_TEST_CASE(check_buy_in_expiration_for_buy_out_rest)
@@ -1945,6 +1741,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_expiration_for_buy_out_rest)
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b4, get_next_uid(actor(b4)), asset(630), meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b5, get_next_uid(actor(b5)), asset(580), meta));
 
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator1, table));
+
     generate_block();
 
     pending_buy_in_resolve_all(richregistrator1, table_obj);
@@ -1957,6 +1755,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_expiration_for_buy_out_rest)
 
     BOOST_REQUIRE(table_obj.is_free());
 
+    idump((table_obj));
+
     try {
         game_start_playing_check(richregistrator1, table, initial);
         game_start_playing_check(b1, table, initial);
@@ -1964,11 +1764,11 @@ PLAYCHAIN_TEST_CASE(check_buy_in_expiration_for_buy_out_rest)
         game_start_playing_check(b3, table, initial);
     } FC_LOG_AND_RETHROW()
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     BOOST_CHECK_NO_THROW(buy_out_table(b3, table, asset(760)));
-
-    generate_block();
 
     game_result result;
     result.cash[actor(b1)].cash = asset(895);
@@ -2007,8 +1807,6 @@ PLAYCHAIN_TEST_CASE(check_buy_in_expiration_for_buy_out_rest)
 
 PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_1_TIME);
-
     const std::string meta = "Game";
 
     room_id_type room = create_new_room(richregistrator1);
@@ -2027,6 +1825,8 @@ PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b1, get_next_uid(actor(b1)), asset(470), meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b2, get_next_uid(actor(b2)), asset(460), meta));
 
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator1, table));
+
     generate_block();
 
     pending_buy_in_resolve_all(richregistrator1, table_obj);
@@ -2044,6 +1844,8 @@ PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
         game_start_playing_check(b2, table, initial);
     } FC_LOG_AND_RETHROW()
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -2056,6 +1858,8 @@ PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
     BOOST_REQUIRE_NO_THROW(game_result_check(richregistrator1, table, result));
     BOOST_REQUIRE_NO_THROW(game_result_check(b1, table, result));
     BOOST_REQUIRE_NO_THROW(game_result_check(b2, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 
@@ -2120,8 +1924,6 @@ PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
 
 PLAYCHAIN_TEST_CASE(wrong_players_composition_votes_bug_check)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_1_TIME);
-
     const std::string meta = "Game";
 
     room_id_type room = create_new_room(richregistrator1);
@@ -2140,6 +1942,8 @@ PLAYCHAIN_TEST_CASE(wrong_players_composition_votes_bug_check)
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b2, get_next_uid(actor(b2)), asset(460), meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b3, get_next_uid(actor(b3)), asset(400), meta));
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(b4, get_next_uid(actor(b4)), asset(500), meta));
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator1, table));
 
     generate_block();
 
@@ -2178,73 +1982,14 @@ PLAYCHAIN_TEST_CASE(wrong_players_composition_votes_bug_check)
     BOOST_CHECK_THROW(game_start_playing_check(b1, table, initial2), fc::exception);
     BOOST_CHECK_THROW(game_start_playing_check(b2, table, initial3), fc::exception);
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
 
     generate_blocks(db.get_dynamic_global_properties().time +
                     fc::seconds(params.voting_for_playing_expiration_seconds));
 
     print_last_operations(actor(richregistrator1), next_history_record);
-}
-
-PLAYCHAIN_TEST_CASE(check_game_voting_for_playing_v2)
-{
-    generate_blocks(HARDFORK_PLAYCHAIN_8_TIME);
-
-    auto &&parameters = get_playchain_parameters(db);
-
-    room_id_type room = create_new_room(richregistrator1);
-    table_id_type table = create_new_table(richregistrator1, room, 1u);
-    create_witness(richregistrator2);
-
-    auto stake = asset(player_init_balance/2);
-
-    game_initial_data initial;
-    initial.cash[actor(alice)] = stake;
-    initial.cash[actor(bob)] = stake;
-    initial.info = "alice is diller";
-
-    const table_object &table_obj = table(db);
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    BOOST_CHECK_NO_THROW(buy_in_table(alice, richregistrator1, table, stake));
-    BOOST_CHECK_NO_THROW(buy_in_table(bob, richregistrator1, table, stake));
-
-    BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
-    BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator2, table, initial));
-    BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
-    BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
-
-    BOOST_REQUIRE(table_obj.is_free());
-
-    generate_block();
-
-    BOOST_REQUIRE(table_obj.is_playing());
-
-    game_result result;
-    auto win = asset(stake.amount/2);
-    auto win_rake = asset(win.amount/20);
-    auto &alice_result = result.cash[actor(alice)];
-    alice_result.cash = stake + win - win_rake;
-    alice_result.rake = win_rake;
-    auto &bob_result = result.cash[actor(bob)];
-    bob_result.cash = stake - win;
-    bob_result.rake = asset(0);
-    result.log = "alice has A 4";
-
-    BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result));
-    BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
-
-    BOOST_REQUIRE(table_obj.is_playing());
-
-    generate_block();
-
-    BOOST_REQUIRE(table_obj.is_free());
-}
-
-PLAYCHAIN_TEST_CASE(check_game_voting_for_results_v2)
-{
-    // TODO
 }
 
 BOOST_AUTO_TEST_SUITE_END()

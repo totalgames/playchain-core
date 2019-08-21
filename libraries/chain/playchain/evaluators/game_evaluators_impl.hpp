@@ -46,17 +46,13 @@ namespace playchain { namespace chain {
                     const table_object &table,
                     const account_id_type &voter);
 
-    void check_voter(const database& d,
-                          const table_object &table,
-                          const account_id_type &voter);
+    bool validate_ivariants(const database& d,
+                            const table_object &table,
+                            const game_initial_data &initial_data);
 
-    bool validate_game_start_ivariants(const database& d,
-                                       const table_object &table,
-                                       const game_initial_data &initial_data);
-
-    bool validate_game_result_ivariants(const database& d,
-                                        const table_object &table,
-                                        const game_result &result);
+    bool validate_ivariants(const database& d,
+                            const table_object &table,
+                            const game_result &result);
 
     bool voting(database& d,
                 const table_voting_object &table_voting,

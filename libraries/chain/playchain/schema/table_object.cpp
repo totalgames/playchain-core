@@ -26,10 +26,12 @@
 #include <playchain/chain/schema/room_object.hpp>
 
 #include <playchain/chain/evaluators/validators.hpp>
+#include <playchain/chain/evaluators/db_helpers.hpp>
 
 #include <graphene/chain/database.hpp>
 
 #include <playchain/chain/schema/pending_buy_in_object.hpp>
+#include <playchain/chain/schema/player_object.hpp>
 
 #include <graphene/chain/hardfork.hpp>
 
@@ -37,6 +39,24 @@
 #include <limits>
 
 namespace playchain { namespace chain {
+
+bool table_object::is_valid_voter(const database &d, const game_start_playing_check_operation &op) const
+{
+    FC_ASSERT(is_player_exists(d, op.voter), "Invalid player");
+
+    const auto &player = get_player(d, op.voter);
+
+    return this->is_waiting_at_table(player.id);
+}
+
+bool table_object::is_valid_voter(const database &d, const game_result_check_operation &op) const
+{
+    FC_ASSERT(is_player_exists(d, op.voter), "Invalid player");
+
+    const auto &player = get_player(d, op.voter);
+
+    return this->is_playing(player.id);
+}
 
 void table_object::set_weight(database &d) const
 {

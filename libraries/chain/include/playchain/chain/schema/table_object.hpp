@@ -110,6 +110,9 @@ namespace playchain { namespace chain {
             return cash.end() != cash.find(id);
         }
 
+        bool is_valid_voter(const database &, const game_start_playing_check_operation &) const;
+        bool is_valid_voter(const database &, const game_result_check_operation &) const;
+
         static bool is_special_table(const table_id_type &);
 
         void set_weight(database &) const;

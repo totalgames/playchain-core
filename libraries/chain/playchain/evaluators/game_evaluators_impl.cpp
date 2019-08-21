@@ -28,6 +28,35 @@ namespace playchain { namespace chain {
 
 namespace {
 
+template<typename Operation>
+void check_incoming_vote(const database &d, const table_object &table, const Operation &op)
+{
+    const auto &index = d.get_index_type<table_voting_index>().indices().get<by_table>();
+    auto it = index.find(table.id);
+    if (it!= index.end())
+    {
+        const table_voting_object &table_voting  = (*it);
+        FC_ASSERT(!table_voting.votes.count(op.voter), "Voter has already voted");
+    } else
+    {
+        const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table_voter>();
+        FC_ASSERT(index_pending.find(boost::make_tuple(table.id, op.voter)) == index_pending.end(), "Voter has already voted");
+    }
+
+    FC_ASSERT(is_witness(d, table, op.voter) || is_table_owner(d, table, op.voter) || table.is_valid_voter(d, op), "Invalid voter");
+
+    FC_ASSERT(validate_ivariants(d, table, op.data()), "Invalid vote data");
+}
+
+template<typename Operation>
+void check_pending_vote(const database &d, const table_object &table, const table_voting_object &table_voting, const Operation &op)
+{
+    FC_ASSERT(table_voting.required_player_voters.count(op.voter) || is_witness(d, table, op.voter) ||
+              is_table_owner(d, table, op.voter), "Invalid voter");
+
+    FC_ASSERT(validate_ivariants(d, table, op.data()), "Invalid vote data");
+}
+
 const game_witness_object *get_witness_if_exist(const database& d,
                                                 const table_object &table,
                                                 const account_id_type &voter)
@@ -384,11 +413,11 @@ void pending_buyouts_resolve(database& d, const table_object &table, const accou
     }
 }
 
-template<typename T>
+template<typename VoteData>
 const table_voting_object &collect_votes_impl(database& d,
                    const table_object &table,
                    const account_id_type &voter,
-                   const T &vote_data,
+                   const VoteData &vote_data,
                    const uint32_t voting_seconds,
                    const percent_type pv_witness_substitution,
                    const game_witnesses_type &required_witnesses,
@@ -419,6 +448,76 @@ const table_voting_object &collect_votes_impl(database& d,
 
     return table_voting;
 }
+
+template<typename Operation>
+operation_result try_voting(database &d,
+                            const table_object &table,
+                            const game_witnesses_type &required_witnesses,
+                            const uint32_t voting_seconds,
+                            const percent_type pv_witness_substitution,
+                            const Operation &op)
+{
+    if (!is_table_voting(d, table.id) &&
+        !is_witness(d, table, op.voter) &&
+        !is_table_owner(d, table, op.voter))
+    {
+        return d.create<pending_table_vote_object>([&](pending_table_vote_object &obj)
+        {
+             obj.table = table.id;
+             obj.voter = op.voter;
+             obj.vote = op_wrapper{op};
+        }).id;
+    }
+
+    const auto& parameters = get_playchain_parameters(d);
+
+    bool voters_collected = false;
+
+    const table_voting_object &table_voting = collect_votes(d, table, op.voter, op.data(),
+                                                            voting_seconds,
+                                                            pv_witness_substitution,
+                                                            required_witnesses,
+                                                            voters_collected);
+    const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
+    auto pending = get_objects_from_index<pending_table_vote_object>(index_pending.begin(),
+                                                                     index_pending.end(),
+                                                                     parameters.maximum_desired_number_of_players_for_tables_allocation * 2);
+    for (const pending_table_vote_object& vote_obj: pending) {
+        auto pending_op = vote_obj.vote.op.get<Operation>();
+
+        try
+        {
+            check_pending_vote(d, table, table_voting, pending_op);
+
+            collect_votes(d, table, pending_op.voter, pending_op.data(),
+                          voting_seconds,
+                          pv_witness_substitution,
+                          required_witnesses,
+                          voters_collected);
+        }catch (const fc::assert_exception&)
+        {
+            push_fail_vote_operation(d, pending_op);
+        }
+
+        d.remove(vote_obj);
+    }
+    if (voters_collected && table_voting.scheduled_voting == fc::time_point_sec::maximum())
+    {
+        const auto& dyn_props = d.get_dynamic_global_properties();
+        auto block_interval = d.block_interval();
+        d.modify<table_voting_object>(table_voting, [&](table_voting_object &obj)
+        {
+            obj.scheduled_voting = dyn_props.time + block_interval;
+            if (obj.expiration <= obj.scheduled_voting)
+            {
+                //scheduled voting should not be expired
+                obj.expiration = obj.scheduled_voting + block_interval;
+            }
+        });
+    }
+
+    return table_voting.id;
+}
 }
 
 bool is_table_owner(const database& d,
@@ -438,28 +537,9 @@ bool is_witness(const database& d,
            !is_table_owner(d, table, voter);
 }
 
-void check_voter(const database& d,
-                      const table_object &table,
-                      const account_id_type &voter)
-{
-    const auto &index = d.get_index_type<table_voting_index>().indices().get<by_table>();
-    auto it = index.find(table.id);
-    if (it!= index.end())
-    {
-        const table_voting_object &table_voting  = (*it);
-        FC_ASSERT(!table_voting.votes.count(voter), "Voter has already voted");
-        FC_ASSERT (table_voting.required_player_voters.count(voter) || is_witness(d, table, voter) ||
-                   is_table_owner(d, table, voter), "Invalid voter");
-    } else
-    {
-        const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table_voter>();
-        FC_ASSERT (index_pending.find(boost::make_tuple(table.id, voter)) == index_pending.end(), "Voter has already voted");
-    }
-}
-
-bool validate_game_start_ivariants(const database& d,
-                                   const table_object &table,
-                                   const game_initial_data &initial_data)
+bool validate_ivariants(const database& d,
+                        const table_object &table,
+                        const game_initial_data &initial_data)
 {
     if (initial_data.cash.empty())
         return d.head_block_time() < HARDFORK_PLAYCHAIN_6_TIME;
@@ -545,9 +625,9 @@ bool validate_game_start_ivariants(const database& d,
     return true;
 }
 
-bool validate_game_result_ivariants(const database& d,
-                                    const table_object &table,
-                                    const game_result &result)
+bool validate_ivariants(const database& d,
+                        const table_object &table,
+                        const game_result &result)
 {
     if (result.cash.empty())
         return true; //special voting
@@ -938,9 +1018,7 @@ void_result game_start_playing_check_evaluator_impl_v2::do_evaluate(const operat
 
         FC_ASSERT(table.is_free(), "Wrong type of voting. There is game on table");
 
-        check_voter(d, table, op.voter);
-
-        FC_ASSERT(validate_game_start_ivariants(d, table, op.initial_data), "Invalid initial data");
+        check_incoming_vote(d, table, op);
 
         return void_result{};
     }FC_CAPTURE_AND_RETHROW((op))
@@ -953,53 +1031,15 @@ operation_result game_start_playing_check_evaluator_impl_v2::do_apply( const ope
 
         const table_object &table = op.table(d);
 
-        if (!is_table_voting(d, table.id) &&
-            !is_table_owner(d, table, op.voter))
-        {
-            return d.create<pending_table_vote_object>([&](pending_table_vote_object &obj)
-            {
-                 obj.table = table.id;
-                 obj.voter = op.voter;
-                 obj.vote = op_wrapper{op};
-            }).id;
-        }
-
         const auto& parameters = get_playchain_parameters(d);
-
         game_witnesses_type null;
-        bool voters_collected = false;
 
-        const table_voting_object &table_voting = collect_votes(d, table, op.voter, op.initial_data,
-                                                                parameters.voting_for_playing_expiration_seconds,
-                                                                parameters.percentage_of_voter_witness_substitution_while_voting_for_playing,
-                                                                null,
-                                                                voters_collected);
-        const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
-        auto pending = get_objects_from_index<pending_table_vote_object>(index_pending.begin(),
-                                                                         index_pending.end(),
-                                                                         parameters.maximum_desired_number_of_players_for_tables_allocation * 2);
-        for (const pending_table_vote_object& vote_obj: pending) {
-            auto pending_op = vote_obj.vote.op.get<operation_type>();
-
-            collect_votes(d, table, op.voter, pending_op.initial_data,
+        return try_voting(d,
+                          table,
+                          null,
                           parameters.voting_for_playing_expiration_seconds,
                           parameters.percentage_of_voter_witness_substitution_while_voting_for_playing,
-                          null,
-                          voters_collected);
-
-            d.remove(vote_obj);
-        }
-        if (voters_collected && table_voting.scheduled_voting != fc::time_point_sec::maximum())
-        {
-            const auto& dyn_props = d.get_dynamic_global_properties();
-            auto block_interval = d.block_interval();
-            d.modify<table_voting_object>(table_voting, [&](table_voting_object &obj)
-            {
-                obj.scheduled_voting = dyn_props.time + block_interval;
-            });
-        }
-
-        return table_voting.id;
+                          op);
     }FC_CAPTURE_AND_RETHROW((op))
 }
 
@@ -1016,9 +1056,7 @@ void_result game_result_check_evaluator_impl_v2::do_evaluate( const operation_ty
 
         FC_ASSERT(table.is_playing(), "Wrong type of voting. There is no game on table");
 
-        check_voter(d, table, op.voter);
-
-        FC_ASSERT(validate_game_result_ivariants(d, table, op.result), "Invalid result");
+        check_incoming_vote(d, table, op);
 
         return void_result{};
     }FC_CAPTURE_AND_RETHROW((op))
@@ -1031,53 +1069,14 @@ operation_result game_result_check_evaluator_impl_v2::do_apply( const operation_
 
         const table_object &table = op.table(d);
 
-        if (!is_table_voting(d, table.id) &&
-            !is_witness(d, table, op.voter) &&
-            !is_table_owner(d, table, op.voter))
-        {
-            return d.create<pending_table_vote_object>([&](pending_table_vote_object &obj)
-            {
-                 obj.table = table.id;
-                 obj.voter = op.voter;
-                 obj.vote = op_wrapper{op};
-            }).id;
-        }
-
         const auto& parameters = get_playchain_parameters(d);
 
-        bool voters_collected = false;
-
-        const table_voting_object &table_voting = collect_votes(d, table, op.voter, op.result,
-                                                                parameters.voting_for_results_expiration_seconds,
-                                                                parameters.percentage_of_voter_witness_substitution_while_voting_for_results,
-                                                                table.voted_witnesses,
-                                                                voters_collected);
-        const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
-        auto pending = get_objects_from_index<pending_table_vote_object>(index_pending.begin(),
-                                                                         index_pending.end(),
-                                                                         parameters.maximum_desired_number_of_players_for_tables_allocation * 2);
-        for (const pending_table_vote_object& vote_obj: pending) {
-            auto pending_op = vote_obj.vote.op.get<operation_type>();
-
-            collect_votes(d, table, op.voter, pending_op.result,
+        return try_voting(d,
+                          table,
+                          table.voted_witnesses,
                           parameters.voting_for_results_expiration_seconds,
                           parameters.percentage_of_voter_witness_substitution_while_voting_for_results,
-                          table.voted_witnesses,
-                          voters_collected);
-
-            d.remove(vote_obj);
-        }
-        if (voters_collected && table_voting.scheduled_voting != fc::time_point_sec::maximum())
-        {
-            const auto& dyn_props = d.get_dynamic_global_properties();
-            auto block_interval = d.block_interval();
-            d.modify<table_voting_object>(table_voting, [&](table_voting_object &obj)
-            {
-                obj.scheduled_voting = dyn_props.time + block_interval;
-            });
-        }
-
-        return table_voting.id;
+                          op);
     }FC_CAPTURE_AND_RETHROW((op))
 }
 }}

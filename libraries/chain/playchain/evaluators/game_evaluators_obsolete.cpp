@@ -24,6 +24,25 @@ namespace playchain { namespace chain {
 
 namespace {
 
+void check_voter(const database& d,
+                      const table_object &table,
+                      const account_id_type &voter)
+{
+    const auto &index = d.get_index_type<table_voting_index>().indices().get<by_table>();
+    auto it = index.find(table.id);
+    if (it!= index.end())
+    {
+        const table_voting_object &table_voting  = (*it);
+        FC_ASSERT(!table_voting.votes.count(voter), "Voter has already voted");
+        FC_ASSERT (table_voting.required_player_voters.count(voter) || is_witness(d, table, voter) ||
+                   is_table_owner(d, table, voter), "Invalid voter");
+    } else
+    {
+        const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table_voter>();
+        FC_ASSERT (index_pending.find(boost::make_tuple(table.id, voter)) == index_pending.end(), "Voter has already voted");
+    }
+}
+
 bool apply_start_playing_check_voting(database& d, const table_object &table, const game_start_playing_check_operation &op)
 {
     const auto& parameters = get_playchain_parameters(d);
@@ -138,7 +157,7 @@ void_result game_start_playing_check_evaluator_impl_v1::do_evaluate(const operat
 
         check_voter(d, table, op.voter);
 
-        FC_ASSERT(validate_game_start_ivariants(d, table, op.initial_data), "Invalid initial data");
+        FC_ASSERT(validate_ivariants(d, table, op.initial_data), "Invalid initial data");
 
         return void_result();
     } catch ( const fc::assert_exception& ) {
@@ -185,7 +204,7 @@ operation_result game_start_playing_check_evaluator_impl_v1::do_apply( const ope
                     wait_next_vote = apply_start_playing_check_voting(d, table, pending_op);
                 }else
                 {
-                    if (validate_game_start_ivariants(d, table, pending_op.initial_data))
+                    if (validate_ivariants(d, table, pending_op.initial_data))
                     {
                         wait_next_vote = apply_start_playing_check_voting(d, table, pending_op);
                     }else
@@ -216,12 +235,11 @@ void_result game_result_check_evaluator_impl_v1::do_evaluate( const operation_ty
 
         FC_ASSERT(table.is_playing(), "Wrong type of voting. There is no game on table");
 
-
         FC_ASSERT( !is_table_voting_for_playing(d, table.id), "Wrong type of voting" );
 
         check_voter(d, table, op.voter);
 
-        FC_ASSERT(validate_game_result_ivariants(d, table, op.result), "Invalid result");
+        FC_ASSERT(validate_ivariants(d, table, op.result), "Invalid result");
 
         return void_result();
     } catch ( const fc::assert_exception& ) {
@@ -269,7 +287,7 @@ operation_result game_result_check_evaluator_impl_v1::do_apply( const operation_
                     wait_next_vote = apply_game_result_check_voting(d, table, pending_op);
                 }else
                 {
-                    if (validate_game_result_ivariants(d, table, pending_op.result))
+                    if (validate_ivariants(d, table, pending_op.result))
                     {
                         wait_next_vote = apply_game_result_check_voting(d, table, pending_op);
                     }else

@@ -45,6 +45,11 @@ namespace playchain { namespace chain {
 
         game_initial_data                           initial_data;
 
+        const auto &data() const
+        {
+            return initial_data;
+        }
+
         account_id_type   fee_payer()const { return voter; }
         void              validate()const;
         share_type        calculate_fee(const fee_parameters_type& k) const
@@ -66,6 +71,11 @@ namespace playchain { namespace chain {
         account_id_type                             voter;
 
         game_result                                 result;
+
+        const auto &data() const
+        {
+            return result;
+        }
 
         account_id_type   fee_payer()const { return voter; }
         void              validate()const;

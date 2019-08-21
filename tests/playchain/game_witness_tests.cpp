@@ -37,6 +37,9 @@ struct game_witness_fixture: public playchain_common::playchain_fixture
         CREATE_PLAYER(richregistrator1, sam);
         CREATE_PLAYER(richregistrator1, jon);
         CREATE_PLAYER(richregistrator1, mike);
+
+        //test only with latest voting algorithm!!!
+        generate_blocks(HARDFORK_PLAYCHAIN_8_TIME);
     }
 };
 
@@ -72,6 +75,8 @@ PLAYCHAIN_TEST_CASE(check_consensus_with_game_witnesses)
      BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator2, table, initial));
      BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial_wrong));
      BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
+
+     generate_block();
 
      BOOST_REQUIRE(table_obj.is_playing(get_player(alice)));
      BOOST_REQUIRE(table_obj.is_playing(get_player(bob)));
@@ -126,6 +131,8 @@ PLAYCHAIN_TEST_CASE(check_game_required_witnesses_which_voted_for_playing)
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator2, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -139,6 +146,8 @@ PLAYCHAIN_TEST_CASE(check_game_required_witnesses_which_voted_for_playing)
     bob_result.rake = asset(0);
     result.log = "alice has A 4";
 
+    auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator1));
+
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
@@ -151,6 +160,8 @@ PLAYCHAIN_TEST_CASE(check_game_required_witnesses_which_voted_for_playing)
 
     //ok
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -180,18 +191,28 @@ PLAYCHAIN_TEST_CASE(check_game_required_n_witnesses_for_voting)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
 
     //bob has already voted
     BOOST_CHECK_THROW(game_start_playing_check(bob, table, initial), fc::exception);
     //waiting for 2 witnesses
+
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
 
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator2, table, initial));
     //waiting for 2 witnesses
+
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
 
     BOOST_CHECK_NO_THROW(game_start_playing_check(richregistrator3, table, initial));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing());
 
@@ -220,6 +241,8 @@ PLAYCHAIN_TEST_CASE(check_game_required_n_witnesses_for_voting)
 
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator3, table, result));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
 }
 
@@ -247,6 +270,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_only_for_result_when_table_0)
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -264,6 +289,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_only_for_result_when_table_0)
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
     //new witness
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -296,6 +323,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -315,6 +344,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result));
 
     //bob can fly out
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -348,6 +379,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_start_playing_check(alice, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -366,6 +399,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
 
     //bob can fly out
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -402,6 +437,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_start_playing_check(bob, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(sam, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -426,6 +463,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_result_check(sam, table, result));
 
     //bob can fly out
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -465,6 +504,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_start_playing_check(sam, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(jon, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -492,6 +533,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator3, table, result));
 
     //sam, jon can fly out
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -534,6 +577,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_start_playing_check(jon, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(mike, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -565,6 +610,8 @@ PLAYCHAIN_TEST_CASE(check_game_new_witness_substitute_player_while_voting_for_re
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator3, table, result));
 
     //sam, mike can fly out
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
@@ -611,6 +658,8 @@ PLAYCHAIN_TEST_CASE(check_witnesses_using_to_save_consensus_for_more_flew_out_pl
     BOOST_CHECK_NO_THROW(game_start_playing_check(jon, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(mike, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -640,6 +689,8 @@ PLAYCHAIN_TEST_CASE(check_witnesses_using_to_save_consensus_for_more_flew_out_pl
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result)); //# 2
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result)); //witness has enough time to interfere with the voting
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator3, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing());
 
@@ -700,6 +751,8 @@ PLAYCHAIN_TEST_CASE(check_consensus_saving_for_more_flew_out_players_by_expirati
     BOOST_CHECK_NO_THROW(game_start_playing_check(jon, table, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(mike, table, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
@@ -727,6 +780,8 @@ PLAYCHAIN_TEST_CASE(check_consensus_saving_for_more_flew_out_players_by_expirati
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result)); //# 1
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result)); //# 2
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_playing());
 
