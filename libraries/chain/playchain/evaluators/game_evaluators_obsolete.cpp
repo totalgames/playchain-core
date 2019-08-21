@@ -118,17 +118,9 @@ bool ignore_op_in_broken_block(const database &d, const Operation &op)
 {
 #if defined(PLAYCHAIN_TESTNET)
     auto b_num = d.get_dynamic_global_properties().head_block_number;
-    switch(b_num + 1)
+    switch(++b_num) //next block would failed
     {
     case 3578351:
-    case 3746879:
-    case 3746880:
-    case 3746881:
-    case 3746885:
-    case 3746886:
-    case 3746891:
-    case 3746892:
-    case 3746893:
         wlog("Historically BRoKEN block !!! ${f}, b=${b}, op=${op}", ("f", __FUNCTION__)("b", b_num)("op", op));
 
         return true;
