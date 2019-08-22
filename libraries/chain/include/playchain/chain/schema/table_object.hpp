@@ -247,6 +247,7 @@ namespace playchain { namespace chain {
            table_voting_statistics_index(const database&);
            ~table_voting_statistics_index();
 
+            virtual void object_inserted( const object& obj );
             virtual void object_removed( const object& obj );
 
             using accounts_type = std::vector<account_id_type>;

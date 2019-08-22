@@ -75,10 +75,10 @@ public:
                                      on_objects_changed(ids, impacted_accounts);
                                      });
         _new_connection = _db.new_objects.connect([this](const vector<object_id_type>& ids, const flat_set<account_id_type>& impacted_accounts) {
-                                     on_objects_changed(ids, impacted_accounts);
+                                     on_sub_objects_created(ids, impacted_accounts);
                                      });
         _removed_connection = _db.removed_objects.connect([this](const vector<object_id_type>& ids, const vector<const object*>& removed, const flat_set<account_id_type>& impacted_accounts) {
-                                     on_objects_removed(ids, removed, impacted_accounts);
+                                     on_sub_objects_removed(ids, removed, impacted_accounts);
                                      });
     }
     ~playchain_api_impl()
@@ -249,10 +249,7 @@ public:
         {
             table_id = table_id_type{id};
         }
-        else if (id.is<table_voting_object>())
-        {
-            table_id = table_voting_id_type{id}(_db).table;
-        }else
+        else
         {
             return {};
         }
@@ -267,7 +264,31 @@ public:
         return {std::move(table_id)};
     }
 
-    void on_objects_removed(const vector<object_id_type>& ids, const vector<const object*>& removed, const flat_set<account_id_type>& impacted_accounts)
+    void on_sub_objects_created(const vector<object_id_type>& ids, const flat_set<account_id_type>& impacted_accounts)
+    {
+        if( _subscribe_tables_callback )
+        {
+           vector<object_id_type> updates;
+           updates.resize(ids.size());
+
+           size_t ci = 0;
+           for(auto id : ids)
+           {
+               if (id.is<table_voting_object>())
+               {
+                   const table_voting_object& obj =  table_voting_id_type{id}(_db);
+
+                   updates.emplace_back( obj.table );
+               }
+               ci++;
+           }
+
+           if (!updates.empty())
+               on_objects_changed(updates, impacted_accounts);
+        }
+    }
+
+    void on_sub_objects_removed(const vector<object_id_type>& ids, const vector<const object*>& removed, const flat_set<account_id_type>& impacted_accounts)
     {
         if( _subscribe_tables_callback )
         {

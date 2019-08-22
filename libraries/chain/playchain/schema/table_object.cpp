@@ -393,6 +393,21 @@ table_voting_statistics_index::table_voting_statistics_index(const database& db)
 table_voting_statistics_index::~table_voting_statistics_index()
 {}
 
+void table_voting_statistics_index::object_inserted( const object& obj )
+{
+    assert( dynamic_cast<const table_voting_object*>(&obj) );
+    const table_voting_object& table_voting = static_cast<const table_voting_object&>(obj);
+
+    accounts_type votes;
+    votes.reserve(table_voting.votes.size());
+
+    std::transform(table_voting.votes.begin(), table_voting.votes.end(),
+        std::back_inserter(votes), [](const decltype(table_voting.votes)::value_type &pair){return pair.first;});
+
+    not_voted_last_time_players_by_table[table_voting.table].clear();
+    voted_last_time_players_by_table[table_voting.table] = std::move(votes);
+}
+
 void table_voting_statistics_index::object_removed( const object& obj )
 {
     assert( dynamic_cast<const table_voting_object*>(&obj) );

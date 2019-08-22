@@ -80,9 +80,9 @@ struct bug_tests_fixture: public playchain_common::playchain_fixture
         BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, test_table, initial));
         BOOST_REQUIRE_NO_THROW(game_start_playing_check(sam, test_table, initial));
 
-        BOOST_REQUIRE(table_obj.is_playing());
-
         generate_block();
+
+        BOOST_REQUIRE(table_obj.is_playing());
 
         auto bob_bet = asset(5);
 
@@ -142,9 +142,9 @@ struct bug_tests_fixture: public playchain_common::playchain_fixture
         BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, test_table, initial));
         BOOST_REQUIRE_NO_THROW(game_start_playing_check(sam, test_table, initial));
 
-        BOOST_REQUIRE(table_obj.is_playing());
-
         generate_block();
+
+        BOOST_REQUIRE(table_obj.is_playing());
 
         idump((table_obj));
 
@@ -157,6 +157,8 @@ struct bug_tests_fixture: public playchain_common::playchain_fixture
         BOOST_REQUIRE_NO_THROW(game_result_check(witness1, test_table, result));
         BOOST_REQUIRE_NO_THROW(game_result_check(witness2, test_table, result));
         BOOST_REQUIRE_NO_THROW(game_result_check(sam, test_table, result));
+
+        generate_block();
 
         BOOST_REQUIRE(table_obj.is_free());
 
@@ -186,7 +188,7 @@ PLAYCHAIN_TEST_CASE(stuck_asset_when_game_undo_bug_reproduction)
 
 PLAYCHAIN_TEST_CASE(stuck_asset_when_game_undo_bug_fix)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_7_TIME);
+    generate_blocks(HARDFORK_PLAYCHAIN_8_TIME);
 
     const table_object &table_obj = test_table(db);
 
