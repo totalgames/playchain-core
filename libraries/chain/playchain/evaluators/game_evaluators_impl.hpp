@@ -102,67 +102,63 @@ namespace playchain { namespace chain {
 
     class game_start_playing_check_evaluator_impl
     {
-          friend class game_start_playing_check_evaluator;
+    public:
 
-       public:
+        virtual ~game_start_playing_check_evaluator_impl() = default;
 
-          virtual ~game_start_playing_check_evaluator_impl() = default;
+        game_start_playing_check_evaluator_impl(generic_evaluator &ev);
 
-       protected:
-          game_start_playing_check_evaluator_impl(generic_evaluator &ev);
+    protected:
+        database& db() const;
 
-          database& db() const;
+        using operation_type = game_start_playing_check_operation;
 
-          using operation_type = game_start_playing_check_operation;
+    public:
 
-          virtual void_result do_evaluate( const operation_type& ) = 0;
-          virtual operation_result do_apply( const operation_type& ) = 0;
+        virtual void_result do_evaluate( const operation_type& ) = 0;
+        virtual operation_result do_apply( const operation_type& ) = 0;
 
-        private:
-          generic_evaluator &_ev;
+    private:
+        generic_evaluator &_ev;
     };
 
     class game_result_check_evaluator_impl
     {
-         friend class game_result_check_evaluator;
+    public:
 
-      public:
+        virtual ~game_result_check_evaluator_impl() = default;
 
-         virtual ~game_result_check_evaluator_impl() = default;
+        game_result_check_evaluator_impl(generic_evaluator &db);
 
-      protected:
-          game_result_check_evaluator_impl(generic_evaluator &db);
+    protected:
+        database& db() const;
 
-          database& db() const;
+        using operation_type = game_result_check_operation;
 
-          using operation_type = game_result_check_operation;
+    public:
 
-          virtual void_result do_evaluate( const operation_type& ) = 0;
-          virtual operation_result do_apply( const operation_type& ) = 0;
+        virtual void_result do_evaluate( const operation_type& ) = 0;
+        virtual operation_result do_apply( const operation_type& ) = 0;
 
-      private:
-          generic_evaluator &_ev;
+    private:
+        generic_evaluator &_ev;
     };
 
     class game_start_playing_check_evaluator_impl_v2: public game_start_playing_check_evaluator_impl
     {
-          friend class game_start_playing_check_evaluator;
+    public:
+        using game_start_playing_check_evaluator_impl::game_start_playing_check_evaluator_impl;
 
-       protected:
-          using game_start_playing_check_evaluator_impl::game_start_playing_check_evaluator_impl;
-
-          void_result do_evaluate( const operation_type& ) override;
-          operation_result do_apply( const operation_type& ) override;
+        void_result do_evaluate( const operation_type& ) override;
+        operation_result do_apply( const operation_type& ) override;
     };
 
     class game_result_check_evaluator_impl_v2: public game_result_check_evaluator_impl
     {
-         friend class game_result_check_evaluator;
+    public:
+        using game_result_check_evaluator_impl::game_result_check_evaluator_impl;
 
-      protected:
-          using game_result_check_evaluator_impl::game_result_check_evaluator_impl;
-
-          void_result do_evaluate( const operation_type& ) override;
-          operation_result do_apply( const operation_type& ) override;
+        void_result do_evaluate( const operation_type& ) override;
+        operation_result do_apply( const operation_type& ) override;
     };
 }}

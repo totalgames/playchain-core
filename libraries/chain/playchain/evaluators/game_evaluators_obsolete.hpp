@@ -30,30 +30,26 @@ namespace playchain { namespace chain {
 
     class game_start_playing_check_evaluator_impl_v1: public game_start_playing_check_evaluator_impl
     {
-         friend class game_start_playing_check_evaluator;
+    public:
+        using game_start_playing_check_evaluator_impl::game_start_playing_check_evaluator_impl;
 
-       protected:
-          using game_start_playing_check_evaluator_impl::game_start_playing_check_evaluator_impl;
+        void_result do_evaluate( const operation_type& op ) override;
+        operation_result do_apply( const operation_type& op ) override;
 
-          void_result do_evaluate( const operation_type& op ) override;
-          operation_result do_apply( const operation_type& op ) override;
-
-        private:
-           bool _ignore = false;
+    private:
+        bool _ignore = false;
     };
 
     class game_result_check_evaluator_impl_v1: public game_result_check_evaluator_impl
     {
-        friend class game_result_check_evaluator;
+    public:
+        using game_result_check_evaluator_impl::game_result_check_evaluator_impl;
 
-      protected:
-          using game_result_check_evaluator_impl::game_result_check_evaluator_impl;
+        void_result do_evaluate( const operation_type& op ) override;
+        operation_result do_apply( const operation_type& op ) override;
 
-          void_result do_evaluate( const operation_type& op ) override;
-          operation_result do_apply( const operation_type& op ) override;
-
-       private:
-          bool _ignore = false;
+    private:
+        bool _ignore = false;
     };
 
 }}

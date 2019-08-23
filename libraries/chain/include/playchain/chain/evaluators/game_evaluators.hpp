@@ -39,43 +39,45 @@ namespace playchain { namespace chain {
 
     class game_start_playing_check_evaluator : public evaluator<game_start_playing_check_evaluator>
     {
-       public:
-          game_start_playing_check_evaluator();
-          ~game_start_playing_check_evaluator();
+    public:
+        game_start_playing_check_evaluator();
+        ~game_start_playing_check_evaluator();
 
-          using operation_type = game_start_playing_check_operation;
+        using operation_type = game_start_playing_check_operation;
+        using impl_interface = game_start_playing_check_evaluator_impl;
 
-          void_result do_evaluate( const operation_type& o );
-          operation_result do_apply( const operation_type& o );
+        void_result do_evaluate( const operation_type& o );
+        operation_result do_apply( const operation_type& o );
 
-        private:
-           flat_map<fc::time_point_sec, std::unique_ptr<game_start_playing_check_evaluator_impl>> _impls;
+    private:
+        map<fc::time_point_sec, std::unique_ptr<impl_interface>> _impls;
     };
 
     class game_result_check_evaluator_impl;
 
     class game_result_check_evaluator : public evaluator<game_result_check_evaluator>
     {
-       public:
-         game_result_check_evaluator();
-         ~game_result_check_evaluator();
+    public:
+        game_result_check_evaluator();
+        ~game_result_check_evaluator();
 
-          using operation_type = game_result_check_operation;
+        using operation_type = game_result_check_operation;
+        using impl_interface = game_result_check_evaluator_impl;
 
-          void_result do_evaluate( const operation_type& o );
-          operation_result do_apply( const operation_type& o );
+        void_result do_evaluate( const operation_type& o );
+        operation_result do_apply( const operation_type& o );
 
-      private:
-         flat_map<fc::time_point_sec, std::unique_ptr<game_result_check_evaluator_impl>> _impls;
+    private:
+        map<fc::time_point_sec, std::unique_ptr<impl_interface>> _impls;
     };
 
     class game_reset_evaluator : public evaluator<game_reset_evaluator>
     {
-       public:
-          using operation_type = game_reset_operation;
+    public:
+        using operation_type = game_reset_operation;
 
-          void_result do_evaluate( const operation_type& o );
-          operation_result do_apply( const operation_type& o );
+        void_result do_evaluate( const operation_type& o );
+        operation_result do_apply( const operation_type& o );
     };
 
     void rollback_table(database& d, const table_object &table);

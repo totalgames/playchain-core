@@ -51,15 +51,17 @@
 namespace playchain{ namespace chain{
 
     template<typename ImplInterface>
-    ImplInterface &find_implementation(const database &d, flat_map<fc::time_point_sec, std::unique_ptr<ImplInterface>> &impls)
+    ImplInterface &find_implementation(const database &d, map<fc::time_point_sec, std::unique_ptr<ImplInterface>> &impls)
     {
         assert(!impls.empty());
 
+        //find point at implementations X-axis that satisfy condition
+        // I(X): d.head_block_time() >= X = HARDFORK_*
         auto &&current_time_point = d.head_block_time();
         auto it = impls.begin();
-        while (++it != impls.end() && it->first < current_time_point);
-        --it;
-        return (*it->second);
+        while (++it != impls.end() && it->first <= current_time_point);
+
+        return *((--it)->second);
     }
 
     void rollback_table(database& d, const table_object &table)
@@ -103,10 +105,7 @@ namespace playchain{ namespace chain{
             scheduled_voting_for_results(d, table_voting, table);
         }else
         {
-            if (!allow_voting)
-            {
-                d.remove(table_voting);
-            }
+            d.remove(table_voting);
 
             d.push_applied_operation(
                         game_event_operation{ table.id, table.room(d).owner, fail_expire_game_result{} } );
@@ -124,12 +123,12 @@ namespace playchain{ namespace chain{
         game_witnesses_type required_witnesses;
 
         if (voting(d,
-                       table_voting,
-                       table,
-                       parameters.voting_for_playing_requied_percent,
-                       valid_vote,
-                       required_witnesses,
-                       accounts_with_invalid_vote))
+                   table_voting,
+                   table,
+                   parameters.voting_for_playing_requied_percent,
+                   valid_vote,
+                   required_witnesses,
+                   accounts_with_invalid_vote))
         {
             apply_start_playing_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
         }else
@@ -152,12 +151,12 @@ namespace playchain{ namespace chain{
         game_witnesses_type required_witnesses = table.voted_witnesses;
 
         if (voting(d,
-                       table_voting,
-                       table,
-                       parameters.voting_for_results_requied_percent,
-                       valid_vote,
-                       required_witnesses,
-                       accounts_with_invalid_vote))
+                   table_voting,
+                   table,
+                   parameters.voting_for_results_requied_percent,
+                   valid_vote,
+                   required_witnesses,
+                   accounts_with_invalid_vote))
         {
             apply_game_result_with_consensus(d, table, valid_vote, required_witnesses, accounts_with_invalid_vote);
         }else
@@ -175,36 +174,36 @@ namespace playchain{ namespace chain{
 
     game_start_playing_check_evaluator::game_start_playing_check_evaluator()
     {
-        _impls.emplace(fc::time_point_sec{}, new game_start_playing_check_evaluator_impl_v1{*this});
-        _impls.emplace(HARDFORK_PLAYCHAIN_8_TIME, new game_start_playing_check_evaluator_impl_v2{*this});
+        _impls.emplace(fc::time_point_sec{}, std::make_unique<game_start_playing_check_evaluator_impl_v1>(*this));
+        _impls.emplace(HARDFORK_PLAYCHAIN_8_TIME, std::make_unique<game_start_playing_check_evaluator_impl_v2>(*this));
     }
     game_start_playing_check_evaluator::~game_start_playing_check_evaluator(){}
 
     void_result game_start_playing_check_evaluator::do_evaluate( const operation_type& op )
     {
-        return find_implementation<game_start_playing_check_evaluator_impl>(db(), _impls).do_evaluate(op);
+        return find_implementation<impl_interface>(db(), _impls).do_evaluate(op);
     }
 
     operation_result game_start_playing_check_evaluator::do_apply( const operation_type& op )
     {
-        return find_implementation<game_start_playing_check_evaluator_impl>(db(), _impls).do_apply(op);
+        return find_implementation<impl_interface>(db(), _impls).do_apply(op);
     }
 
     game_result_check_evaluator::game_result_check_evaluator()
     {
-        _impls.emplace(fc::time_point_sec{}, new game_result_check_evaluator_impl_v1{*this});
-        _impls.emplace(HARDFORK_PLAYCHAIN_8_TIME, new game_result_check_evaluator_impl_v2{*this});
+        _impls.emplace(fc::time_point_sec{}, std::make_unique<game_result_check_evaluator_impl_v1>(*this));
+        _impls.emplace(HARDFORK_PLAYCHAIN_8_TIME, std::make_unique<game_result_check_evaluator_impl_v2>(*this));
     }
     game_result_check_evaluator::~game_result_check_evaluator(){}
 
     void_result game_result_check_evaluator::do_evaluate( const operation_type& op )
     {
-        return find_implementation<game_result_check_evaluator_impl>(db(), _impls).do_evaluate(op);
+        return find_implementation<impl_interface>(db(), _impls).do_evaluate(op);
     }
 
     operation_result game_result_check_evaluator::do_apply( const operation_type& op )
     {
-        return find_implementation<game_result_check_evaluator_impl>(db(), _impls).do_apply(op);
+        return find_implementation<impl_interface>(db(), _impls).do_apply(op);
     }
 
     void_result game_reset_evaluator::do_evaluate( const operation_type& op )
