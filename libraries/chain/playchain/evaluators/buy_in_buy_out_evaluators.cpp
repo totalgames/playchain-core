@@ -129,6 +129,14 @@ namespace
         if (ret_id == object_id_type{})
             ret_id = alive_id;
 
+#if 1
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            player_id_type player_id{player.id};
+            ilog("${t} >> register_buy_in: ${player} -> ${a}", ("t", d.head_block_time())("player", player)("a", table.cash.at(player_id)));
+        }
+#endif
+
         return ret_id;
     }
 
@@ -152,8 +160,10 @@ namespace
         if (allow_buy_out)
         {
 #if 1
-            ilog(">>>>>>>>>>>>>>>>>>>>");
-            ilog("${p} <- ${a}", ("p", player)("a", amount));
+            if (d.head_block_time() >=  fc::time_point_sec( 1566564000 ))
+            {
+                ilog("${t} >> buy_out_table: ${p} <- ${a}", ("t", d.head_block_time())("p", player)("a", amount));
+            }
 #endif
 
             d.adjust_balance(player.account, amount);
@@ -268,10 +278,9 @@ namespace
             const table_object &table = op.table(d);
 
 #if 1
-            idump((op));
-            if (d.head_block_time() >= fc::time_point_sec::from_iso_string( "2019-08-22T11:32:34" ))
+            if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
             {
-                idump((op));
+                ilog("${t} >> buy_out_table_evaluator: ${op}", ("t", d.head_block_time())("op", op));
             }
 #endif
             operation_result result = buy_out_table(d, player, table, op.amount);
@@ -461,6 +470,13 @@ namespace
             obj.updated = dyn_props.time;
             obj.expiration = obj.updated + fc::seconds(parameters.buy_in_expiration_seconds);
         });
+
+#if 1
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            ilog("${t} >> prolong_life_for_by_in: ${b}", ("t", d.head_block_time())("b", buy_in));
+        }
+#endif
     }
 
     void expire_buy_in(database& d, const buy_in_object &buy_in, const table_object &table)
@@ -480,6 +496,13 @@ namespace
             {
                 d.push_applied_operation( buy_in_expire_operation{ buy_in.player(d).account, table.id, table.room(d).owner, amount } );
             }
+
+#if 1
+            if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+            {
+                ilog("${t} >> expire_buy_in: ${b} - remove!!!", ("t", d.head_block_time())("b", buy_in));
+            }
+#endif
             d.remove(buy_in);
         }else
         {

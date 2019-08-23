@@ -115,7 +115,8 @@ bool voting_impl(const table_voting_object &table_voting,
         votes_by_content[digest].insert(std::make_pair(data.first, data.second));
     });
 
-    assert(!votes_by_content.empty());
+    if (votes_by_content.empty())
+        return false;
 
     auto miss_votes_percent = (votes_by_content.size() - 1) * GRAPHENE_100_PERCENT;
     miss_votes_percent /= table_voting.votes.size();
@@ -340,6 +341,12 @@ void buyins_resolve(database& d, const table_object &table, bool clear)
 
         if (clear || !table.cash.count(buy_in.player))
         {
+#if 1
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            ilog("${t} >> buyins_resolve: ${b} - remove!!!", ("t", d.head_block_time())("b", buy_in));
+        }
+#endif
             d.remove(buy_in);
         }else if (d.head_block_time() < HARDFORK_PLAYCHAIN_7_TIME)
         {
@@ -357,6 +364,13 @@ void pending_buyouts_resolve(database& d, const table_object &table, const accou
         const auto &player = buyout.player;
         const auto &account_id = player(d).account;
         auto rest = buyout.amount;
+
+#if 1
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            ilog("${t} >> pending_buyouts_resolve: ${b}", ("t", d.head_block_time())("b", buyout));
+        }
+#endif
 
         if (!result.cash.empty())
         {
@@ -390,11 +404,6 @@ void pending_buyouts_resolve(database& d, const table_object &table, const accou
             auto cash = std::min(table.playing_cash.at(player), rest);
             rest -= cash;
 
-#if 1
-            ilog(">>>>>>>>>>>>>>>>>>>>");
-            idump((buyout));
-#endif
-
             d.modify(table, [&](table_object &obj)
             {
                 obj.adjust_playing_cash(player, -cash);
@@ -413,6 +422,13 @@ void pending_buyouts_resolve(database& d, const table_object &table, const accou
         {
             d.push_applied_operation(game_event_operation{table.id, table_owner, fraud_buy_out{account_id, rest, allowed}});
         }
+
+#if 1
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            idump((table));
+        }
+#endif
 
         d.remove(buyout);
     }
@@ -708,7 +724,11 @@ bool voting(database& d,
     }
 
 #if 1
-    idump((table_voting));
+    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+    {
+        ilog("${t} >> voting: ${v}", ("t", d.head_block_time())("v", table_voting));
+        idump((table));
+    }
 #endif
 
     d.remove(table_voting);
@@ -754,8 +774,12 @@ void apply_start_playing_with_consensus(database& d, const table_object &table,
     const auto& parameters = get_playchain_parameters(d);
 
 #if 1
-    idump((initial_data));
-    idump((table));
+    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+    {
+        ilog("${t} >> apply_start_playing_with_consensus:", ("t", d.head_block_time()));
+        idump((initial_data));
+        idump((table));
+    }
 #endif
 
     d.modify(table, [&](table_object &obj)
@@ -801,6 +825,13 @@ void apply_start_playing_with_consensus(database& d, const table_object &table,
                     game_event_operation{ table.id, table_owner,
                                           fraud_game_start_playing_check{data.first, fail_info, initial_data.info} } );
     }
+
+#if 1
+    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+    {
+        idump((table));
+    }
+#endif
 }
 
 void apply_game_result_with_consensus(database& d, const table_object &table,
@@ -811,6 +842,15 @@ void apply_game_result_with_consensus(database& d, const table_object &table,
     game_result result = valid_vote.get<game_result>();
 
     account_id_type table_owner = table.room(d).owner;
+
+#if 1
+    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+    {
+        ilog("${t} >> apply_game_result_with_consensus:", ("t", d.head_block_time()));
+        idump((result));
+        idump((table));
+    }
+#endif
 
     if (result.cash.empty())
     {
@@ -893,6 +933,13 @@ void apply_game_result_with_consensus(database& d, const table_object &table,
                     game_event_operation{ table.id, table_owner,
                                           fraud_game_result_check{data.first, fail_log, result.log} } );
     }
+
+#if 1
+    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+    {
+        idump((table));
+    }
+#endif
 }
 
 void cleanup_pending_votes(database& d, const table_object &table)
@@ -1051,8 +1098,12 @@ operation_result game_start_playing_check_evaluator_impl_v2::do_apply( const ope
         game_witnesses_type null;
 
 #if 1
-        idump((table));
-        idump((op));
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            ilog("${t} >> game_start_playing_check_evaluator_impl_v2:", ("t", d.head_block_time()));
+            idump((table));
+            idump((op));
+        }
 #endif
 
         return try_voting(d,
@@ -1091,6 +1142,15 @@ operation_result game_result_check_evaluator_impl_v2::do_apply( const operation_
         const table_object &table = op.table(d);
 
         const auto& parameters = get_playchain_parameters(d);
+
+#if 1
+        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+        {
+            ilog("${t} >> game_result_check_evaluator_impl_v2:", ("t", d.head_block_time()));
+            idump((table));
+            idump((op));
+        }
+#endif
 
         return try_voting(d,
                           table,

@@ -122,7 +122,34 @@ namespace playchain{ namespace chain{
         account_votes_type accounts_with_invalid_vote;
         game_witnesses_type required_witnesses;
 
-        if (voting(d,
+        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_9_TIME)
+        {
+            bool any_invalid = false;
+            decltype(table_voting.votes) valid_votes;
+            for ( auto &&vote: table_voting.votes )
+            {
+                game_initial_data initial_data = vote.second.get<game_initial_data>();
+
+                if (!validate_ivariants(d, table, initial_data))
+                {
+                    any_invalid |= true;
+                }else
+                {
+                    valid_votes.emplace(vote.first, vote.second);
+                }
+            }
+
+            if (any_invalid)
+            {
+                d.modify(table_voting, [&valid_votes](table_voting_object &obj)
+                {
+                    obj.votes = std::move(valid_votes);
+                });
+            }
+        }
+
+        if (table_voting.votes.size() >= parameters.min_votes_for_playing &&
+                voting(d,
                    table_voting,
                    table,
                    parameters.voting_for_playing_requied_percent,

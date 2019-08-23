@@ -79,7 +79,22 @@ namespace playchain { namespace chain {
        uint32_t                room_rating_measurements_alive_periods = PLAYCHAIN_DEFAULT_ROOM_RATING_MEASUREMENTS_ALIVE_PERIODS;
    };
 
-   using playchain_parameters = playchain_parameters_v2;
+   struct playchain_parameters_v3: public playchain_parameters_v2
+   {
+       playchain_parameters_v3() = default;
+       playchain_parameters_v3(const playchain_parameters_v1 &other)
+       {
+           reinterpret_cast<playchain_parameters_v1 &>(*this) = other;
+       }
+       playchain_parameters_v3(const playchain_parameters_v2 &other)
+       {
+           reinterpret_cast<playchain_parameters_v2 &>(*this) = other;
+       }
+
+       uint16_t                min_votes_for_playing = PLAYCHAIN_DEFAULT_MIN_VOTES_FOR_PLAYING;
+   };
+
+   using playchain_parameters = playchain_parameters_v3;
 
 } }  // graphene::chain
 
@@ -113,4 +128,8 @@ FC_REFLECT( playchain::chain::playchain_parameters_v1,
 FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v2, (playchain::chain::playchain_parameters_v1),
                    (table_alive_expiration_seconds)
                    (room_rating_measurements_alive_periods)
+                   )
+
+FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v3, (playchain::chain::playchain_parameters_v2),
+                   (min_votes_for_playing)
                    )

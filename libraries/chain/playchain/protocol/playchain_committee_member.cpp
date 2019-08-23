@@ -53,4 +53,9 @@ void playchain_committee_member_update_parameters_v2_operation::validate() const
      new_parameters.validate();
 }
 
+void playchain_committee_member_update_parameters_v3_operation::validate() const
+{
+     FC_ASSERT( fee.amount >= 0 );
+     new_parameters.validate();
+}
 } } // graphene::chain

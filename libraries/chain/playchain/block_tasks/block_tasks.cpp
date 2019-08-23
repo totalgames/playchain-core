@@ -31,10 +31,53 @@
 
 #include <graphene/chain/hardfork.hpp>
 
+#if 1
+#include <playchain/chain/evaluators/db_helpers.hpp>
+
+#include <playchain/chain/schema/pending_buy_in_object.hpp>
+#include <playchain/chain/schema/table_object.hpp>
+#endif
+
 namespace playchain { namespace chain {
 
 void process_block_tasks(database &d, const bool maintenance)
 {
+#if 1
+    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+    {
+        const auto& bin_by_table = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table>();
+        auto table_id = table_id_type{1};
+        auto range = bin_by_table.equal_range(table_id);
+        if (range.first != range.second)
+        {
+            ilog("${t} >> process_block_tasks: table = ${id}:", ("t", d.head_block_time())("id", table_id));
+            print_objects_in_range(range.first, range.second, "buy_in_object(s)");
+        }
+
+        table_id = table_id_type{6};
+        range = bin_by_table.equal_range(table_id);
+        if (range.first != range.second)
+        {
+            ilog("${t} >> process_block_tasks: table = ${id}:", ("t", d.head_block_time())("id", table_id));
+            print_objects_in_range(range.first, range.second, "buy_in_object(s)");
+        }
+
+        table_id = table_id_type{26};
+        range = bin_by_table.equal_range(table_id);
+        if (range.first != range.second)
+        {
+            ilog("${t} >> process_block_tasks: table = ${id}:", ("t", d.head_block_time())("id", table_id));
+            print_objects_in_range(range.first, range.second, "buy_in_object(s)");
+        }
+
+        if (d.head_block_time() >= fc::time_point_sec( 1566567600 ))
+        {
+            wlog("STOP at ${t}", ("t", d.head_block_time().to_iso_string()));
+            assert(false);
+        }
+    }
+#endif
+
     update_expired_invitations(d);
     if (d.head_block_time() < HARDFORK_PLAYCHAIN_9_TIME)
     {

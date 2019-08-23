@@ -37,7 +37,7 @@ struct voting_fixture: public playchain_common::playchain_fixture
         CREATE_PLAYER(richregistrator1, jon);
 
         //test only with latest voting algorithm!!!
-        generate_blocks(HARDFORK_PLAYCHAIN_8_TIME);
+        generate_blocks(HARDFORK_PLAYCHAIN_9_TIME);
     }
 };
 
@@ -1990,6 +1990,94 @@ PLAYCHAIN_TEST_CASE(wrong_players_composition_votes_bug_check)
                     fc::seconds(params.voting_for_playing_expiration_seconds));
 
     print_last_operations(actor(richregistrator1), next_history_record);
+}
+
+PLAYCHAIN_TEST_CASE(change_invariants_while_voting_for_playing)
+{
+    const std::string meta = "Game";
+
+    room_id_type room = create_new_room(richregistrator1);
+    table_id_type table = create_new_table(richregistrator1, room, 0u, meta);
+
+    Actor b1 = create_new_player(richregistrator1, "b1", asset(new_player_balance));
+    Actor b2 = create_new_player(richregistrator1, "b2", asset(new_player_balance));
+    Actor b3 = create_new_player(richregistrator1, "b3", asset(new_player_balance));
+    Actor b4 = create_new_player(richregistrator1, "b4", asset(new_player_balance));
+
+    create_witness(richregistrator2);
+
+    const table_object &table_obj = table(db);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    asset stake =  asset(new_player_balance / 10);
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(b1, get_next_uid(actor(b1)), stake, meta));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(b2, get_next_uid(actor(b2)), stake, meta));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(b3, get_next_uid(actor(b3)), stake, meta));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(b4, get_next_uid(actor(b4)), stake, meta));
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator1, table));
+
+    generate_block();
+
+    pending_buy_in_resolve_all(richregistrator1, table_obj);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    const auto& params = get_playchain_parameters(db);
+
+    BOOST_REQUIRE(params.min_votes_for_playing == 2);
+
+    game_initial_data initial;
+    initial.cash[actor(b1)] = stake;
+    initial.cash[actor(b2)] = stake;
+    initial.cash[actor(b3)] = stake;
+    initial.cash[actor(b4)] = stake;
+    initial.info = "110";
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b1, table, initial));
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b2, table, initial));
+
+    BOOST_REQUIRE_NO_THROW(buy_out_table(b3, table, stake));
+    BOOST_REQUIRE_NO_THROW(buy_out_table(b4, table, asset(stake.amount/ 2)));
+
+    game_initial_data initial2;
+    initial2.cash[actor(b1)] = stake;
+    initial2.cash[actor(b2)] = stake;
+    initial2.cash[actor(b4)] = asset(stake.amount/ 2);
+    initial2.info = "110";
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b3, table, initial2));
+
+    game_initial_data initial3;
+    initial2.cash[actor(b1)] = stake;
+    initial2.cash[actor(b2)] = stake;
+    initial2.info = "110";
+
+    BOOST_REQUIRE_NO_THROW(buy_out_table(b4, table, asset(stake.amount/ 2)));
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b4, table, initial3));
+
+    generate_block();
+
+    //there is not consesus yet
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator2, table, initial3));
+
+    generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
+}
+
+PLAYCHAIN_TEST_CASE(no_change_invariants_while_voting_for_result)
+{
+    // TODO
 }
 
 BOOST_AUTO_TEST_SUITE_END()

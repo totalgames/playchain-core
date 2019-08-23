@@ -97,6 +97,7 @@ struct config
     const uint32_t game_lifetime_limit_in_seconds;
     const uint32_t pending_buyin_proposal_lifetime_limit_in_seconds;
     const uint32_t amount_reserving_places_per_user;
+    const uint32_t min_votes_for_playing;
     const uint32_t min_votes_for_results;
     const uint32_t minimum_desired_number_of_players_for_tables_allocation;
     const uint32_t maximum_desired_number_of_players_for_tables_allocation;
@@ -123,6 +124,7 @@ void override_config(std::unique_ptr<config> new_config);
 #define PLAYCHAIN_DEFAULT_GAME_LIFETIME_LIMIT_IN_SECONDS (playchain::protocol::detail::get_config().game_lifetime_limit_in_seconds)
 #define PLAYCHAIN_DEFAULT_PENDING_BUYIN_PROPOSAL_LIFETIME_LIMIT_IN_SECONDS (playchain::protocol::detail::get_config().pending_buyin_proposal_lifetime_limit_in_seconds)
 #define PLAYCHAIN_DEFAULT_AMOUNT_RESERVING_PLACES_PER_USER (playchain::protocol::detail::get_config().amount_reserving_places_per_user)
+#define PLAYCHAIN_DEFAULT_MIN_VOTES_FOR_PLAYING (playchain::protocol::detail::get_config().min_votes_for_playing)
 #define PLAYCHAIN_DEFAULT_MIN_VOTES_FOR_RESULTS (playchain::protocol::detail::get_config().min_votes_for_results)
 #define PLAYCHAIN_DEFAULT_MINIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION (playchain::protocol::detail::get_config().minimum_desired_number_of_players_for_tables_allocation)
 #define PLAYCHAIN_DEFAULT_MAXIMUM_DESIRED_NUMBER_OF_PLAYERS_FOR_TABLES_ALLOCATION (playchain::protocol::detail::get_config().maximum_desired_number_of_players_for_tables_allocation)
