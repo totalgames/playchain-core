@@ -390,6 +390,11 @@ void pending_buyouts_resolve(database& d, const table_object &table, const accou
             auto cash = std::min(table.playing_cash.at(player), rest);
             rest -= cash;
 
+#if 1
+            ilog(">>>>>>>>>>>>>>>>>>>>");
+            idump((buyout));
+#endif
+
             d.modify(table, [&](table_object &obj)
             {
                 obj.adjust_playing_cash(player, -cash);
@@ -702,6 +707,10 @@ bool voting(database& d,
         }
     }
 
+#if 1
+    idump((table_voting));
+#endif
+
     d.remove(table_voting);
 
     return voting_consensus;
@@ -744,6 +753,11 @@ void apply_start_playing_with_consensus(database& d, const table_object &table,
 
     const auto& parameters = get_playchain_parameters(d);
 
+#if 1
+    idump((initial_data));
+    idump((table));
+#endif
+
     d.modify(table, [&](table_object &obj)
     {
         decltype(obj.cash) cash_playing;
@@ -763,7 +777,7 @@ void apply_start_playing_with_consensus(database& d, const table_object &table,
 
             obj.adjust_playing_cash(player_id, player_cash);
 
-            if (d.head_block_time() >= HARDFORK_PLAYCHAIN_1_TIME)
+            if (d.head_block_time() >= HARDFORK_PLAYCHAIN_1_TIME && d.head_block_time() < HARDFORK_PLAYCHAIN_8_TIME)
             {
                 assert(obj.cash.find(player_id) != obj.cash.end());
             }
@@ -1001,7 +1015,9 @@ database& game_result_check_evaluator_impl::db() const
     return _ev.db();
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
+// Last version of voting algorithm here. All old versions should be at
+// game_evaluators_obsolete (for history chain syncronization)
 
 void_result game_start_playing_check_evaluator_impl_v2::do_evaluate(const operation_type& op)
 {
@@ -1033,6 +1049,11 @@ operation_result game_start_playing_check_evaluator_impl_v2::do_apply( const ope
 
         const auto& parameters = get_playchain_parameters(d);
         game_witnesses_type null;
+
+#if 1
+        idump((table));
+        idump((op));
+#endif
 
         return try_voting(d,
                           table,

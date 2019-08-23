@@ -151,6 +151,11 @@ namespace
 
         if (allow_buy_out)
         {
+#if 1
+            ilog(">>>>>>>>>>>>>>>>>>>>");
+            ilog("${p} <- ${a}", ("p", player)("a", amount));
+#endif
+
             d.adjust_balance(player.account, amount);
 
             d.modify(table, [&](table_object &obj)
@@ -262,6 +267,13 @@ namespace
 
             const table_object &table = op.table(d);
 
+#if 1
+            idump((op));
+            if (d.head_block_time() >= fc::time_point_sec::from_iso_string( "2019-08-22T11:32:34" ))
+            {
+                idump((op));
+            }
+#endif
             operation_result result = buy_out_table(d, player, table, op.amount);
 
             //TODO: remove buy_in object

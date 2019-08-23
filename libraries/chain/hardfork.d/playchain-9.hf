@@ -1,0 +1,11 @@
+// #playchain-9 Fixed the disappearance of funds when voting for the beginning of the game
+//
+#ifndef HARDFORK_PLAYCHAIN_9_TIME
+    #if defined(PLAYCHAIN_MAINNET)
+        // TODO
+        #define HARDFORK_PLAYCHAIN_9_TIME (fc::time_point_sec( 1566513900 ))
+    #elif defined(PLAYCHAIN_TESTNET)
+        // TODO
+        #define HARDFORK_PLAYCHAIN_9_TIME (fc::time_point_sec( 1566691200 ))
+    #endif
+#endif
