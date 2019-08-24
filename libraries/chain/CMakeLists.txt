@@ -5,10 +5,23 @@ set_source_files_properties( "${CMAKE_CURRENT_BINARY_DIR}/include/graphene/chain
 
 add_dependencies( build_hardfork_hpp cat-parts )
 
-option(PRINT_PLAYCHAIN_TABLES_RANGE "Switch printing for playchain tables range in debug (ON OR OFF)" OFF)
+option(PRINT_PLAYCHAIN_TABLES_RANGE "Switch printing for playchain tables range in DEBUG (ON OR OFF)" OFF)
 
 if ( PRINT_PLAYCHAIN_TABLES_RANGE )
+    message( WARNING  "Print PlayChain table range ON. It can make application to work slowly!" )
     add_definitions(-DPRINT_PLAYCHAIN_TABLES_RANGE)
+endif()
+
+SET(LOG_VOTING_BLOCK_TIMESTUMP_FROM 0 CACHE STRING "Extended logging for PlayChain voting algorithm (FROM block TIMESTUMP)")
+SET(LOG_VOTING_BLOCK_TIMESTUMP_TO 0 CACHE STRING "Extended logging for PlayChain voting algorithm (TO block TIMESTUMP)")
+
+if ( LOG_VOTING_BLOCK_TIMESTUMP_FROM LESS 0 OR LOG_VOTING_BLOCK_TIMESTUMP_FROM GREATER_EQUAL LOG_VOTING_BLOCK_TIMESTUMP_TO )
+    message(FATAL_ERROR, "Invalid range value for [LOG_VOTING_BLOCK_TIMESTUMP_FROM, LOG_VOTING_BLOCK_TIMESTUMP_TO]")
+else( LOG_VOTING_BLOCK_TIMESTUMP_TO LESS_EQUAL 0 )
+    message( WARNING  "Extended logging for PlayChain voting algorithm ON. It can make application to work slowly!" )
+    add_definitions(-DLOG_VOTING)
+    add_definitions(-DLOG_VOTING_BLOCK_TIMESTUMP_FROM=${LOG_VOTING_BLOCK_TIMESTUMP_FROM})
+    add_definitions(-DLOG_VOTING_BLOCK_TIMESTUMP_TO=${LOG_VOTING_BLOCK_TIMESTUMP_TO})
 endif()
 
 file(GLOB HEADERS "include/graphene/chain/*.hpp")

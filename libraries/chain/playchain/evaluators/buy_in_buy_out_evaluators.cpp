@@ -129,8 +129,8 @@ namespace
         if (ret_id == object_id_type{})
             ret_id = alive_id;
 
-#if 1
-        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
         {
             player_id_type player_id{player.id};
             ilog("${t} >> register_buy_in: ${player} -> ${a}", ("t", d.head_block_time())("player", player)("a", table.cash.at(player_id)));
@@ -159,8 +159,8 @@ namespace
 
         if (allow_buy_out)
         {
-#if 1
-            if (d.head_block_time() >=  fc::time_point_sec( 1566564000 ))
+#if defined(LOG_VOTING)
+            if (d.head_block_time() >=  fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
             {
                 ilog("${t} >> buy_out_table: ${p} <- ${a}", ("t", d.head_block_time())("p", player)("a", amount));
             }
@@ -277,8 +277,8 @@ namespace
 
             const table_object &table = op.table(d);
 
-#if 1
-            if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+#if defined(LOG_VOTING)
+            if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
             {
                 ilog("${t} >> buy_out_table_evaluator: ${op}", ("t", d.head_block_time())("op", op));
             }
@@ -471,8 +471,8 @@ namespace
             obj.expiration = obj.updated + fc::seconds(parameters.buy_in_expiration_seconds);
         });
 
-#if 1
-        if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
         {
             ilog("${t} >> prolong_life_for_by_in: ${b}", ("t", d.head_block_time())("b", buy_in));
         }
@@ -497,8 +497,8 @@ namespace
                 d.push_applied_operation( buy_in_expire_operation{ buy_in.player(d).account, table.id, table.room(d).owner, amount } );
             }
 
-#if 1
-            if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+#if defined(LOG_VOTING)
+            if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
             {
                 ilog("${t} >> expire_buy_in: ${b} - remove!!!", ("t", d.head_block_time())("b", buy_in));
             }

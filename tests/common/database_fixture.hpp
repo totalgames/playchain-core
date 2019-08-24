@@ -197,7 +197,7 @@ struct database_fixture {
 
     database_fixture(const fc::time_point_sec &initial_timestamp =
                         fc::time_point_sec(GRAPHENE_TESTING_GENESIS_TIMESTAMP));
-   ~database_fixture();
+   virtual ~database_fixture();
 
    static fc::ecc::private_key generate_private_key(string seed);
    string generate_anon_acct_name();

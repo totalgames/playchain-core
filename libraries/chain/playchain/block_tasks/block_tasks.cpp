@@ -31,7 +31,7 @@
 
 #include <graphene/chain/hardfork.hpp>
 
-#if 1
+#if defined(LOG_VOTING)
 #include <playchain/chain/evaluators/db_helpers.hpp>
 
 #include <playchain/chain/schema/pending_buy_in_object.hpp>
@@ -42,8 +42,8 @@ namespace playchain { namespace chain {
 
 void process_block_tasks(database &d, const bool maintenance)
 {
-#if 1
-    if (d.head_block_time() >= fc::time_point_sec( 1566564000 ))
+#if defined(LOG_VOTING)
+    if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
     {
         const auto& bin_by_table = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table>();
         auto table_id = table_id_type{1};
@@ -70,7 +70,7 @@ void process_block_tasks(database &d, const bool maintenance)
             print_objects_in_range(range.first, range.second, "buy_in_object(s)");
         }
 
-        if (d.head_block_time() >= fc::time_point_sec( 1566567600 ))
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_TO ))
         {
             wlog("STOP at ${t}", ("t", d.head_block_time().to_iso_string()));
             assert(false);
