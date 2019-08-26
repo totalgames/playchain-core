@@ -574,8 +574,6 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_replace_allocation
 {
     const std::string meta = "Game";
 
-    const auto& params = get_playchain_parameters(db);
-
     auto stake = asset(player_init_balance/2);
 
     room_id_type room = create_new_room(richregistrator);

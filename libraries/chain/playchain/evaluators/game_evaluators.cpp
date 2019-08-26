@@ -132,6 +132,7 @@ namespace playchain{ namespace chain{
 
                 if (!validate_ivariants(d, table, initial_data))
                 {
+                    push_fail_vote_operation(d, table, vote.first, initial_data);
                     any_invalid |= true;
                 }else
                 {

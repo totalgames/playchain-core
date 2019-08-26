@@ -100,6 +100,8 @@ namespace playchain { namespace chain {
 
     void push_fail_vote_operation(database &d, const pending_table_vote_object &obj);
 
+    void push_fail_vote_operation(database &d, const table_object &table, const account_id_type &voter, const game_initial_data &vote);
+
     class game_start_playing_check_evaluator_impl
     {
     public:

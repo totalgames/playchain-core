@@ -1048,6 +1048,19 @@ void push_fail_vote_operation(database &d, const pending_table_vote_object &obj)
     }
 }
 
+void push_fail_vote_operation(database &d, const table_object &table,
+                              const account_id_type &voter, const game_initial_data &vote)
+{
+    game_start_playing_check_operation op_reverted;
+
+    op_reverted.table = table.id;
+    op_reverted.table_owner = table.room(d).owner;
+    op_reverted.voter = voter;
+    op_reverted.initial_data = vote;
+
+    push_fail_vote_operation(d, op_reverted);
+}
+
 game_start_playing_check_evaluator_impl::game_start_playing_check_evaluator_impl(generic_evaluator &ev): _ev(ev)
 {}
 database& game_start_playing_check_evaluator_impl::db() const
