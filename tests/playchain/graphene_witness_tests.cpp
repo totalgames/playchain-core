@@ -62,7 +62,7 @@ PLAYCHAIN_TEST_CASE(check_add_new_witness)
     ilog(">>> Graphene Witnesses (0): ${l}", ("l", db.get_global_properties().active_witnesses));
 
     fc::ecc::private_key witness_key = create_private_key_from_password("for signing blocks", witness1);
-    witness_id_type new_witness_id = database_fixture::create_witness(get_account(witness1), witness_key).id;
+    database_fixture::create_witness(get_account(witness1), witness_key).id;
 
     vote_for_witness(witness1, witness1);
     for(const auto &wit: db.get_global_properties().active_witnesses)

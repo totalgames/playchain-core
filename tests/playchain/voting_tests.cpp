@@ -2029,18 +2029,14 @@ PLAYCHAIN_TEST_CASE(change_invariants_while_voting_for_playing)
 
     BOOST_REQUIRE(params.min_votes_for_playing == 2);
 
-    game_initial_data initial;
-    initial.cash[actor(b1)] = stake;
-    initial.cash[actor(b2)] = stake;
-    initial.cash[actor(b3)] = stake;
-    initial.cash[actor(b4)] = stake;
-    initial.info = "110";
+    game_initial_data initial1;
+    initial1.cash[actor(b1)] = stake;
+    initial1.cash[actor(b2)] = stake;
+    initial1.cash[actor(b3)] = stake;
+    initial1.cash[actor(b4)] = stake;
+    initial1.info = "110";
 
-    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b1, table, initial));
-
-    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
-
-    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b2, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b1, table, initial1));
 
     BOOST_REQUIRE_NO_THROW(buy_out_table(b3, table, stake));
     BOOST_REQUIRE_NO_THROW(buy_out_table(b4, table, asset(stake.amount/ 2)));
@@ -2051,16 +2047,22 @@ PLAYCHAIN_TEST_CASE(change_invariants_while_voting_for_playing)
     initial2.cash[actor(b4)] = asset(stake.amount/ 2);
     initial2.info = "110";
 
-    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b3, table, initial2));
+    BOOST_CHECK_THROW(game_start_playing_check(b3, table, initial2), fc::exception);
 
-    game_initial_data initial3;
-    initial2.cash[actor(b1)] = stake;
-    initial2.cash[actor(b2)] = stake;
-    initial2.info = "110";
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b4, table, initial2));
 
     BOOST_REQUIRE_NO_THROW(buy_out_table(b4, table, asset(stake.amount/ 2)));
 
-    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b4, table, initial3));
+    game_initial_data initial3;
+    initial3.cash[actor(b1)] = stake;
+    initial3.cash[actor(b2)] = stake;
+    initial3.info = "110";
+
+    idump((table_obj));
+
+    try{
+    game_start_playing_check(richregistrator1, table, initial3);
+    } FC_LOG_AND_RETHROW()
 
     generate_block();
 
@@ -2068,7 +2070,8 @@ PLAYCHAIN_TEST_CASE(change_invariants_while_voting_for_playing)
 
     BOOST_REQUIRE(table_obj.is_free());
 
-    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator2, table, initial3));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b2, table, initial3));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(b1, table, initial3));
 
     generate_block();
 
@@ -2144,7 +2147,13 @@ PLAYCHAIN_TEST_CASE(no_change_invariants_while_voting_for_result)
 
     BOOST_REQUIRE_NO_THROW(buy_out_table(b3, table, asset(stake.amount / 2)));
 
+    BOOST_REQUIRE_NO_THROW(game_result_check(b3, table, result));
+
+    idump((table_obj));
+
     generate_block();
+
+    idump((table_obj));
 
     //there was consensus
 
@@ -2157,7 +2166,7 @@ PLAYCHAIN_TEST_CASE(no_change_invariants_while_voting_for_result)
     BOOST_CHECK_EQUAL(to_string(table_obj.cash.at(get_player(b3))), to_string(asset(result.cash[actor(b3)].cash.amount / 2)));
     BOOST_CHECK_EQUAL(to_string(table_obj.cash.at(get_player(b4))), to_string(stake));
 
-    BOOST_CHECK_EQUAL(to_string(get_account_balance(b2)), to_string(get_account_balance(b2) - win));
+    BOOST_CHECK_EQUAL(to_string(get_account_balance(b2)), to_string(asset(new_player_balance) - win));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

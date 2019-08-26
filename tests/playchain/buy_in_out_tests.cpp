@@ -167,10 +167,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_resolve)
 {
     const std::string meta = "Game";
 
-    room_id_type room = create_new_room(richregistrator);
-    table_id_type table = create_new_table(richregistrator, room, 0u, meta);
-
     Actor player1 = create_new_player(richregistrator, "andrew", asset(player_init_balance));
+    auto &&room = create_new_room(richregistrator);
+    create_new_table(richregistrator, room, 0u, meta);
 
     auto stake = asset(player_init_balance/2);
 
@@ -239,9 +238,6 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel)
 PLAYCHAIN_TEST_CASE(check_buy_in_reserving_expired)
 {
     const std::string meta = "Game";
-
-    room_id_type room = create_new_room(richregistrator);
-    table_id_type table = create_new_table(richregistrator, room, 0u, meta);
 
     Actor player1 = create_new_player(richregistrator, "andrew", asset(player_init_balance));
 

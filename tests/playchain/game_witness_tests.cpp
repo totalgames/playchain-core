@@ -146,8 +146,6 @@ PLAYCHAIN_TEST_CASE(check_game_required_witnesses_which_voted_for_playing)
     bob_result.rake = asset(0);
     result.log = "alice has A 4";
 
-    auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator1));
-
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
     BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
