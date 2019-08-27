@@ -22,6 +22,8 @@
 
 #include <algorithm>
 
+#include "game_evaluators_obsolete.hpp"
+
 #include <boost/range/algorithm/merge.hpp>
 
 namespace playchain { namespace chain {
@@ -330,31 +332,6 @@ struct is_the_required_number_of_voters
     const table_voting_object &table_voting;
 };
 
-void buyins_resolve(database& d, const table_object &table, bool clear)
-{
-    const auto& bin_by_table = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table>();
-    auto range = bin_by_table.equal_range(table.id);
-
-    auto buy_ins = get_objects_from_index<buy_in_object>(range.first, range.second,
-                                                         get_playchain_parameters(d).maximum_desired_number_of_players_for_tables_allocation);
-    for (const buy_in_object& buy_in: buy_ins) {
-
-        if (clear || !table.cash.count(buy_in.player))
-        {
-#if defined(LOG_VOTING)
-        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
-        {
-            ilog("${t} >> buyins_resolve: ${b} - remove!!!", ("t", d.head_block_time())("b", buy_in));
-        }
-#endif
-            d.remove(buy_in);
-        }else if (d.head_block_time() < HARDFORK_PLAYCHAIN_7_TIME)
-        {
-            prolong_life_for_by_in(d, buy_in);
-        }
-    }
-}
-
 void pending_buyouts_resolve(database& d, const table_object &table, const account_id_type &table_owner, game_result &result)
 {
     const auto& bout_by_table = d.get_index_type<pending_buy_out_index>().indices().get<by_table>();
@@ -431,6 +408,38 @@ void pending_buyouts_resolve(database& d, const table_object &table, const accou
 #endif
 
         d.remove(buyout);
+    }
+}
+
+template< typename Body >
+void with_registration_buy_in(database& d, const table_object& table, Body &&callback )
+{
+    //must be sorted
+    std::set<player_id_type> players;
+
+    for(const auto &cash: table.playing_cash)
+    {
+        players.emplace(cash.first);
+    }
+
+    callback();
+
+    decltype(players) with_cash;
+
+    for(const auto &cash: table.cash)
+    {
+        with_cash.emplace(cash.first);
+    }
+
+    std::vector<player_id_type> players_with_cash;
+    players_with_cash.reserve(players.size());
+
+    std::set_intersection(players.begin(), players.end(),
+                          with_cash.begin(), with_cash.end(),
+                          std::back_inserter(players_with_cash));
+    for(const auto &player_id: players_with_cash)
+    {
+        register_buy_in(d, player_id, table);
     }
 }
 
@@ -536,6 +545,8 @@ operation_result try_voting(database &d,
             }
         });
     }
+
+    alive_for_table(d, table.id);
 
     return table_voting.id;
 }
@@ -858,73 +869,84 @@ void apply_game_result_with_consensus(database& d, const table_object &table,
         roolback(d, table, false);
     }else
     {
-        pending_buyouts_resolve(d, table, table_owner, result);
-
-        d.modify(table, [&](table_object &table_obj)
+        auto apply_impl = [&]()
         {
-            auto room = table_obj.room;
-            asset room_rake;
+            pending_buyouts_resolve(d, table, table_owner, result);
 
-            decltype(table_obj.playing_cash) cash_result;
-            std::for_each(begin(result.cash), end(result.cash),
-                           [&](const decltype(result.cash)::value_type &data)
+            d.modify(table, [&](table_object &table_obj)
             {
-                const account_id_type &player_account_id = data.first;
-                const player_object &player = get_player(d, player_account_id);
-                const gamer_cash_result &gamer_result = data.second;
+                auto room = table_obj.room;
+                asset room_rake;
 
-                if (gamer_result.rake.amount > 0)
+                decltype(table_obj.playing_cash) cash_result;
+                std::for_each(begin(result.cash), end(result.cash),
+                               [&](const decltype(result.cash)::value_type &data)
                 {
-                    d.modify(player, [&table_obj, &player_account_id, &room, &gamer_result, &required_witnesses](player_object &obj)
+                    const account_id_type &player_account_id = data.first;
+                    const player_object &player = get_player(d, player_account_id);
+                    const gamer_cash_result &gamer_result = data.second;
+
+                    if (gamer_result.rake.amount > 0)
                     {
-                        obj.pending_fees.emplace_back( player_account_id, table_obj.metadata, gamer_result.rake, room, required_witnesses);
-                    });
+                        d.modify(player, [&table_obj, &player_account_id, &room, &gamer_result, &required_witnesses](player_object &obj)
+                        {
+                            obj.pending_fees.emplace_back( player_account_id, table_obj.metadata, gamer_result.rake, room, required_witnesses);
+                        });
 
-                    room_rake += gamer_result.rake;
-                }
+                        room_rake += gamer_result.rake;
+                    }
 
-                cash_result[player.id] = gamer_result.cash;
-            });
+                    cash_result[player.id] = gamer_result.cash;
+                });
 
-            d.modify(room(d), [&room_rake](room_object &obj)
-            {
-                obj.pending_rake += room_rake;
-            });
-
-            std::for_each(begin(cash_result), end(cash_result),
-                          [&](const decltype(table_obj.cash)::value_type &data)
-            {
-                assert(table_obj.playing_cash.end() != table_obj.playing_cash.find(data.first));
-
-                auto &&new_amount = data.second;
-                if (new_amount.amount > 0)
+                d.modify(room(d), [&room_rake](room_object &obj)
                 {
-                    table_obj.adjust_cash(data.first, new_amount);
-                }
-                auto &&old_amount = table_obj.playing_cash[data.first];
-                table_obj.adjust_playing_cash(data.first, -old_amount);
+                    obj.pending_rake += room_rake;
+                });
+
+                std::for_each(begin(cash_result), end(cash_result),
+                              [&](const decltype(table_obj.cash)::value_type &data)
+                {
+                    assert(table_obj.playing_cash.end() != table_obj.playing_cash.find(data.first));
+
+                    auto &&new_amount = data.second;
+                    if (new_amount.amount > 0)
+                    {
+                        table_obj.adjust_cash(data.first, new_amount);
+                    }
+                    auto &&old_amount = table_obj.playing_cash[data.first];
+                    table_obj.adjust_playing_cash(data.first, -old_amount);
+                });
+
+                auto rest_playing_cash = table_obj.playing_cash;
+                std::for_each(begin(rest_playing_cash), end(rest_playing_cash),
+                              [&](const decltype(table_obj.playing_cash)::value_type &data)
+                {
+                    auto &&amount = data.second;
+                    table_obj.adjust_playing_cash(data.first, -amount);
+                    table_obj.adjust_cash(data.first, amount);
+                });
+
+                table_obj.game_created = fc::time_point_sec::min();
+                table_obj.game_expiration = fc::time_point_sec::maximum();
+
+                table_obj.voted_witnesses.clear();
             });
 
-            auto rest_playing_cash = table_obj.playing_cash;
-            std::for_each(begin(rest_playing_cash), end(rest_playing_cash),
-                          [&](const decltype(table_obj.playing_cash)::value_type &data)
-            {
-                auto &&amount = data.second;
-                table_obj.adjust_playing_cash(data.first, -amount);
-                table_obj.adjust_cash(data.first, amount);
-            });
+            d.push_applied_operation(
+                        game_event_operation{ table.id, table_owner, game_result_validated{ result } } );
+        };
 
-            table_obj.game_created = fc::time_point_sec::min();
-            table_obj.game_expiration = fc::time_point_sec::maximum();
-
-            table_obj.voted_witnesses.clear();
-        });
-
-        buyins_resolve(d, table, false);
-
-        d.push_applied_operation(
-                    game_event_operation{ table.id, table_owner, game_result_validated{ result } } );
+        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_10_TIME)
+        {
+            with_registration_buy_in(d, table, apply_impl);
+        }else
+        {
+            apply_impl();
+            obsolete_buyins_resolve(d, table, false);
+        }
     }
+
 
     for(const auto &data: accounts_with_invalid_vote)
     {
@@ -958,70 +980,100 @@ void cleanup_pending_votes(database& d, const table_object &table)
     }
 }
 
+void cleanup_voting(database& d, const table_id_type &table_id)
+{
+    auto& voting_by_table= d.get_index_type<table_voting_index>().indices().get<by_table>();
+    auto it = voting_by_table.find(table_id);
+    if (voting_by_table.end() != it)
+    {
+        d.remove(*it);
+    }
+}
+
 void roolback(database& d, const table_object &table, bool full_clear)
 {
-    const auto &table_owner = table.room(d).owner;
-
-    d.push_applied_operation(
-                game_event_operation{ table.id, table_owner, game_rollback{} } );
-
-    game_result empty_result;
-    pending_buyouts_resolve(d, table, table_owner, empty_result);
-
-    if (full_clear)
+    auto roolback_impl = [&]()
     {
-        decltype(table.cash) rooling_cash;
+        const auto &table_owner = table.room(d).owner;
 
-        std::copy(begin(table.playing_cash), end(table.playing_cash), std::inserter(rooling_cash, rooling_cash.end()));
+        d.push_applied_operation(
+                    game_event_operation{ table.id, table_owner, game_rollback{} } );
 
-        for(const auto &data: table.cash)
-        {
-            rooling_cash[data.first] += data.second;
-        }
-
-        for(const auto &data: rooling_cash)
-        {
-            const player_object &player = data.first(d);
-
-            d.push_applied_operation(game_event_operation{table.id, table_owner, buy_in_return{player.account, data.second}});
-
-            d.adjust_balance(player.account, data.second);
-        }
-    }else
-    {
-        for(const auto &data: table.playing_cash)
-        {
-            const player_object &player = data.first(d);
-
-            assert(data.second.amount > 0);
-
-            d.push_applied_operation(game_event_operation{table.id, table_owner, game_cash_return{player.account, data.second}});
-        }
-    }
-
-    d.modify(table, [&](table_object &obj)
-    {
-        obj.game_created = fc::time_point_sec::min();
-        obj.game_expiration = fc::time_point_sec::maximum();
+        game_result empty_result;
+        pending_buyouts_resolve(d, table, table_owner, empty_result);
 
         if (full_clear)
         {
-            obj.clear_playing_cash();
-            obj.clear_cash();
+            decltype(table.cash) rooling_cash;
+
+            std::copy(begin(table.playing_cash), end(table.playing_cash), std::inserter(rooling_cash, rooling_cash.end()));
+
+            for(const auto &data: table.cash)
+            {
+                rooling_cash[data.first] += data.second;
+            }
+
+            for(const auto &data: rooling_cash)
+            {
+                const player_object &player = data.first(d);
+
+                d.push_applied_operation(game_event_operation{table.id, table_owner, buy_in_return{player.account, data.second}});
+
+                d.adjust_balance(player.account, data.second);
+            }
         }else
         {
-            for(const auto &data: obj.playing_cash)
+            for(const auto &data: table.playing_cash)
             {
+                const player_object &player = data.first(d);
+
                 assert(data.second.amount > 0);
 
-                obj.adjust_cash(data.first, data.second);
+                d.push_applied_operation(game_event_operation{table.id, table_owner, game_cash_return{player.account, data.second}});
             }
-            obj.clear_playing_cash();
         }
-    });
 
-    cleanup_pending_votes(d, table);
-    buyins_resolve(d, table, full_clear);
+        d.modify(table, [&](table_object &obj)
+        {
+            obj.game_created = fc::time_point_sec::min();
+            obj.game_expiration = fc::time_point_sec::maximum();
+
+            if (full_clear)
+            {
+                obj.clear_playing_cash();
+                obj.clear_cash();
+            }else
+            {
+                for(const auto &data: obj.playing_cash)
+                {
+                    assert(data.second.amount > 0);
+
+                    obj.adjust_cash(data.first, data.second);
+                }
+                obj.clear_playing_cash();
+            }
+        });
+
+        cleanup_pending_votes(d, table);
+    };
+
+    if (d.head_block_time() >= HARDFORK_PLAYCHAIN_10_TIME)
+    {
+        if (!full_clear)
+        {
+            with_registration_buy_in(d, table, roolback_impl);
+        }else
+        {
+            roolback_impl();
+            cleanup_buy_ins(d, table);
+        }
+
+        cleanup_voting(d, table.id);
+    }else
+    {
+        roolback_impl();
+        obsolete_buyins_resolve(d, table, full_clear);
+    }
 }
 
 void push_fail_vote_operation(database &d, const game_start_playing_check_operation &op)

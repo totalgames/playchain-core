@@ -257,11 +257,9 @@ namespace playchain{ namespace chain{
             else
                 rollback_table(d, table);
 
-            auto& voting_by_table= d.get_index_type<table_voting_index>().indices().get<by_table>();
-            auto it = voting_by_table.find(table.id);
-            if (voting_by_table.end() != it)
+            if (d.head_block_time() < HARDFORK_PLAYCHAIN_10_TIME)
             {
-                d.remove(*it);
+                cleanup_voting(d, table.id);
             }
 
             return alive_for_table(d, table.id);

@@ -86,6 +86,9 @@ namespace playchain { namespace chain {
         void_result do_apply(const operation_type& o);
     };
 
+    object_id_type register_buy_in(database& d, const player_id_type & player_id,
+                       const table_object &table);
+    void cleanup_buy_ins(database& d, const table_object &table);
     void prolong_life_for_by_in(database& d, const buy_in_object &);
     void expire_buy_in(database& d, const buy_in_object &, const table_object &);
 

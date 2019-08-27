@@ -52,4 +52,6 @@ namespace playchain { namespace chain {
         bool _ignore = false;
     };
 
+    void obsolete_buyins_resolve(database& d, const table_object &table, bool clear);
+
 }}

@@ -132,6 +132,31 @@ bool ignore_op_in_broken_block(const database &d, const Operation &op)
 
 }
 
+void obsolete_buyins_resolve(database& d, const table_object &table, bool clear)
+{
+    const auto& bin_by_table = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table>();
+    auto range = bin_by_table.equal_range(table.id);
+
+    auto buy_ins = get_objects_from_index<buy_in_object>(range.first, range.second,
+                                                         get_playchain_parameters(d).maximum_desired_number_of_players_for_tables_allocation);
+    for (const buy_in_object& buy_in: buy_ins) {
+
+        if (clear || !table.cash.count(buy_in.player))
+        {
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
+        {
+            ilog("${t} >> obsolete_buyins_resolve: ${b} - remove!!!", ("t", d.head_block_time())("b", buy_in));
+        }
+#endif
+            d.remove(buy_in);
+        }else if (d.head_block_time() < HARDFORK_PLAYCHAIN_7_TIME)
+        {
+            prolong_life_for_by_in(d, buy_in);
+        }
+    }
+}
+
 void_result game_start_playing_check_evaluator_impl_v1::do_evaluate(const operation_type& op)
 {
     try { try {

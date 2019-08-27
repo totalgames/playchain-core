@@ -100,42 +100,14 @@ namespace
         d.remove(buy_in);
     }
 
-    operation_result register_buy_in(database& d, const player_object & player,
+    operation_result register_buy_in_alive(database& d, const player_object & player,
                        const table_object &table)
     {
-        object_id_type ret_id;
-
-        auto& index = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table_and_player>();
-        auto itr = index.find(boost::make_tuple(table.id, player.id));
-        if (itr == index.end())
-        {
-            const auto& dyn_props = d.get_dynamic_global_properties();
-            const auto& parameters = get_playchain_parameters(d);
-
-            ret_id = d.create<buy_in_object>([&](buy_in_object& buyin) {
-               buyin.player = player.id;
-               buyin.table = table.id;
-               buyin.created = dyn_props.time;
-               buyin.updated = buyin.created;
-               buyin.expiration = buyin.updated + fc::seconds(parameters.buy_in_expiration_seconds);
-            }).id;
-        }
-        else
-        {
-            prolong_life_for_by_in(d, *itr);
-        }
+        object_id_type ret_id = register_buy_in(d, player.id, table);
 
         object_id_type alive_id = alive_for_table(d, table.id).get<object_id_type>();
         if (ret_id == object_id_type{})
             ret_id = alive_id;
-
-#if defined(LOG_VOTING)
-        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
-        {
-            player_id_type player_id{player.id};
-            ilog("${t} >> register_buy_in: ${player} -> ${a}", ("t", d.head_block_time())("player", player)("a", table.cash.at(player_id)));
-        }
-#endif
 
         return ret_id;
     }
@@ -239,7 +211,7 @@ namespace
                 obj.adjust_cash(player.id, op.amount);
             });
 
-            return register_buy_in(d, player, table);
+            return register_buy_in_alive(d, player, table);
         } FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -424,7 +396,7 @@ namespace
 
             d.remove(pending_buy_in);
 
-            return register_buy_in(d, player, table);
+            return register_buy_in_alive(d, player, table);
         } FC_CAPTURE_AND_RETHROW((op))
     }
 
@@ -458,6 +430,60 @@ namespace
 
             return void_result();
         } FC_CAPTURE_AND_RETHROW((op))
+    }
+
+    object_id_type register_buy_in(database& d, const player_id_type & player_id,
+                       const table_object &table)
+    {
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
+        {
+            player_id_type player_id{player_id};
+            ilog("${t} >> register_buy_in: ${player} -> ${a}", ("t", d.head_block_time())("player", player_id(d))("a", table.cash.at(player_id)));
+        }
+#endif
+
+        object_id_type ret_id;
+
+        auto& index = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table_and_player>();
+        auto itr = index.find(boost::make_tuple(table.id, player_id));
+        if (itr == index.end())
+        {
+            const auto& dyn_props = d.get_dynamic_global_properties();
+            const auto& parameters = get_playchain_parameters(d);
+
+            ret_id = d.create<buy_in_object>([&](buy_in_object& buyin) {
+               buyin.player = player_id;
+               buyin.table = table.id;
+               buyin.created = dyn_props.time;
+               buyin.updated = buyin.created;
+               buyin.expiration = buyin.updated + fc::seconds(parameters.buy_in_expiration_seconds);
+            }).id;
+        }
+        else
+        {
+            prolong_life_for_by_in(d, *itr);
+        }
+
+        return ret_id;
+    }
+
+    void cleanup_buy_ins(database& d, const table_object &table)
+    {
+        const auto& bin_by_table = d.get_index_type<buy_in_index>().indices().get<by_buy_in_table>();
+        auto range = bin_by_table.equal_range(table.id);
+
+        auto buy_ins = get_objects_from_index<buy_in_object>(range.first, range.second,
+                                                             get_playchain_parameters(d).maximum_desired_number_of_players_for_tables_allocation);
+        for (const buy_in_object& buy_in: buy_ins) {
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
+        {
+            ilog("${t} >> cleanup_buy_ins: ${b} - remove!!!", ("t", d.head_block_time())("b", buy_in));
+        }
+#endif
+            d.remove(buy_in);
+        }
     }
 
     void prolong_life_for_by_in(database& d, const buy_in_object & buy_in)

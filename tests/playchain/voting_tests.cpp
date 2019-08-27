@@ -37,7 +37,7 @@ struct voting_fixture: public playchain_common::playchain_fixture
         CREATE_PLAYER(richregistrator1, jon);
 
         //test only with latest voting algorithm!!!
-        generate_blocks(HARDFORK_PLAYCHAIN_9_TIME);
+        generate_blocks(HARDFORK_PLAYCHAIN_10_TIME);
     }
 };
 

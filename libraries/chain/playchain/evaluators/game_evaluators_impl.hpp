@@ -92,6 +92,8 @@ namespace playchain { namespace chain {
 
     void cleanup_pending_votes(database& d, const table_object &table);
 
+    void cleanup_voting(database& d, const table_id_type &table_id);
+
     void roolback(database& d, const table_object &table, bool full_clear);
 
     void push_fail_vote_operation(database &d, const game_start_playing_check_operation &op);
