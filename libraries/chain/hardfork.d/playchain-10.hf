@@ -1,4 +1,4 @@
-// #playchain-10 Fixed the bui-in object livetime
+// #playchain-10 Fixed the buy-in object livetime
 //
 #ifndef HARDFORK_PLAYCHAIN_10_TIME
     #if defined(PLAYCHAIN_MAINNET)
