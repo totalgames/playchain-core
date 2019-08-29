@@ -947,7 +947,6 @@ void apply_game_result_with_consensus(database& d, const table_object &table,
         }
     }
 
-
     for(const auto &data: accounts_with_invalid_vote)
     {
         const auto &fail_log = data.second.get<game_result>().log;

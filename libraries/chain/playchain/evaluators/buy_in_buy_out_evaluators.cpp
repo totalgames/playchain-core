@@ -438,8 +438,15 @@ namespace
 #if defined(LOG_VOTING)
         if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
         {
-            player_id_type player_id{player_id};
-            ilog("${t} >> register_buy_in: ${player} -> ${a}", ("t", d.head_block_time())("player", player_id(d))("a", table.cash.at(player_id)));
+            try
+            {
+                ilog("${t} >> register_buy_in: ${player}", ("t", d.head_block_time())("player", player_id(d)));
+                idump((table));
+                ilog("${t} >> register_buy_in (2): ${player} -> ${a}", ("t", d.head_block_time())("player", player_id(d))("a", table.cash.at(player_id)));
+            }catch(...)
+            {
+                assert(false);
+            }
         }
 #endif
 
