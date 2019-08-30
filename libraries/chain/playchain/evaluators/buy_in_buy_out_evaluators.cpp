@@ -481,7 +481,7 @@ namespace
         auto range = bin_by_table.equal_range(table.id);
 
         auto buy_ins = get_objects_from_index<buy_in_object>(range.first, range.second,
-                                                             get_playchain_parameters(d).maximum_desired_number_of_players_for_tables_allocation);
+                                                             get_playchain_parameters(d).maximum_desired_number_of_players_for_tables_allocation * 10);
         for (const buy_in_object& buy_in: buy_ins) {
 #if defined(LOG_VOTING)
         if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))

@@ -511,22 +511,27 @@ operation_result try_voting(database &d,
     const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
     auto pending = get_objects_from_index<pending_table_vote_object>(index_pending.begin(),
                                                                      index_pending.end(),
-                                                                     parameters.maximum_desired_number_of_players_for_tables_allocation * 2);
+                                                                     parameters.maximum_desired_number_of_players_for_tables_allocation * 10);
     for (const pending_table_vote_object& vote_obj: pending) {
-        auto pending_op = vote_obj.vote.op.get<Operation>();
-
-        try
+        if (vote_obj.vote.op.which() != operation::tag<Operation>::value)
         {
-            check_pending_vote(d, table, table_voting, pending_op);
-
-            collect_votes(d, table, pending_op.voter, pending_op.data(),
-                          voting_seconds,
-                          pv_witness_substitution,
-                          required_witnesses,
-                          voters_collected);
-        }catch (const fc::assert_exception&)
+            push_fail_vote_operation(d, vote_obj);
+        }else
         {
-            push_fail_vote_operation(d, pending_op);
+            auto pending_op = vote_obj.vote.op.get<Operation>();
+            try
+            {
+                check_pending_vote(d, table, table_voting, pending_op);
+
+                collect_votes(d, table, pending_op.voter, pending_op.data(),
+                              voting_seconds,
+                              pv_witness_substitution,
+                              required_witnesses,
+                              voters_collected);
+            }catch (const fc::assert_exception&)
+            {
+                push_fail_vote_operation(d, pending_op);
+            }
         }
 
         d.remove(vote_obj);
