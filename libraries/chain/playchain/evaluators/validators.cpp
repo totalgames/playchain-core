@@ -143,10 +143,26 @@ namespace playchain { namespace chain {
         return table(d).room(d).owner == account;
     }
 
+    bool is_table_owner(const database& d,
+                        const table_object &table,
+                        const account_id_type &voter)
+    {
+        return table.room(d).owner == voter;
+    }
+
     bool is_game_witness(const database& d, const account_id_type &account)
     {
         const auto& witness_by_account = d.get_index_type<game_witness_index>().indices().get<by_playchain_account>();
         return witness_by_account.end() != witness_by_account.find(account);
+    }
+
+    bool is_game_witness(const database& d,
+                    const table_object &table,
+                    const account_id_type &voter)
+    {
+        const auto& witness_by_account = d.get_index_type<game_witness_index>().indices().get<by_playchain_account>();
+        return witness_by_account.end() != witness_by_account.find(voter) &&
+               !is_table_owner(d, table, voter);
     }
 
     bool is_pending_buy_in_exists(const database& d, const pending_buy_in_id_type &buy_in)

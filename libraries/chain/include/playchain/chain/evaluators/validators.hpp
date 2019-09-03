@@ -60,7 +60,12 @@ namespace playchain { namespace chain {
 
     bool is_table_owner(const database& d, const account_id_type &account, const table_id_type &table);
 
+    bool is_table_owner(const database& d, const table_object &table, const account_id_type &voter);
+
     bool is_game_witness(const database& d, const account_id_type &account);
+
+    //if is it game witness but not this table owner
+    bool is_game_witness(const database& d, const table_object &table, const account_id_type &voter);
 
     void check_authority(const database& d, const account_id_type &account, const digest_type &digest, const signature_type &mandat);
 

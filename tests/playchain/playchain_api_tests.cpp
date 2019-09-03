@@ -7,6 +7,8 @@
 #include <playchain/chain/evaluators/validators.hpp>
 #include <playchain/chain/playchain_utils.hpp>
 
+#include <graphene/chain/hardfork.hpp>
+
 namespace playchain_api_tests {
 struct playchain_api_fixture : public playchain_common::playchain_fixture {
   const int64_t init_balance = 1000 * GRAPHENE_BLOCKCHAIN_PRECISION;
@@ -32,6 +34,11 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
     init_fees();
 
     alice = create_new_player(registrator, alice, asset(big_init_balance));
+
+    create_account("mike");
+
+    //test only with latest voting algorithm!!!
+    generate_blocks(HARDFORK_PLAYCHAIN_10_TIME);
   }
 
   bool is_account_exists(const string &name) const {
@@ -65,9 +72,9 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
     BOOST_REQUIRE_NO_THROW(game_start_playing_check(player1, table, initial));
     BOOST_REQUIRE_NO_THROW(game_start_playing_check(player2, table, initial));
 
-    BOOST_REQUIRE(table_obj.is_playing());
-
     generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
 
     game_result result;
     auto win = asset(stake.amount / 2);
@@ -84,7 +91,49 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
     BOOST_REQUIRE_NO_THROW(game_result_check(witness1, table, result));
     BOOST_REQUIRE_NO_THROW(game_result_check(witness2, table, result));
 
+    generate_block();
+
     BOOST_REQUIRE(table_obj.is_free());
+  }
+
+  using playchain_table_info = playchain::app::playchain_table_info;
+
+  auto get_tables_notify_callback(std::vector<playchain_table_info> &table_infos)
+  {
+      auto callback = [&table_infos](const fc::variant &v) {
+          auto vs = v.as<std::vector<fc::variant>>(GRAPHENE_MAX_NESTED_OBJECTS);
+
+          BOOST_REQUIRE(!vs.empty());
+
+          table_infos.clear();
+
+          for(auto &&v: vs)
+          {
+              table_infos.emplace_back(v.as<playchain_table_info>(GRAPHENE_MAX_NESTED_OBJECTS));
+          }
+
+          ilog("CALLBACK ${ti}", ("ti", table_infos));
+      };
+      return callback;
+  }
+
+  auto get_tables_notify_callback(playchain_table_info &table_info)
+  {
+      auto callback = [&table_info](const fc::variant &v) {
+          auto vs = v.as<std::vector<fc::variant>>(GRAPHENE_MAX_NESTED_OBJECTS);
+
+          BOOST_REQUIRE(!vs.empty());
+          BOOST_REQUIRE(vs.size() == 1u);
+
+          for(auto &&v: vs)
+          {
+              table_info = v.as<playchain_table_info>(GRAPHENE_MAX_NESTED_OBJECTS);
+              break;
+          }
+
+          ilog("CALLBACK ${ti}", ("ti", table_info));
+      };
+      return callback;
   }
 };
 
@@ -1023,12 +1072,12 @@ PLAYCHAIN_TEST_CASE(check_get_tables_info_by_id) {
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(witness1, table, initial));
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(witness2, table, initial));
 
+  generate_block();
+
   BOOST_REQUIRE(table_obj.is_playing());
 
   BOOST_CHECK(pplaychain_api->get_tables_info_by_id({table})[0].state ==
               playchain_table_state::playing);
-
-  generate_block();
 
   game_result result;
   auto win = asset(stake.amount / 2);
@@ -1049,6 +1098,8 @@ PLAYCHAIN_TEST_CASE(check_get_tables_info_by_id) {
   BOOST_REQUIRE_NO_THROW(game_result_check(bob, table, result));
   BOOST_REQUIRE_NO_THROW(game_result_check(witness1, table, result));
   BOOST_REQUIRE_NO_THROW(game_result_check(witness2, table, result));
+
+  generate_block();
 
   BOOST_REQUIRE(table_obj.is_free());
 
@@ -1201,15 +1252,7 @@ BOOST_AUTO_TEST_CASE(set_tables_subscribe_callback_check) {
 
   playchain_table_info table_info;
 
-  auto callback = [&](const fc::variant &v) {
-    std::cerr << "CALLBACK" << std::endl;
-
-    auto vs = v.as<std::vector<fc::variant>>(GRAPHENE_MAX_NESTED_OBJECTS);
-
-    BOOST_REQUIRE(!vs.empty());
-
-    table_info = vs[0].as<playchain_table_info>(GRAPHENE_MAX_NESTED_OBJECTS);
-  };
+  auto callback = get_tables_notify_callback(table_info);
 
   pplaychain_api->set_tables_subscribe_callback(callback, {table});
 
@@ -1290,15 +1333,7 @@ BOOST_AUTO_TEST_CASE(
 
   playchain_table_info table_info;
 
-  auto callback = [&](const fc::variant &v) {
-    std::cerr << "CALLBACK" << std::endl;
-
-    auto vs = v.as<std::vector<fc::variant>>(GRAPHENE_MAX_NESTED_OBJECTS);
-
-    BOOST_REQUIRE(!vs.empty());
-
-    table_info = vs[0].as<playchain_table_info>(GRAPHENE_MAX_NESTED_OBJECTS);
-  };
+  auto callback = get_tables_notify_callback(table_info);
 
   pplaychain_api->set_tables_subscribe_callback(callback, {table});
 
@@ -1340,18 +1375,11 @@ BOOST_AUTO_TEST_CASE(
   room_id_type room = create_new_room(registrator);
   table_id_type table = create_new_table(registrator, room, 0u, table_meta);
 
+  BOOST_REQUIRE_NO_THROW(table_alive(registrator, table));
+
   playchain_table_info_ext table_info;
 
-  auto callback = [&](const fc::variant &v) {
-    std::cerr << "CALLBACK" << std::endl;
-
-    auto vs = v.as<std::vector<fc::variant>>(GRAPHENE_MAX_NESTED_OBJECTS);
-
-    BOOST_REQUIRE(!vs.empty());
-
-    table_info =
-        vs[0].as<playchain_table_info_ext>(GRAPHENE_MAX_NESTED_OBJECTS);
-  };
+  auto callback = get_tables_notify_callback(table_info);
 
   pplaychain_api->set_tables_subscribe_callback(callback, {table});
 
@@ -1483,6 +1511,9 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player) {
 
   auto stake = asset(big_init_balance / 2);
 
+  BOOST_REQUIRE_NO_THROW(table_alive(registrator, table_with_game));
+  BOOST_REQUIRE_NO_THROW(table_alive(registrator, table_with_alice));
+
   BOOST_REQUIRE_NO_THROW(buy_in_reserve(alice, get_next_uid(actor(alice)),
                                         stake, table_with_alice_meta));
 
@@ -1544,6 +1575,8 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player) {
   BOOST_REQUIRE_NO_THROW(
       game_start_playing_check(sam, table_with_game, initial));
 
+  generate_block();
+
   BOOST_REQUIRE(table_with_game_obj.is_playing());
 
   BOOST_REQUIRE_EQUAL(pplaychain_api->list_tables_with_player(bob, 10).size(),
@@ -1583,6 +1616,8 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player) {
       game_result_check(registrator, table_with_game, result));
   BOOST_REQUIRE_NO_THROW(game_result_check(bob, table_with_game, result));
   BOOST_REQUIRE_NO_THROW(game_result_check(sam, table_with_game, result));
+
+  generate_block();
 
   BOOST_REQUIRE(table_with_game_obj.is_free());
 
@@ -1625,6 +1660,8 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player_and_buyouting) {
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(registrator, table, initial));
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(sam, table, initial));
+
+  generate_block();
 
   BOOST_REQUIRE(table_obj.is_playing());
 
@@ -1681,8 +1718,6 @@ PLAYCHAIN_TEST_CASE(check_version_ext_conversions) {
 }
 
 PLAYCHAIN_TEST_CASE(check_playchain_login) {
-  create_account("mike");
-
   Actor bob = create_new_player(registrator, "bob", asset(big_init_balance));
 
   generate_block();
@@ -1767,6 +1802,8 @@ PLAYCHAIN_TEST_CASE(check_get_tables_info_by_id_with_missed_votes) {
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(registrator, table, initial));
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
+
+  generate_block();
 
   BOOST_REQUIRE(table_obj.is_playing());
 
@@ -1896,6 +1933,8 @@ PLAYCHAIN_TEST_CASE(check_get_tables_info_by_id_with_votes_stat) {
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(gwitness2, table, initial));
   BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
 
+  generate_block();
+
   BOOST_REQUIRE(table_obj.is_playing());
 
   {
@@ -1966,6 +2005,8 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player_when_game_is_finished) {
   Actor b2 = create_new_player(registrator, "b2", asset(big_init_balance));
   Actor b3 = create_new_player(registrator, "b3", asset(big_init_balance));
 
+  BOOST_REQUIRE_NO_THROW(table_alive(registrator, table));
+
   auto next_history_record =
       scroll_history_to_case_start_point(actor(registrator));
 
@@ -2019,6 +2060,8 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player_when_game_is_finished) {
     BOOST_REQUIRE_NO_THROW(game_start_playing_check(b2, table, initial));
     BOOST_REQUIRE_NO_THROW(game_start_playing_check(b3, table, initial));
   }
+
+  generate_block();
 
   BOOST_REQUIRE(table_obj.is_playing());
 
@@ -2110,6 +2153,8 @@ PLAYCHAIN_TEST_CASE(check_list_tables_with_player_when_game_is_finished) {
     BOOST_REQUIRE_NO_THROW(game_start_playing_check(b3, table, initial));
   }
 
+  generate_block();
+
   BOOST_REQUIRE(table_obj.is_playing());
 
   BOOST_REQUIRE_EQUAL(pplaychain_api->list_tables_with_player(b1, 10).size(),
@@ -2156,16 +2201,7 @@ BOOST_AUTO_TEST_CASE(set_tables_subscribe_callback_inblock_check) {
 
   std::vector<playchain_table_info> table_infos;
 
-  auto callback = [&](const fc::variant &v) {
-    std::cerr << "CALLBACK" << std::endl;
-
-    auto vs = v.as<std::vector<fc::variant>>(GRAPHENE_MAX_NESTED_OBJECTS);
-
-    BOOST_REQUIRE(!vs.empty());
-
-    table_infos.emplace_back(
-        vs[0].as<playchain_table_info>(GRAPHENE_MAX_NESTED_OBJECTS));
-  };
+  auto callback = get_tables_notify_callback(table_infos);
 
   pplaychain_api->set_tables_subscribe_callback(callback, {table});
 
@@ -2195,7 +2231,7 @@ BOOST_AUTO_TEST_CASE(set_tables_subscribe_callback_inblock_check) {
   fc::usleep(fc::milliseconds(200));
   idump((table_infos));
 
-  BOOST_REQUIRE_EQUAL(table_infos.size(), 2u);
+  BOOST_REQUIRE_EQUAL(table_infos.size(), 1u);
   BOOST_CHECK(table_infos.rbegin()->state == playchain_table_state::playing);
 
   game_result result;
@@ -2217,7 +2253,7 @@ BOOST_AUTO_TEST_CASE(set_tables_subscribe_callback_inblock_check) {
   fc::usleep(fc::milliseconds(200));
   idump((table_infos));
 
-  BOOST_REQUIRE_EQUAL(table_infos.size(), 3u);
+  BOOST_REQUIRE_EQUAL(table_infos.size(), 1u);
   BOOST_CHECK(table_infos.rbegin()->state == playchain_table_state::free);
 }
 
@@ -2235,6 +2271,60 @@ BOOST_AUTO_TEST_CASE(check_version_info)
     BOOST_CHECK(!version_info.openssl_ver.empty());
     BOOST_CHECK(!version_info.boost_ver.empty());
     BOOST_CHECK(!version_info.websocket_ver.empty());
+}
+
+BOOST_AUTO_TEST_CASE(check_tables_subscribe_callback_reset_starting_game_check) {
+    using namespace playchain::app;
+
+    room_id_type room = create_new_room(registrator);
+    table_id_type table = create_new_table(registrator, room, 0u);
+
+    Actor bob = create_new_player(registrator, "bob", asset(big_init_balance));
+
+    std::vector<playchain_table_info> table_infos;
+
+    auto callback = get_tables_notify_callback(table_infos);
+
+    pplaychain_api->set_tables_subscribe_callback(callback, {table});
+
+    auto stake = asset(player_init_balance / 2);
+
+    BOOST_CHECK_NO_THROW(buy_in_table(alice, registrator, table, stake));
+    BOOST_CHECK_NO_THROW(buy_in_table(bob, registrator, table, stake));
+
+    game_initial_data initial;
+    initial.cash[actor(alice)] = stake;
+    initial.cash[actor(bob)] = stake;
+    initial.info = "**** is diller";
+
+    generate_block();
+    fc::usleep(fc::milliseconds(200));
+    idump((table_infos));
+
+    BOOST_REQUIRE_EQUAL(table_infos.size(), 1u);
+    BOOST_CHECK(table_infos.rbegin()->state == playchain_table_state::free);
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(registrator, table, initial));
+
+    generate_block();
+    fc::usleep(fc::milliseconds(200));
+    idump((table_infos));
+
+    BOOST_REQUIRE(is_table_voting(db, table));
+
+    BOOST_REQUIRE_EQUAL(table_infos.size(), 1u);
+    BOOST_CHECK(table_infos.rbegin()->state == playchain_table_state::voting_for_playing);
+
+    BOOST_REQUIRE_NO_THROW(game_reset(registrator, table, false));
+
+    BOOST_REQUIRE(!is_table_voting(db, table));
+
+    generate_block();
+    fc::usleep(fc::milliseconds(200));
+    idump((table_infos));
+
+    BOOST_REQUIRE_EQUAL(table_infos.size(), 1u);
+    BOOST_CHECK(table_infos.rbegin()->state == playchain_table_state::free);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

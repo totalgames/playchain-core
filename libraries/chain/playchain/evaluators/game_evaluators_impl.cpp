@@ -45,7 +45,7 @@ void check_incoming_vote(const database &d, const table_object &table, const Ope
         FC_ASSERT(index_pending.find(boost::make_tuple(table.id, op.voter)) == index_pending.end(), "Voter has already voted");
     }
 
-    FC_ASSERT(is_witness(d, table, op.voter) || is_table_owner(d, table, op.voter) || table.is_valid_voter(d, op), "Invalid voter");
+    FC_ASSERT(is_game_witness(d, table, op.voter) || is_table_owner(d, table, op.voter) || table.is_valid_voter(d, op), "Invalid voter");
 
     FC_ASSERT(validate_ivariants(d, table, op.data()), "Invalid vote data");
 }
@@ -53,7 +53,7 @@ void check_incoming_vote(const database &d, const table_object &table, const Ope
 template<typename Operation>
 void check_pending_vote(const database &d, const table_object &table, const table_voting_object &table_voting, const Operation &op)
 {
-    FC_ASSERT(table_voting.required_player_voters.count(op.voter) || is_witness(d, table, op.voter) ||
+    FC_ASSERT(table_voting.required_player_voters.count(op.voter) || is_game_witness(d, table, op.voter) ||
               is_table_owner(d, table, op.voter), "Invalid voter");
 
     FC_ASSERT(validate_ivariants(d, table, op.data()), "Invalid vote data");
@@ -488,7 +488,7 @@ operation_result try_voting(database &d,
                             const Operation &op)
 {
     if (!is_table_voting(d, table.id) &&
-        !is_witness(d, table, op.voter) &&
+        !is_game_witness(d, table, op.voter) &&
         !is_table_owner(d, table, op.voter))
     {
         return d.create<pending_table_vote_object>([&](pending_table_vote_object &obj)
@@ -555,23 +555,6 @@ operation_result try_voting(database &d,
 
     return table_voting.id;
 }
-}
-
-bool is_table_owner(const database& d,
-                    const table_object &table,
-                    const account_id_type &voter)
-{
-    return table.room(d).owner == voter;
-}
-
-//if is it game witness but not this table owner
-bool is_witness(const database& d,
-                const table_object &table,
-                const account_id_type &voter)
-{
-    const auto& witness_by_account = d.get_index_type<game_witness_index>().indices().get<by_playchain_account>();
-    return witness_by_account.end() != witness_by_account.find(voter) &&
-           !is_table_owner(d, table, voter);
 }
 
 bool validate_ivariants(const database& d,

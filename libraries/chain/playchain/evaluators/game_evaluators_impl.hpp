@@ -38,14 +38,6 @@ namespace playchain { namespace chain {
 
     using account_votes_type = flat_map<account_id_type, voting_data_type>;
 
-    bool is_table_owner(const database& d,
-                        const table_object &table,
-                        const account_id_type &voter);
-
-    bool is_witness(const database& d,
-                    const table_object &table,
-                    const account_id_type &voter);
-
     bool validate_ivariants(const database& d,
                             const table_object &table,
                             const game_initial_data &initial_data);

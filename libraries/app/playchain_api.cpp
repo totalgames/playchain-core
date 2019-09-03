@@ -321,7 +321,7 @@ public:
        );
     }
 
-    void broadcast_updates( const vector<table_id_type>& ids )
+    void broadcast_updates( const set<table_id_type>& ids )
     {
        if( ids.size() && _subscribe_tables_callback ) {
           auto self = shared_from_this();
@@ -346,18 +346,18 @@ public:
     {
         if( _subscribe_tables_callback )
         {
-           vector<table_id_type> updates;
+           set<table_id_type> updates;
 
            for(auto id : ids)
            {
                auto obj = find_table(id);
                if( obj.valid() )
                {
-                  updates.emplace_back( *obj );
+                  updates.emplace( *obj );
                }
            }
 
-           if( updates.size() )
+           if( !updates.empty() )
               broadcast_updates(updates);
         }
     }

@@ -34,7 +34,7 @@ void check_voter(const database& d,
     {
         const table_voting_object &table_voting  = (*it);
         FC_ASSERT(!table_voting.votes.count(voter), "Voter has already voted");
-        FC_ASSERT (table_voting.required_player_voters.count(voter) || is_witness(d, table, voter) ||
+        FC_ASSERT (table_voting.required_player_voters.count(voter) || is_game_witness(d, table, voter) ||
                    is_table_owner(d, table, voter), "Invalid voter");
     } else
     {
@@ -278,7 +278,7 @@ operation_result game_result_check_evaluator_impl_v1::do_apply( const operation_
         const table_object &table = op.table(d);
 
         if (!is_table_voting(d, table.id) &&
-            !is_witness(d, table, op.voter) &&
+            !is_game_witness(d, table, op.voter) &&
             !is_table_owner(d, table, op.voter))
         {
             return d.create<pending_table_vote_object>([&](pending_table_vote_object &obj)
