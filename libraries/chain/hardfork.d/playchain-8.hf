@@ -2,8 +2,8 @@
 // +++++++++++++++++++++++++++++++++++++++++++++++++
 #ifndef HARDFORK_PLAYCHAIN_8_TIME
     #if defined(PLAYCHAIN_MAINNET)
-        // 1 September 2019 08:30:00 GMT
-        #define HARDFORK_PLAYCHAIN_8_TIME (fc::time_point_sec( 1567326600 ))
+        // 16 September 2019 09:02:00
+        #define HARDFORK_PLAYCHAIN_8_TIME (fc::time_point_sec( 1568624520 ))
     #elif defined(PLAYCHAIN_TESTNET)
         // 20 August 2019 15:00:00 GMT
         #define HARDFORK_PLAYCHAIN_8_TIME (fc::time_point_sec( 1566313200 ))
