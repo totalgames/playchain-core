@@ -509,27 +509,37 @@ operation_result try_voting(database &d,
                                                             required_witnesses,
                                                             voters_collected);
     const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
-    auto pending = get_objects_from_index<pending_table_vote_object>(index_pending.begin(),
-                                                                     index_pending.end(),
+    auto range = index_pending.equal_range(table.id);
+    if (d.head_block_time() < HARDFORK_PLAYCHAIN_11_TIME)
+    {
+        //invalid range
+        range = std::make_pair(index_pending.begin(), index_pending.end());
+    }
+    auto pending = get_objects_from_index<pending_table_vote_object>(range.first,
+                                                                     range.second,
                                                                      parameters.maximum_desired_number_of_players_for_tables_allocation * 10);
     for (const pending_table_vote_object& vote_obj: pending) {
         if (vote_obj.vote.op.which() != operation::tag<Operation>::value)
         {
+            wlog("At ${t} fail vote: ${v}", ("t", d.head_block_time())("v", vote_obj));
             push_fail_vote_operation(d, vote_obj);
         }else
         {
             auto pending_op = vote_obj.vote.op.get<Operation>();
             try
             {
-                check_pending_vote(d, table, table_voting, pending_op);
+                try {
+                    check_pending_vote(d, table, table_voting, pending_op);
 
-                collect_votes(d, table, pending_op.voter, pending_op.data(),
-                              voting_seconds,
-                              pv_witness_substitution,
-                              required_witnesses,
-                              voters_collected);
-            }catch (const fc::assert_exception&)
+                    collect_votes(d, table, pending_op.voter, pending_op.data(),
+                                  voting_seconds,
+                                  pv_witness_substitution,
+                                  required_witnesses,
+                                  voters_collected);
+                } FC_CAPTURE_LOG_AND_RETHROW( (table_voting)(pending_op) )
+            }catch (const fc::assert_exception& e)
             {
+                wlog("At ${t} fail vote", ("t", d.head_block_time()));
                 push_fail_vote_operation(d, pending_op);
             }
         }
@@ -951,16 +961,23 @@ void apply_game_result_with_consensus(database& d, const table_object &table,
 #endif
 }
 
-void cleanup_pending_votes(database& d, const table_object &table)
+void cleanup_pending_votes(database& d, const table_object &table, const char *from)
 {
     auto &&current_time_point = d.head_block_time();
     if (current_time_point >= HARDFORK_PLAYCHAIN_1_TIME)
     {
+        const auto& parameters = get_playchain_parameters(d);
         const auto &index_pending = d.get_index_type<pending_table_vote_index>().indices().get<by_table>();
         auto range = index_pending.equal_range(table.id);
-        for (auto itr = range.first; itr != range.second;) {
-            const pending_table_vote_object & vote_obj = *itr++;
-
+        if (range.first != range.second && from)
+        {
+            dlog("from '${f}' prepare cleanup pending votes at table = ${t}", ("f", from)("t", table.id));
+        }
+        auto pending = get_objects_from_index<pending_table_vote_object>(range.first,
+                                                                         range.second,
+                                                                         parameters.maximum_desired_number_of_players_for_tables_allocation * 10);
+        for (const pending_table_vote_object& vote_obj: pending) {
+            wlog("At ${t} fail vote: ${v}", ("t", d.head_block_time())("v", vote_obj));
             push_fail_vote_operation(d, vote_obj);
             d.remove(vote_obj);
         }
@@ -1041,7 +1058,7 @@ void roolback(database& d, const table_object &table, bool full_clear)
             }
         });
 
-        cleanup_pending_votes(d, table);
+        cleanup_pending_votes(d, table, "roolback");
     };
 
     if (d.head_block_time() >= HARDFORK_PLAYCHAIN_10_TIME)

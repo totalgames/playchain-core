@@ -82,7 +82,7 @@ namespace playchain { namespace chain {
                                            const game_witnesses_type &required_witnesses,
                                            const account_votes_type &accounts_with_invalid_vote);
 
-    void cleanup_pending_votes(database& d, const table_object &table);
+    void cleanup_pending_votes(database& d, const table_object &table, const char *from = nullptr);
 
     void cleanup_voting(database& d, const table_id_type &table_id);
 

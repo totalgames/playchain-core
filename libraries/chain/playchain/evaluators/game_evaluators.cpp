@@ -81,7 +81,7 @@ namespace playchain{ namespace chain{
 
         d.remove(table_voting);
 
-        cleanup_pending_votes(d, table);
+        cleanup_pending_votes(d, table, __FUNCTION__);
     }
 
     void expire_voting_for_results(database& d, const table_voting_object &table_voting, const table_object &table)
@@ -132,6 +132,7 @@ namespace playchain{ namespace chain{
 
                 if (!validate_ivariants(d, table, initial_data))
                 {
+                    wlog("At ${t} fail vote: ${table}, ${voter}, ${vote}", ("t", d.head_block_time())("table", table.id)("voter", vote.first)("vote", initial_data));
                     push_fail_vote_operation(d, table, vote.first, initial_data);
                     any_invalid |= true;
                 }else
@@ -167,7 +168,7 @@ namespace playchain{ namespace chain{
                         game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_start_playing{} } );
         }
 
-        cleanup_pending_votes(d, table);
+        cleanup_pending_votes(d, table, __FUNCTION__);
     }
 
     void scheduled_voting_for_results(database& d, const table_voting_object &table_voting, const table_object &table)
@@ -197,7 +198,7 @@ namespace playchain{ namespace chain{
             rollback_game(d, table);
         }
 
-        cleanup_pending_votes(d, table);
+        cleanup_pending_votes(d, table, __FUNCTION__);
     }
 
     game_start_playing_check_evaluator::game_start_playing_check_evaluator()
