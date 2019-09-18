@@ -66,12 +66,12 @@ namespace playchain{ namespace chain{
 
     void rollback_table(database& d, const table_object &table)
     {
-        roolback(d, table, true);
+        rollback(d, table, true);
     }
 
     void rollback_game(database& d, const table_object &table)
     {
-        roolback(d, table, false);
+        rollback(d, table, false);
     }
 
     void expire_voting_for_playing(database& d, const table_voting_object &table_voting, const table_object &table)

@@ -55,7 +55,7 @@ PLAYCHAIN_TEST_CASE(check_negative_start_playing_check_operation)
     data.info = "alice is diller";
 
     BOOST_CHECK_THROW(game_start_playing_check_op(GRAPHENE_COMMITTEE_ACCOUNT, actor(richregistrator1), table, data).validate(), fc::exception);
-    //vote to roolback is possible
+    //vote to rollback is possible
     BOOST_CHECK_NO_THROW(game_start_playing_check_op(richregistrator1, richregistrator1, table, game_initial_data()).validate());
     BOOST_CHECK_THROW(game_start_playing_check_op(actor(richregistrator1), GRAPHENE_COMMITTEE_ACCOUNT, table, data).validate(), fc::exception);
 
@@ -281,7 +281,7 @@ PLAYCHAIN_TEST_CASE(check_validated_with_one_fraud)
     BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.fraud_game_start_playing_check_id));
 }
 
-PLAYCHAIN_TEST_CASE(check_game_roolback_by_vote_for_result)
+PLAYCHAIN_TEST_CASE(check_game_rollback_by_vote_for_result)
 {
     room_id_type room = create_new_room(richregistrator1);
     table_id_type table = create_new_table(richregistrator1, room);

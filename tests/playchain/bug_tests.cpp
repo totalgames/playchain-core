@@ -378,7 +378,7 @@ PLAYCHAIN_TEST_CASE(wrong_pending_vote_bug_reproduction)
 
     wrong_pending_vote_bug();
 
-    //roolback
+    //rollback
     BOOST_REQUIRE(table_obj.is_free());
 }
 

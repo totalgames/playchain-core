@@ -881,7 +881,7 @@ void apply_game_result_with_consensus(database& d, const table_object &table,
     if (result.cash.empty())
     {
         //there was a vote to cancel the game
-        roolback(d, table, false);
+        rollback(d, table, false);
     }else
     {
         auto apply_impl = [&]()
@@ -1011,9 +1011,9 @@ void cleanup_voting(database& d, const table_id_type &table_id)
     }
 }
 
-void roolback(database& d, const table_object &table, bool full_clear)
+void rollback(database& d, const table_object &table, bool full_clear)
 {
-    auto roolback_impl = [&]()
+    auto rollback_impl = [&]()
     {
         const auto &table_owner = table.room(d).owner;
 
@@ -1075,24 +1075,24 @@ void roolback(database& d, const table_object &table, bool full_clear)
             }
         });
 
-        cleanup_pending_votes(d, table, "roolback");
+        cleanup_pending_votes(d, table, "rollback");
     };
 
     if (d.head_block_time() >= HARDFORK_PLAYCHAIN_10_TIME)
     {
         if (!full_clear)
         {
-            with_registration_buy_in(d, table, roolback_impl);
+            with_registration_buy_in(d, table, rollback_impl);
         }else
         {
-            roolback_impl();
+            rollback_impl();
             cleanup_buy_ins(d, table);
         }
 
         cleanup_voting(d, table.id);
     }else
     {
-        roolback_impl();
+        rollback_impl();
         obsolete_buyins_resolve(d, table, full_clear);
     }
 }

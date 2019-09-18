@@ -104,7 +104,7 @@ bool apply_game_result_check_voting(database& d, const table_object &table, cons
             d.push_applied_operation(
                         game_event_operation{ table.id, table.room(d).owner, fail_consensus_game_result{} } );
 
-            roolback(d, table, false);
+            rollback(d, table, false);
         }
 
         return false;
