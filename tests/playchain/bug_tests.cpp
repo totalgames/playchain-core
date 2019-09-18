@@ -17,9 +17,13 @@ struct bug_tests_fixture: public playchain_common::playchain_fixture
     DECLARE_ACTOR(alice)
     DECLARE_ACTOR(bob)
     DECLARE_ACTOR(sam)
+    DECLARE_ACTOR(alice2)
+    DECLARE_ACTOR(bob2)
+    DECLARE_ACTOR(sam2)
 
     room_id_type test_room;
     table_id_type test_table;
+    table_id_type test_table2;
 
     bug_tests_fixture()
     {
@@ -34,12 +38,16 @@ struct bug_tests_fixture: public playchain_common::playchain_fixture
         CREATE_PLAYER(tableowner, alice);
         CREATE_PLAYER(tableowner, bob);
         CREATE_PLAYER(tableowner, sam);
+        CREATE_PLAYER(tableowner, alice2);
+        CREATE_PLAYER(tableowner, bob2);
+        CREATE_PLAYER(tableowner, sam2);
 
         create_witness(witness1);
         create_witness(witness2);
 
         test_room = create_new_room(tableowner);
         test_table = create_new_table(tableowner, test_room, 0u, default_table_metadata);
+        test_table2 = create_new_table(tableowner, test_room, 0u, default_table_metadata + "2");
     }
 
     asset get_account_balance(const Actor& account)
@@ -236,6 +244,76 @@ struct bug_tests_fixture: public playchain_common::playchain_fixture
         generate_blocks(buy_in_start_livetime +
                         fc::seconds(params.buy_in_expiration_seconds / 2));
     }
+
+    void wrong_pending_vote_bug()
+    {
+        const table_object &table_obj = test_table(db);
+        const table_object &table2_obj = test_table2(db);
+
+        BOOST_REQUIRE(table_obj.is_free());
+
+        auto stake = asset(player_init_balance/3);
+
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(alice, get_next_uid(actor(alice)), stake, default_table_metadata));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(bob, get_next_uid(actor(bob)), stake, default_table_metadata));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(sam, get_next_uid(actor(sam)), stake, default_table_metadata));
+
+        auto next_table_metadata = default_table_metadata + "2";
+
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(alice2, get_next_uid(actor(alice2)), stake, next_table_metadata));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(bob2, get_next_uid(actor(bob2)), stake, next_table_metadata));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(sam2, get_next_uid(actor(sam2)), stake, next_table_metadata));
+
+        generate_block();
+
+        pending_buy_in_resolve_all(tableowner, table_obj);
+        pending_buy_in_resolve_all(tableowner, table2_obj);
+
+        BOOST_REQUIRE(table_obj.is_free());
+        BOOST_REQUIRE(table2_obj.is_free());
+
+        game_initial_data initial;
+        initial.cash[actor(alice)] = stake;
+        initial.cash[actor(bob)] = stake;
+        initial.cash[actor(sam)] = stake;
+        initial.info = "110";
+
+        game_initial_data initial2;
+        initial2.cash[actor(alice2)] = stake;
+        initial2.cash[actor(bob2)] = stake;
+        initial2.cash[actor(sam2)] = stake;
+        initial2.info = "110";
+
+        //create pending vote
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice2, test_table2, initial2));
+
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(tableowner, test_table, initial));
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, test_table, initial));
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, test_table, initial));
+
+        generate_block();
+
+        auto test_voting_livetime = db.head_block_time();
+
+        BOOST_REQUIRE(table_obj.is_free());
+        BOOST_REQUIRE(table2_obj.is_free());
+
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(sam, test_table, initial));
+
+        generate_block();
+
+        BOOST_REQUIRE(table_obj.is_playing());
+        BOOST_REQUIRE(table2_obj.is_free());
+
+        //rest votes to prepare for scheduled_voting_for_playing
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(tableowner, test_table2, initial2));
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob2, test_table2, initial2));
+        BOOST_REQUIRE_NO_THROW(game_start_playing_check(sam2, test_table2, initial2));
+
+        const auto& params = get_playchain_parameters(db);
+        generate_blocks(test_voting_livetime +
+                        fc::seconds(params.voting_for_playing_expiration_seconds));
+    }
 };
 
 BOOST_FIXTURE_TEST_SUITE( bug_tests, bug_tests_fixture)
@@ -290,6 +368,30 @@ PLAYCHAIN_TEST_CASE(wrong_buy_in_expiration_bug_fix)
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(alice)));
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(bob)));
     BOOST_REQUIRE(table_obj.is_waiting_at_table(get_player(sam)));
+}
+
+PLAYCHAIN_TEST_CASE(wrong_pending_vote_bug_reproduction)
+{
+    generate_blocks(HARDFORK_PLAYCHAIN_10_TIME);
+
+    const table_object &table_obj = test_table2(db);
+
+    wrong_pending_vote_bug();
+
+    //roolback
+    BOOST_REQUIRE(table_obj.is_free());
+}
+
+PLAYCHAIN_TEST_CASE(wrong_pending_vote_bug_fix)
+{
+    generate_blocks(HARDFORK_PLAYCHAIN_11_TIME);
+
+    const table_object &table_obj = test_table2(db);
+
+    wrong_pending_vote_bug();
+
+    //ok
+    BOOST_REQUIRE(table_obj.is_playing());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

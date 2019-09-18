@@ -1,11 +1,11 @@
-// #playchain-11 Fixed wrong pending votes selection
+// #playchain-11 Fixed wrong pending votes selection and set_required_voters for voting for playing
 //
 #ifndef HARDFORK_PLAYCHAIN_11_TIME
     #if defined(PLAYCHAIN_MAINNET)
-        // 18 September 2019 08:00:00 GMT
-        #define HARDFORK_PLAYCHAIN_11_TIME (fc::time_point_sec( 1568793600 ))
+        // 19 September 2019 08:00:00 GMT
+        #define HARDFORK_PLAYCHAIN_11_TIME (fc::time_point_sec( 1568880000 ))
     #elif defined(PLAYCHAIN_TESTNET)
-        // 17 September 2019 12:00:00 GMT
-        #define HARDFORK_PLAYCHAIN_11_TIME (fc::time_point_sec( 1568721600 ))
+        // 18 September 2019 15:00:00 GMT
+        #define HARDFORK_PLAYCHAIN_11_TIME (fc::time_point_sec( 1568818800 ))
     #endif
 #endif

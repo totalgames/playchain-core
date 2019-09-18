@@ -174,19 +174,36 @@ struct set_required_voters
     //start playing voting
     void operator()(const game_initial_data &vote_data)
     {
-        if (voter == table.room(d).owner)
-        {
-            table_voting.required_player_voters.clear();
-            for(const auto &pr: vote_data.cash)
-            {
-                table_voting.required_player_voters.emplace(pr.first);
-            }
+        auto &&now = d.head_block_time();
 
-            table_voting.etalon_vote = vote_data;
-            table_voting.witnesses_allowed_for_substitution =
-                    calculate_witnesses_allowed_for_substitution(table_voting.required_player_voters.size(),
-                                                         pv_witness_substitution);
+        if (now < HARDFORK_PLAYCHAIN_11_TIME)
+        {
+            if (voter != table.room(d).owner)
+                return;
+        } //else for everyone who started voting procedure (is_table_owner(d, table, voter) || is_game_witness(d, table, voter))
+
+        table_voting.required_player_voters.clear();
+        for(const auto &pr: vote_data.cash)
+        {
+            table_voting.required_player_voters.emplace(pr.first);
         }
+
+        if (now >= HARDFORK_PLAYCHAIN_11_TIME)
+        {
+            //Table owner's vote is required to start game.
+            //  To revert to old behavior use
+            //  percentage_of_voter_witness_substitution_while_voting_for_playing > 0
+            table_voting.required_player_voters.emplace(table.room(d).owner);
+        }
+
+        if (now < HARDFORK_PLAYCHAIN_11_TIME)
+        {
+            //do not use extra etalon check from HARDFORK_PLAYCHAIN_11_TIME
+            table_voting.etalon_vote = vote_data;
+        }
+        table_voting.witnesses_allowed_for_substitution =
+                calculate_witnesses_allowed_for_substitution(table_voting.required_player_voters.size(),
+                                                     pv_witness_substitution);
     }
 
     //result voting

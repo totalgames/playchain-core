@@ -122,6 +122,13 @@ namespace playchain{ namespace chain{
         account_votes_type accounts_with_invalid_vote;
         game_witnesses_type required_witnesses;
 
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
+        {
+            ilog("${t} >> scheduled_voting_for_playing: ${v}", ("t", d.head_block_time())("v", table_voting));
+            idump((table));
+        }
+#endif
         if (d.head_block_time() >= HARDFORK_PLAYCHAIN_9_TIME)
         {
             bool any_invalid = false;
@@ -179,6 +186,13 @@ namespace playchain{ namespace chain{
         account_votes_type accounts_with_invalid_vote;
         game_witnesses_type required_witnesses = table.voted_witnesses;
 
+#if defined(LOG_VOTING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_VOTING_BLOCK_TIMESTUMP_FROM ))
+        {
+            ilog("${t} >> scheduled_voting_for_results: ${v}", ("t", d.head_block_time())("v", table_voting));
+            idump((table));
+        }
+#endif
         if (voting(d,
                    table_voting,
                    table,

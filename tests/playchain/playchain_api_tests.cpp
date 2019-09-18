@@ -38,7 +38,7 @@ struct playchain_api_fixture : public playchain_common::playchain_fixture {
     create_account("mike");
 
     //test only with latest voting algorithm!!!
-    generate_blocks(HARDFORK_PLAYCHAIN_10_TIME);
+    generate_blocks(HARDFORK_PLAYCHAIN_11_TIME);
   }
 
   bool is_account_exists(const string &name) const {

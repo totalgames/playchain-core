@@ -38,7 +38,7 @@ struct voting_fixture: public playchain_common::playchain_fixture
         CREATE_PLAYER(richregistrator1, jon);
 
         //test only with latest voting algorithm!!!
-        generate_blocks(HARDFORK_PLAYCHAIN_10_TIME);
+        generate_blocks(HARDFORK_PLAYCHAIN_11_TIME);
     }
 };
 
@@ -1923,6 +1923,7 @@ PLAYCHAIN_TEST_CASE(sticked_pending_votes_bug_check)
     BOOST_CHECK(check_game_event_type(history, ++record_offset, game_event_type_id.fail_expire_game_start_playing_id));
 }
 
+#if 0 //obsolete: from HARDFORK_PLAYCHAIN_11_TIME etalon check removed
 PLAYCHAIN_TEST_CASE(wrong_players_composition_votes_bug_check)
 {
     const std::string meta = "Game";
@@ -1992,6 +1993,7 @@ PLAYCHAIN_TEST_CASE(wrong_players_composition_votes_bug_check)
 
     print_last_operations(actor(richregistrator1), next_history_record);
 }
+#endif
 
 PLAYCHAIN_TEST_CASE(change_invariants_while_voting_for_playing)
 {
@@ -2295,6 +2297,168 @@ PLAYCHAIN_TEST_CASE(check_reset_voting_for_result)
     BOOST_REQUIRE_NO_THROW(game_reset(richregistrator1, table, false));
 
     BOOST_REQUIRE(!is_table_voting(db, table));
+
+    BOOST_REQUIRE(table_obj.is_free());
+}
+
+PLAYCHAIN_TEST_CASE(start_playing_pending_vote_check)
+{
+    room_id_type room = create_new_room(richregistrator1);
+    table_id_type table = create_new_table(richregistrator1, room);
+
+    auto stake = asset(player_init_balance/3);
+
+    const table_object &table_obj = table(db);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_CHECK_NO_THROW(buy_in_table(alice, richregistrator1, table, stake));
+    BOOST_CHECK_NO_THROW(buy_in_table(bob, richregistrator1, table, stake));
+
+    game_initial_data initial;
+    initial.cash[actor(alice)] = stake;
+    initial.cash[actor(bob)] = stake;
+    initial.info = "110";
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
+
+    generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
+}
+
+PLAYCHAIN_TEST_CASE(playing_results_pending_vote_check)
+{
+    room_id_type room = create_new_room(richregistrator1);
+    table_id_type table = create_new_table(richregistrator1, room);
+
+    auto stake = asset(player_init_balance/3);
+
+    const table_object &table_obj = table(db);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_CHECK_NO_THROW(buy_in_table(alice, richregistrator1, table, stake));
+    BOOST_CHECK_NO_THROW(buy_in_table(bob, richregistrator1, table, stake));
+
+    game_initial_data initial;
+    initial.cash[actor(alice)] = stake;
+    initial.cash[actor(bob)] = stake;
+    initial.info = "110";
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
+
+    generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
+
+    game_result result;
+    auto win = asset(stake.amount/2);
+    auto win_rake = asset(win.amount/20);
+    auto &alice_result = result.cash[actor(alice)];
+    alice_result.cash = stake + win - win_rake;
+    alice_result.rake = win_rake;
+    auto &bob_result = result.cash[actor(bob)];
+    bob_result.cash = stake - win;
+    bob_result.rake = asset(0);
+    result.log = "alice has A 4";
+
+    BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
+    BOOST_CHECK_NO_THROW(game_result_check(richregistrator1, table, result));
+    BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
+
+    generate_block();
+
+    BOOST_REQUIRE(table_obj.is_free());
+}
+
+PLAYCHAIN_TEST_CASE(start_playing_pending_vote_with_witness_check)
+{
+    room_id_type room = create_new_room(richregistrator1);
+    table_id_type table = create_new_table(richregistrator1, room);
+    create_witness(richregistrator2);
+
+    auto stake = asset(player_init_balance/3);
+
+    const table_object &table_obj = table(db);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_CHECK_NO_THROW(buy_in_table(alice, richregistrator1, table, stake));
+    BOOST_CHECK_NO_THROW(buy_in_table(bob, richregistrator1, table, stake));
+
+    game_initial_data initial;
+    initial.cash[actor(alice)] = stake;
+    initial.cash[actor(bob)] = stake;
+    initial.info = "110";
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator2, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
+
+    generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
+}
+
+PLAYCHAIN_TEST_CASE(playing_results_pending_vote_with_witness_check)
+{
+    room_id_type room = create_new_room(richregistrator1);
+    table_id_type table = create_new_table(richregistrator1, room);
+    create_witness(richregistrator2);
+
+    auto stake = asset(player_init_balance/3);
+
+    const table_object &table_obj = table(db);
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_CHECK_NO_THROW(buy_in_table(alice, richregistrator1, table, stake));
+    BOOST_CHECK_NO_THROW(buy_in_table(bob, richregistrator1, table, stake));
+
+    game_initial_data initial;
+    initial.cash[actor(alice)] = stake;
+    initial.cash[actor(bob)] = stake;
+    initial.info = "110";
+
+    BOOST_REQUIRE(table_obj.is_free());
+
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(alice, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator2, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(bob, table, initial));
+    BOOST_REQUIRE_NO_THROW(game_start_playing_check(richregistrator1, table, initial));
+
+    generate_block();
+
+    BOOST_REQUIRE(table_obj.is_playing());
+
+    game_result result;
+    auto win = asset(stake.amount/2);
+    auto win_rake = asset(win.amount/20);
+    auto &alice_result = result.cash[actor(alice)];
+    alice_result.cash = stake + win - win_rake;
+    alice_result.rake = win_rake;
+    auto &bob_result = result.cash[actor(bob)];
+    bob_result.cash = stake - win;
+    bob_result.rake = asset(0);
+    result.log = "alice has A 4";
+
+    BOOST_CHECK_NO_THROW(game_result_check(alice, table, result));
+    BOOST_CHECK_NO_THROW(game_result_check(richregistrator2, table, result));
+    BOOST_CHECK_NO_THROW(game_result_check(bob, table, result));
+
+    generate_block();
 
     BOOST_REQUIRE(table_obj.is_free());
 }
