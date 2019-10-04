@@ -25,7 +25,8 @@ struct room_rating_fixture : public playchain_common::playchain_fixture
 
         init_fees();
 
-        generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
+        //test only with latest voting algorithm!!!
+        generate_blocks(HARDFORK_PLAYCHAIN_11_TIME);
     }
 
     table_id_type create_new_table(const Actor& owner, const room_id_type &room, const amount_type required_witnesses = 0u, const std::string &metadata = {})
@@ -41,8 +42,6 @@ BOOST_FIXTURE_TEST_SUITE(room_rating_tests, room_rating_fixture)
 
 PLAYCHAIN_TEST_CASE(check_rating_changes_only_in_maintance)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
     const std::string meta = "Game";
 
@@ -75,8 +74,6 @@ PLAYCHAIN_TEST_CASE(check_rating_changes_only_in_maintance)
 
 PLAYCHAIN_TEST_CASE(check_failed_resolve_results_in_rating_degrodation)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
 
     const std::string meta = "Game";
@@ -135,8 +132,6 @@ PLAYCHAIN_TEST_CASE(check_failed_resolve_results_in_rating_degrodation)
 
 PLAYCHAIN_TEST_CASE(check_more_buyins_give_higher_rating)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
 
     const std::string meta = "Game";
@@ -189,8 +184,6 @@ PLAYCHAIN_TEST_CASE(check_more_buyins_give_higher_rating)
 
 PLAYCHAIN_TEST_CASE(check_canceled_buyin_does_not_influence_rating)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
 
     const std::string meta = "Game";
@@ -251,8 +244,6 @@ PLAYCHAIN_TEST_CASE(check_canceled_buyin_does_not_influence_rating)
 
 PLAYCHAIN_TEST_CASE(check_before_fade_start_buyins_give_the_same_contribution_to_rating)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
 
     const std::string meta = "Game";
@@ -316,8 +307,6 @@ PLAYCHAIN_TEST_CASE(check_before_fade_start_buyins_give_the_same_contribution_to
 
 PLAYCHAIN_TEST_CASE(check_notresolved_buyins_are_not_used_in_rating_count)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
 
     const std::string meta = "Game";
@@ -416,8 +405,6 @@ namespace
 
 PLAYCHAIN_TEST_CASE(check_calculation_formula)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
 
     const std::string meta = "Game";
@@ -518,8 +505,6 @@ PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_0_before_playchain_5hf)
 
 PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_avarage_rating_after_playchain_5hf)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_5_TIME);
-
     const std::string protocol_version = "1.0.0+20190223";
     const std::string meta = "Game";
 
@@ -550,8 +535,6 @@ PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_avarage_rating_after_playch
 
 PLAYCHAIN_TEST_CASE(check_room_rake_changing)
 {
-    generate_blocks(HARDFORK_PLAYCHAIN_2_TIME);
-
     const std::string meta = "Game";
 
     room_id_type room1 = create_new_room(richregistrator, "room1");

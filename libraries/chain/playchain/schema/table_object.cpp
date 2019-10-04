@@ -105,7 +105,8 @@ void table_object::adjust_cash(const player_id_type &player, asset delta)
             if (!playing_cash.count(player) && !pending_proposals.count(player))
             {
                 assert(occupied_places > 0);
-                --occupied_places;
+                if (occupied_places > 0)
+                    --occupied_places;
             }
         }
     }
@@ -130,7 +131,8 @@ void table_object::adjust_playing_cash(const player_id_type &player, asset delta
             if (!cash.count(player) && !pending_proposals.count(player))
             {
                 assert(occupied_places > 0);
-                --occupied_places;
+                if (occupied_places > 0)
+                    --occupied_places;
             }
         }
     }
@@ -143,7 +145,8 @@ void table_object::clear_cash()
         if (!playing_cash.count(p.first) && !pending_proposals.count(p.first))
         {
             assert(occupied_places > 0);
-            --occupied_places;
+            if (occupied_places > 0)
+                --occupied_places;
         }
     }
     cash.clear();
@@ -156,7 +159,8 @@ void table_object::clear_playing_cash()
         if (!cash.count(p.first) && !pending_proposals.count(p.first))
         {
             assert(occupied_places > 0);
-            --occupied_places;
+            if (occupied_places > 0)
+                --occupied_places;
         }
     }
     playing_cash.clear();
@@ -193,7 +197,8 @@ void table_object::remove_pending_proposal(const player_id_type &player)
         if (!cash.count(player) && !playing_cash.count(player))
         {
             assert(occupied_places > 0);
-            --occupied_places;
+            if (occupied_places > 0)
+                --occupied_places;
         }
     }
 }
