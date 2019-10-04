@@ -28,10 +28,13 @@
 
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
+#include <playchain/chain/schema/room_rating_object.hpp>
 
 #include <playchain/chain/evaluators/game_evaluators.hpp>
 #include <playchain/chain/evaluators/db_helpers.hpp>
 #include <playchain/chain/evaluators/validators.hpp>
+
+#include <graphene/chain/hardfork.hpp>
 
 namespace playchain { namespace chain {
 
@@ -92,6 +95,14 @@ void update_expired_table_alive(database &d)
         const table_object &table = alive.table(d);
 
         d.remove(alive);
+
+        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_12_TIME)
+        {
+            const auto& idx = d.get_index_type<room_rating_measurement2_index>().indices().get<by_table>();
+            auto it = idx.find(table.id);
+            if (idx.end() != it)
+                d.remove(*it);
+        }
 
         table.set_weight(d);
     }

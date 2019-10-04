@@ -27,6 +27,7 @@
 #include <graphene/db/object.hpp>
 #include <graphene/chain/protocol/asset.hpp>
 #include <graphene/db/generic_index.hpp>
+#include <boost/multi_index/composite_key.hpp>
 
 #include <playchain/chain/protocol/playchain_types.hpp>
 
@@ -62,9 +63,26 @@ namespace playchain {
             bool waiting_resolve = true;
         };
 
+        class room_rating_measurement2_object : public graphene::db::abstract_object<room_rating_measurement2_object>
+        {
+        public:
+            static constexpr uint8_t space_id = implementation_for_playchain_ids;
+            static constexpr uint8_t type_id = impl_room_rating_measurement2_object_type;
+
+            fc::time_point_sec updated = time_point_sec::min();
+
+            room_id_type room;
+
+            table_id_type table;
+
+            uint32_t weight;
+        };
+
+        struct by_constraint_id;
         struct by_pending_buy_in;
         struct by_room;
         struct by_expiration;
+
         /**
          * @ingroup object_index
          */
@@ -73,6 +91,12 @@ namespace playchain {
             room_rating_measurement_object,
                 indexed_by <
                 ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
+
+                ordered_unique<tag<by_constraint_id>,
+                          composite_key<room_rating_measurement_object,
+                          member<room_rating_measurement_object, room_id_type, &room_rating_measurement_object::room>,
+                          member<room_rating_measurement_object, table_id_type, &room_rating_measurement_object::table>,
+                          member<room_rating_measurement_object, pending_buy_in_id_type, &room_rating_measurement_object::associated_buyin > >>,
 
                 ordered_unique< tag<by_pending_buy_in>,
                     member<room_rating_measurement_object, pending_buy_in_id_type, &room_rating_measurement_object::associated_buyin > >,
@@ -85,6 +109,27 @@ namespace playchain {
             >> ;
 
         using room_rating_measurement_index = generic_index<room_rating_measurement_object, room_rating_measurement_multi_index_type>;
+
+        struct by_table;
+
+        /**
+         * @ingroup object_index
+         */
+        using room_rating_measurement2_multi_index_type =
+        multi_index_container <
+            room_rating_measurement2_object,
+                indexed_by <
+                ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
+
+                ordered_unique<tag<by_table>,
+                          member<room_rating_measurement2_object, table_id_type, &room_rating_measurement2_object::table> >,
+
+                ordered_non_unique< tag<by_room>,
+                                member<room_rating_measurement2_object, room_id_type, &room_rating_measurement2_object::room > >
+
+            >> ;
+
+        using room_rating_measurement2_index = generic_index<room_rating_measurement2_object, room_rating_measurement2_multi_index_type>;
     }
 }
 
@@ -98,3 +143,9 @@ FC_REFLECT_DERIVED(playchain::chain::room_rating_measurement_object,
                     (weight)
                     (waiting_resolve))
 
+FC_REFLECT_DERIVED(playchain::chain::room_rating_measurement2_object,
+                    (graphene::db::object),
+                    (updated)
+                    (room)
+                    (table)
+                    (weight))

@@ -141,12 +141,46 @@ namespace
         }
     }
 
-    void recalculate_room_rating_factors(database &d, const room_object &room)
+    struct measurement_waiting_resolve_visitor
     {
+        measurement_waiting_resolve_visitor() = default;
+
+        bool operator()(const room_rating_measurement_object &obj)
+        {
+            return obj.waiting_resolve;
+        }
+
+        bool operator()(const room_rating_measurement2_object &)
+        {
+            return false;
+        }
+    };
+
+    struct measurement_start_seconds_visitor
+    {
+        measurement_start_seconds_visitor() = default;
+
+        fc::time_point_sec operator()(const room_rating_measurement_object &obj)
+        {
+            return obj.created;
+        }
+
+        fc::time_point_sec operator()(const room_rating_measurement2_object &obj)
+        {
+            return obj.updated;
+        }
+    };
+
+    template<typename MeasurementsIndex>
+    std::tuple<uint64_t, uint64_t, uint32_t> calculate_measurements(database &d, const room_object &room)
+    {
+        measurement_waiting_resolve_visitor waiting_resolve;
+        measurement_start_seconds_visitor start_seconds;
+
         uint64_t weight_sum_by_time_factor = 0;
         uint64_t measurement_sum_by_time_factor = 0;
 
-        auto& measurements_by_room = d.get_index_type<room_rating_measurement_index>().indices().get<by_room>();
+        auto& measurements_by_room = d.get_index_type<MeasurementsIndex>().indices().template get<by_room>();
 
         auto range = measurements_by_room.equal_range(room.id);
         uint32_t measurements_used_to_rating_calculation = 0;
@@ -154,10 +188,11 @@ namespace
         {
             auto& measurement = *it;
 
-            if(measurement.waiting_resolve)
+            if(waiting_resolve(measurement))
                 continue;
 
-            std::chrono::seconds elapsed_secconds(d.head_block_time().sec_since_epoch() - measurement.created.sec_since_epoch());
+            auto since = start_seconds(measurement);
+            std::chrono::seconds elapsed_secconds(d.head_block_time().sec_since_epoch() - since.sec_since_epoch());
             auto minutes_from_measurement_till_now = std::chrono::duration_cast<std::chrono::minutes> (elapsed_secconds);
 
             weight_sum_by_time_factor += measurement.weight* time_factor(minutes_from_measurement_till_now.count());
@@ -166,10 +201,18 @@ namespace
             ++measurements_used_to_rating_calculation;
         }
 
+        return std::make_tuple(weight_sum_by_time_factor, measurement_sum_by_time_factor, measurements_used_to_rating_calculation);
+    }
+
+    void recalculate_room_rating_factors(database &d, const room_object &room)
+    {
+        auto measurements = calculate_measurements<room_rating_measurement_index>(d, room);
+        auto measurements2 = calculate_measurements<room_rating_measurement2_index>(d, room);
+
         d.modify(room, [&](room_object &obj) {
-            obj.weight_sum_by_time_factor = weight_sum_by_time_factor;
-            obj.measurement_sum_by_time_factor = measurement_sum_by_time_factor;
-            obj.measurement_quantity = measurements_used_to_rating_calculation;
+            obj.weight_sum_by_time_factor = std::get<0>(measurements) + std::get<0>(measurements2);
+            obj.measurement_sum_by_time_factor = std::get<1>(measurements) + std::get<1>(measurements2);
+            obj.measurement_quantity = std::get<2>(measurements) + std::get<2>(measurements2);
         });
     }
 

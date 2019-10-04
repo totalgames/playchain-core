@@ -30,12 +30,44 @@
 
 #include <playchain/chain/schema/table_object.hpp>
 #include <playchain/chain/schema/room_object.hpp>
+#include <playchain/chain/schema/room_rating_object.hpp>
 
 #include <graphene/chain/hardfork.hpp>
 
 #include <limits>
 
 namespace playchain{ namespace chain{
+
+    namespace
+    {
+        void set_rating_measurement_by_alive_table(database& d, const table_id_type &table)
+        {
+            auto room_id = table(d).room;
+
+            auto& measurements_by_room = d.get_index_type<room_rating_measurement_index>().indices().template get<by_room>();
+
+            auto range = measurements_by_room.equal_range(room_id);
+            if (range.first == range.second)
+            {
+                const auto& idx = d.get_index_type<room_rating_measurement2_index>().indices().get<by_table>();
+                auto it = idx.find(table);
+                if (idx.end() != it)
+                {
+                    d.modify(*it, [&](room_rating_measurement2_object& obj) {
+                        obj.updated = d.head_block_time();
+                                });
+                }else
+                {
+                    d.create<room_rating_measurement2_object>([&](room_rating_measurement2_object& obj) {
+                                               obj.updated = d.head_block_time();
+                                               obj.room = room_id;
+                                               obj.table = table;
+                                               obj.weight = 10;
+                    });
+                }
+            }
+        }
+    }
 
     void_result table_create_evaluator::do_evaluate( const operation_type& op )
     {
@@ -166,6 +198,10 @@ namespace playchain{ namespace chain{
 
         table_obj.set_weight(d);
 
+        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_12_TIME)
+        {
+            set_rating_measurement_by_alive_table(d, table);
+        }
         return alive_id;
     }
 
