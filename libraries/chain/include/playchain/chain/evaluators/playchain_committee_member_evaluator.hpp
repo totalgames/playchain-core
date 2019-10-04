@@ -67,4 +67,7 @@ namespace playchain { namespace chain {
 
    using playchain_committee_member_update_parameters_v3_evaluator = playchain_committee_member_update_parameters_evaluator_impl<
            playchain_committee_member_update_parameters_v3_operation>;
+
+   using playchain_committee_member_update_parameters_v4_evaluator = playchain_committee_member_update_parameters_evaluator_impl<
+           playchain_committee_member_update_parameters_v4_operation>;
 } } // graphene::chain

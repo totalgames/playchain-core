@@ -70,9 +70,10 @@ namespace playchain { namespace chain {
    struct playchain_parameters_v2: public playchain_parameters_v1
    {
        playchain_parameters_v2() = default;
-       playchain_parameters_v2(const playchain_parameters_v1 &other)
+       template<typename V>
+       playchain_parameters_v2(const V &other)
        {
-           reinterpret_cast<playchain_parameters_v1 &>(*this) = other;
+           static_cast<V &>(*this) = other;
        }
 
        uint32_t                table_alive_expiration_seconds = PLAYCHAIN_DEFAULT_TABLE_ALIVE_EXPIRATION_SECONDS;
@@ -81,20 +82,19 @@ namespace playchain { namespace chain {
 
    struct playchain_parameters_v3: public playchain_parameters_v2
    {
-       playchain_parameters_v3() = default;
-       playchain_parameters_v3(const playchain_parameters_v1 &other)
-       {
-           reinterpret_cast<playchain_parameters_v1 &>(*this) = other;
-       }
-       playchain_parameters_v3(const playchain_parameters_v2 &other)
-       {
-           reinterpret_cast<playchain_parameters_v2 &>(*this) = other;
-       }
+       using playchain_parameters_v2::playchain_parameters_v2;
 
        uint16_t                min_votes_for_playing = PLAYCHAIN_DEFAULT_MIN_VOTES_FOR_PLAYING;
    };
 
-   using playchain_parameters = playchain_parameters_v3;
+   struct playchain_parameters_v4: public playchain_parameters_v3
+   {
+       using playchain_parameters_v3::playchain_parameters_v3;
+
+       uint16_t                standby_weight_per_measurement = PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT;
+   };
+
+   using playchain_parameters = playchain_parameters_v4;
 
 } }  // graphene::chain
 
@@ -132,4 +132,8 @@ FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v2, (playchain::chain:
 
 FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v3, (playchain::chain::playchain_parameters_v2),
                    (min_votes_for_playing)
+                   )
+
+FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v4, (playchain::chain::playchain_parameters_v3),
+                   (standby_weight_per_measurement)
                    )

@@ -129,9 +129,10 @@ namespace
         });
     }
 
-    void remove_expired_room_rating_measurements(database &d)
+    template<typename MeasurementsIndex>
+    void remove_expired_room_rating_measurement(database &d)
     {
-        auto& measurements_by_expiration = d.get_index_type<room_rating_measurement_index>().indices().get<by_expiration>();
+        auto& measurements_by_expiration = d.get_index_type<MeasurementsIndex>().indices().template get<by_expiration>();
 
         while (measurements_by_expiration.begin() != measurements_by_expiration.end()
             && measurements_by_expiration.begin()->expiration <= d.head_block_time())
@@ -141,31 +142,37 @@ namespace
         }
     }
 
+    void remove_expired_room_rating_measurements(database &d)
+    {
+        remove_expired_room_rating_measurement<room_rating_kpi_measurement_index>(d);
+        remove_expired_room_rating_measurement<room_rating_standby_measurement_index>(d);
+    }
+
     struct measurement_waiting_resolve_visitor
     {
         measurement_waiting_resolve_visitor() = default;
 
-        bool operator()(const room_rating_measurement_object &obj)
+        bool operator()(const room_rating_kpi_measurement_object &obj)
         {
             return obj.waiting_resolve;
         }
 
-        bool operator()(const room_rating_measurement2_object &)
+        bool operator()(const room_rating_standby_measurement_object &)
         {
             return false;
         }
     };
 
-    struct measurement_start_seconds_visitor
+    struct measurement_since_seconds_visitor
     {
-        measurement_start_seconds_visitor() = default;
+        measurement_since_seconds_visitor() = default;
 
-        fc::time_point_sec operator()(const room_rating_measurement_object &obj)
+        fc::time_point_sec operator()(const room_rating_kpi_measurement_object &obj)
         {
             return obj.created;
         }
 
-        fc::time_point_sec operator()(const room_rating_measurement2_object &obj)
+        fc::time_point_sec operator()(const room_rating_standby_measurement_object &obj)
         {
             return obj.updated;
         }
@@ -175,7 +182,7 @@ namespace
     std::tuple<uint64_t, uint64_t, uint32_t> calculate_measurements(database &d, const room_object &room)
     {
         measurement_waiting_resolve_visitor waiting_resolve;
-        measurement_start_seconds_visitor start_seconds;
+        measurement_since_seconds_visitor since_seconds;
 
         uint64_t weight_sum_by_time_factor = 0;
         uint64_t measurement_sum_by_time_factor = 0;
@@ -183,7 +190,7 @@ namespace
         auto& measurements_by_room = d.get_index_type<MeasurementsIndex>().indices().template get<by_room>();
 
         auto range = measurements_by_room.equal_range(room.id);
-        uint32_t measurements_used_to_rating_calculation = 0;
+        uint32_t measurement_quantity = 0;
         for (auto it =range.first; it!=range.second; ++it)
         {
             auto& measurement = *it;
@@ -191,28 +198,29 @@ namespace
             if(waiting_resolve(measurement))
                 continue;
 
-            auto since = start_seconds(measurement);
+            auto since = since_seconds(measurement);
             std::chrono::seconds elapsed_secconds(d.head_block_time().sec_since_epoch() - since.sec_since_epoch());
             auto minutes_from_measurement_till_now = std::chrono::duration_cast<std::chrono::minutes> (elapsed_secconds);
 
-            weight_sum_by_time_factor += measurement.weight* time_factor(minutes_from_measurement_till_now.count());
-            measurement_sum_by_time_factor += time_factor(minutes_from_measurement_till_now.count());
+            auto tf = time_factor(minutes_from_measurement_till_now.count());
+            weight_sum_by_time_factor += measurement.weight * tf;
+            measurement_sum_by_time_factor += tf;
 
-            ++measurements_used_to_rating_calculation;
+            ++measurement_quantity;
         }
 
-        return std::make_tuple(weight_sum_by_time_factor, measurement_sum_by_time_factor, measurements_used_to_rating_calculation);
+        return std::make_tuple(weight_sum_by_time_factor, measurement_sum_by_time_factor, measurement_quantity);
     }
 
     void recalculate_room_rating_factors(database &d, const room_object &room)
     {
-        auto measurements = calculate_measurements<room_rating_measurement_index>(d, room);
-        auto measurements2 = calculate_measurements<room_rating_measurement2_index>(d, room);
+        auto kpi_measurements = calculate_measurements<room_rating_kpi_measurement_index>(d, room);
+        auto standby_measurements = calculate_measurements<room_rating_standby_measurement_index>(d, room);
 
         d.modify(room, [&](room_object &obj) {
-            obj.weight_sum_by_time_factor = std::get<0>(measurements) + std::get<0>(measurements2);
-            obj.measurement_sum_by_time_factor = std::get<1>(measurements) + std::get<1>(measurements2);
-            obj.measurement_quantity = std::get<2>(measurements) + std::get<2>(measurements2);
+            obj.weight_sum_by_time_factor = std::get<0>(kpi_measurements) + std::get<0>(standby_measurements);
+            obj.measurement_sum_by_time_factor = std::get<1>(kpi_measurements) + std::get<1>(standby_measurements);
+            obj.measurement_quantity = std::get<2>(kpi_measurements) + std::get<2>(standby_measurements);
         });
     }
 
@@ -262,7 +270,6 @@ void update_room_rating_simple_impl(database &d)
         recalculate_rating_simple_impl(d, rnd, room);
     }
 }
-
 
 void update_room_rating(database &d)
 {

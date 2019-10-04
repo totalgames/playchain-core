@@ -67,11 +67,10 @@ namespace
             obj.table = table.id;
         });
 
-        d.create<room_rating_measurement_object>([&](room_rating_measurement_object& obj) {
+        d.create<room_rating_kpi_measurement_object>([&](room_rating_kpi_measurement_object& obj) {
             obj.created = d.head_block_time();
             obj.expiration = obj.created + get_playchain_parameters(d).room_rating_measurements_alive_periods * d.get_global_properties().parameters.maintenance_interval;
             obj.associated_buyin = buy_in.id;
-            obj.table = buy_in.table;
             obj.room = buy_in.table(d).room;
             obj.weight = 0;
             obj.waiting_resolve = true;
@@ -92,11 +91,11 @@ namespace
                                                       buy_in.table,
                                                       buy_in.table(d).room(d).owner} );
 
-            auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
+            auto& measurements_by_buyin = d.get_index_type<room_rating_kpi_measurement_index>().indices().get<by_pending_buy_in>();
             auto it = measurements_by_buyin.find(buy_in.id);
             if (it != measurements_by_buyin.end())
             {
-                d.modify(*it, [&](room_rating_measurement_object &obj)
+                d.modify(*it, [&](room_rating_kpi_measurement_object &obj)
                 {
                     obj.waiting_resolve = false;
                     obj.weight = 0; // expired buyins give zero contribution to rating

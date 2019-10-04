@@ -78,7 +78,7 @@ namespace
 
             assert(table.pending_proposals.find(player.id) != table.pending_proposals.end());
 
-            auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
+            auto& measurements_by_buyin = d.get_index_type<room_rating_kpi_measurement_index>().indices().get<by_pending_buy_in>();
             auto itr = measurements_by_buyin.find(buy_in.id);
             if (itr != measurements_by_buyin.end())
             {
@@ -370,11 +370,11 @@ namespace
 
             assert(table.pending_proposals.find(player.id) != table.pending_proposals.end());
 
-            auto& measurements_by_buyin = d.get_index_type<room_rating_measurement_index>().indices().get<by_pending_buy_in>();
+            auto& measurements_by_buyin = d.get_index_type<room_rating_kpi_measurement_index>().indices().get<by_pending_buy_in>();
             auto itr = measurements_by_buyin.find(pending_buy_in.id);
             if (itr != measurements_by_buyin.end())
             {
-                d.modify(*itr, [&](room_rating_measurement_object &obj)
+                d.modify(*itr, [&](room_rating_kpi_measurement_object &obj)
                 {
                     obj.waiting_resolve = false;
                     obj.weight = 1; // in this case poker server works as expected, so we push its rating up by assigning mark with value 1

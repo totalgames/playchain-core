@@ -1,4 +1,4 @@
-// #playchain-12 Rating adjustment according to the drowning leader algorithm
+// #playchain-12 Rating adjustment with additional measurement object for "incentive investment"
 //
 #ifndef HARDFORK_PLAYCHAIN_12_TIME
     #if defined(PLAYCHAIN_MAINNET)

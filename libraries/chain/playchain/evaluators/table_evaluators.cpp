@@ -40,29 +40,34 @@ namespace playchain{ namespace chain{
 
     namespace
     {
-        void set_rating_measurement_by_alive_table(database& d, const table_id_type &table)
+        void set_standby_measurement(database& d, const table_id_type &table)
         {
             auto room_id = table(d).room;
 
-            auto& measurements_by_room = d.get_index_type<room_rating_measurement_index>().indices().template get<by_room>();
+            auto& measurements_by_room = d.get_index_type<room_rating_kpi_measurement_index>().indices().template get<by_room>();
 
             auto range = measurements_by_room.equal_range(room_id);
             if (range.first == range.second)
             {
-                const auto& idx = d.get_index_type<room_rating_measurement2_index>().indices().get<by_table>();
+                //Only for rooms without players
+
+                const auto& idx = d.get_index_type<room_rating_standby_measurement_index>().indices().get<by_table>();
                 auto it = idx.find(table);
                 if (idx.end() != it)
                 {
-                    d.modify(*it, [&](room_rating_measurement2_object& obj) {
+                    d.modify(*it, [&](room_rating_standby_measurement_object& obj) {
                         obj.updated = d.head_block_time();
-                                });
+                        obj.expiration = obj.updated + get_playchain_parameters(d).room_rating_measurements_alive_periods * d.get_global_properties().parameters.maintenance_interval;
+                    });
                 }else
                 {
-                    d.create<room_rating_measurement2_object>([&](room_rating_measurement2_object& obj) {
-                                               obj.updated = d.head_block_time();
-                                               obj.room = room_id;
-                                               obj.table = table;
-                                               obj.weight = 10;
+                    d.create<room_rating_standby_measurement_object>([&](room_rating_standby_measurement_object& obj) {
+                        obj.created = d.head_block_time();
+                        obj.updated = obj.created;
+                        obj.expiration = obj.updated + get_playchain_parameters(d).room_rating_measurements_alive_periods * d.get_global_properties().parameters.maintenance_interval;
+                        obj.room = room_id;
+                        obj.table = table;
+                        obj.weight = get_playchain_parameters(d).standby_weight_per_measurement;
                     });
                 }
             }
@@ -200,7 +205,7 @@ namespace playchain{ namespace chain{
 
         if (d.head_block_time() >= HARDFORK_PLAYCHAIN_12_TIME)
         {
-            set_rating_measurement_by_alive_table(d, table);
+            set_standby_measurement(d, table);
         }
         return alive_id;
     }

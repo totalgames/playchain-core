@@ -67,6 +67,7 @@ config::config() /// production config
     , buy_in_expiration_seconds((uint32_t)fc::minutes(3).to_seconds())
     , table_alive_expiration_seconds((uint32_t)fc::minutes(10).to_seconds())
     , room_rating_measurements_alive_periods((uint32_t)10)
+    , standby_weight_per_measurement((uint16_t)100)
 {
 }
 
@@ -85,6 +86,7 @@ config::config(test_mode) /// test config
     , buy_in_expiration_seconds((uint32_t)fc::minutes(5).to_seconds())
     , table_alive_expiration_seconds((uint32_t)fc::minutes(2).to_seconds())
     , room_rating_measurements_alive_periods((uint32_t)1)
+    , standby_weight_per_measurement((uint16_t)10)
 {
     FC_ASSERT(is_continuous_bit_sequence_set(blockid_pool_size),
               "blockid_pool_size must have all bits set");

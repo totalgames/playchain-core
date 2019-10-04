@@ -137,6 +137,8 @@ void database::initialize_evaluators()
    register_evaluator<playchain_committee_member_update_evaluator>();
    register_evaluator<playchain_committee_member_update_parameters_evaluator>();
    register_evaluator<playchain_committee_member_update_parameters_v2_evaluator>();
+   register_evaluator<playchain_committee_member_update_parameters_v3_evaluator>();
+   register_evaluator<playchain_committee_member_update_parameters_v4_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -191,7 +193,7 @@ void database::initialize_indexes()
    add_index< primary_index<player_invitation_index> >();
    add_index< primary_index<player_index, 20> >();
    add_index< primary_index<room_index, 10> >();
-   add_index< primary_index<room_rating_measurement_index> >();
+   add_index< primary_index<room_rating_kpi_measurement_index> >();
    add_index< primary_index<game_witness_index, 10> >();
    auto tbl_index = add_index< primary_index<table_index, 10> >();
    tbl_index->add_secondary_index<table_owner_index>(std::cref(*this));
@@ -205,6 +207,7 @@ void database::initialize_indexes()
    add_index< primary_index<pending_table_vote_index> >();
    add_index< primary_index<playchain_committee_member_index, 8> >();
    add_index< primary_index<table_alive_index> >();
+   add_index< primary_index<room_rating_standby_measurement_index> >();
 }
 
 void database::init_genesis(const genesis_state_type& genesis_state)

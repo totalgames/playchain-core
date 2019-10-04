@@ -209,7 +209,9 @@ static void get_relevant_accounts(const object* obj, flat_set<account_id_type>& 
             break;
         case impl_table_alive_object_type:
             break;
-        case impl_room_rating_measurement_object_type:
+        case impl_room_rating_kpi_measurement_object_type:
+            break;
+        case impl_room_rating_standby_measurement_object_type:
             break;
         }
     }

@@ -454,6 +454,7 @@ struct get_impacted_account_visitor
    void operator()( const playchain_committee_member_update_parameters_operation& op ) {}
    void operator()( const playchain_committee_member_update_parameters_v2_operation& op ) {}
    void operator()( const playchain_committee_member_update_parameters_v3_operation& op ) {}
+   void operator()( const playchain_committee_member_update_parameters_v4_operation& op ) {}
 
    void operator()( const playchain_deposit_cashback_operation& op )
    {

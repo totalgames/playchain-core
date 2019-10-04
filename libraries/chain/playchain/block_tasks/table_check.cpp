@@ -96,14 +96,6 @@ void update_expired_table_alive(database &d)
 
         d.remove(alive);
 
-        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_12_TIME)
-        {
-            const auto& idx = d.get_index_type<room_rating_measurement2_index>().indices().get<by_table>();
-            auto it = idx.find(table.id);
-            if (idx.end() != it)
-                d.remove(*it);
-        }
-
         table.set_weight(d);
     }
 }

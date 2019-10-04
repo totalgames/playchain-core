@@ -130,5 +130,6 @@ namespace playchain { namespace chain {
     template class playchain_committee_member_update_parameters_evaluator_impl<playchain_committee_member_update_parameters_operation>;
     template class playchain_committee_member_update_parameters_evaluator_impl<playchain_committee_member_update_parameters_v2_operation>;
     template class playchain_committee_member_update_parameters_evaluator_impl<playchain_committee_member_update_parameters_v3_operation>;
+    template class playchain_committee_member_update_parameters_evaluator_impl<playchain_committee_member_update_parameters_v4_operation>;
 
 } } // graphene::chain
