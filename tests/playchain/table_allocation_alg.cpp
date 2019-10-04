@@ -22,6 +22,9 @@ struct table_allocation_alg_fixture: public playchain_common::playchain_fixture
         actor(temp).supply(asset(player_init_balance));
 
         init_fees();
+
+        //test only with latest voting algorithm!!!
+        generate_blocks(HARDFORK_PLAYCHAIN_11_TIME);
     }
 };
 
@@ -47,6 +50,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg)
     Actor lucky4 = create_new_player(richregistrator, "lucky4", asset(player_init_balance));
 
     next_maintenance();
+
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
 
     BOOST_REQUIRE_EQUAL(table1_obj.get_pending_proposals(), 0u);
 
@@ -85,11 +91,11 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg)
     BOOST_CHECK_NO_THROW(game_start_playing_check(lucky1, table1, initial));
     BOOST_CHECK_NO_THROW(game_start_playing_check(lucky2, table1, initial));
 
+    generate_block();
+
     BOOST_REQUIRE(table1_obj.is_playing());
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(loser3, get_next_uid(actor(loser2)), stake, meta1));
-
-    generate_block();
 
     game_result result;
     auto win = asset(stake.amount/2);
@@ -105,6 +111,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg)
     BOOST_CHECK_NO_THROW(game_result_check(richregistrator, table1, result));
     BOOST_CHECK_NO_THROW(game_result_check(lucky1, table1, result));
     BOOST_CHECK_NO_THROW(game_result_check(lucky2, table1, result));
+
+    generate_block();
 
     BOOST_REQUIRE(!table1_obj.is_playing());
 
@@ -148,6 +156,10 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_consider_protocol_version)
 
     next_maintenance();
 
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
+    table_alive(richregistrator, table3);
+
     auto stake = asset(player_init_balance/2);
 
     BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version1));
@@ -181,11 +193,13 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_without_table)
     const std::string meta = "Game";
 
     room_id_type room = create_new_room(richregistrator, "room", protocol_version2);
-    create_new_table(richregistrator, room, 0u, meta);
+    table_id_type table = create_new_table(richregistrator, room, 0u, meta);
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
 
     next_maintenance();
+
+    table_alive(richregistrator, table);
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -216,11 +230,13 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_single_table)
     const std::string meta = "Game";
 
     room_id_type room = create_new_room(richregistrator, "room", protocol_version);
-    create_new_table(richregistrator, room, 0u, meta);
+    table_id_type table = create_new_table(richregistrator, room, 0u, meta);
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
 
     next_maintenance();
+
+    table_alive(richregistrator, table);
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -252,12 +268,15 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_cancel_all_different_tables)
     const std::string meta2 = "Game2";
 
     room_id_type room = create_new_room(richregistrator, "room", protocol_version);
-    create_new_table(richregistrator, room, 0u, meta1);
-    create_new_table(richregistrator, room, 0u, meta2);
+    table_id_type table1 = create_new_table(richregistrator, room, 0u, meta1);
+    table_id_type table2 = create_new_table(richregistrator, room, 0u, meta2);
 
     Actor player1 = create_new_player(richregistrator, "player1", asset(player_init_balance));
 
     next_maintenance();
+
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
 
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
@@ -302,6 +321,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_table_owner)
 
     next_maintenance();
 
+    table_alive(richregistrator, richregistrator_table);
+    table_alive(player_and_owner, player_table);
+
     BOOST_CHECK_EQUAL(to_string(get_account_balance(player1)), to_string(asset(player_init_balance)));
 
     auto stake = asset(player_init_balance/3);
@@ -320,6 +342,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_table_owner)
     generate_blocks(db.get_dynamic_global_properties().time +
                     fc::seconds(params.pending_buyin_proposal_lifetime_limit_in_seconds));
 
+    table_alive(richregistrator, richregistrator_table);
+    table_alive(player_and_owner, player_table);
 
     BOOST_REQUIRE_EQUAL(richregistrator_table(db).get_pending_proposals(), 0u);
     BOOST_REQUIRE_EQUAL(player_table(db).get_pending_proposals(), 0u);
@@ -367,6 +391,12 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_full_table)
     Actor player12 = create_new_player(richregistrator, "p12", asset(player_init_balance));
 
     next_maintenance();
+
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
+    table_alive(richregistrator, table3);
+    table_alive(richregistrator, table4);
+    table_alive(richregistrator, table5);
 
     BOOST_REQUIRE_EQUAL(table1_obj.get_pending_proposals(), 0u);
     BOOST_REQUIRE_EQUAL(table2_obj.get_pending_proposals(), 0u);
@@ -434,6 +464,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_tables)
 
     next_maintenance();
 
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
+
     auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator));
 
     BOOST_REQUIRE_EQUAL(table1_obj.get_pending_proposals(), 0u);
@@ -500,6 +533,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_will_free_tab
 
     next_maintenance();
 
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
+
     auto next_history_record = scroll_history_to_case_start_point(actor(richregistrator));
 
     BOOST_REQUIRE_EQUAL(table1_obj.get_pending_proposals(), 0u);
@@ -538,8 +574,11 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_will_free_tab
     //free 2 proposals
     generate_blocks(time + fc::seconds(params.pending_buyin_proposal_lifetime_limit_in_seconds));
 
-    BOOST_CHECK_EQUAL(table1_obj.get_pending_proposals(), 5u);
-    BOOST_CHECK_EQUAL(table1_obj.occupied_places, 5u);
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
+
+    BOOST_CHECK_EQUAL(table1_obj.get_pending_proposals(), 3u);
+    BOOST_CHECK_EQUAL(table1_obj.occupied_places, 3u);
     BOOST_CHECK_EQUAL(table2_obj.get_pending_proposals(), 5u);
     BOOST_CHECK_EQUAL(table2_obj.occupied_places, 5u);
 
@@ -566,8 +605,6 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_will_free_tab
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_reserving_allocated_table_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_reserving_expire_id);
     BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_reserving_expire_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_reserving_allocated_table_id);
-    BOOST_CHECK_EQUAL(history[++record_offset].op.which(), buy_in_reserving_allocated_table_id);
 }
 
 PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_replace_allocation)
@@ -592,6 +629,9 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_replace_allocation
     Actor player7 = create_new_player(richregistrator, "p7", asset(player_init_balance));
 
     next_maintenance();
+
+    table_alive(richregistrator, table1);
+    table_alive(richregistrator, table2);
 
     idump((room(db)));
 
