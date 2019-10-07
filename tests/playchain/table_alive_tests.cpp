@@ -52,8 +52,6 @@ struct table_alive_fixture: public playchain_common::playchain_fixture
         auto proposal_info = propose_playchain_params_change(richregistrator, new_params);
 
         approve_proposal(proposal_info.id, richregistrator, true);
-        approve_proposal(proposal_info.id, richregistrator2, true);
-        approve_proposal(proposal_info.id, richregistrator3, true);
 
         generate_blocks(proposal_info.expiration_time);
 

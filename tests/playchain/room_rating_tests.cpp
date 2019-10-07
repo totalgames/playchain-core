@@ -713,18 +713,28 @@ PLAYCHAIN_TEST_CASE(check_room_rake_hf12_broke_monopoly)
     generate_block();
     BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player2)));
     BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player2, table1_1, stake));
 
     room_id_type room3 = create_new_room(richregistrator2, "room3", protocol_version);
 
     table_id_type table3_1 = create_new_table(richregistrator2, room3, 0u, meta);
     table_id_type table3_2 = create_new_table(richregistrator2, room3, 0u, meta);
 
-    int ci = 3; //depend on PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT
+    int ci = 2; //depend on PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT
     while(--ci > 0)
     {
         //room1 keeps service all the time
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
+        generate_block();
+        BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+        BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player2)));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+        BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+        BOOST_REQUIRE_NO_THROW(buy_out_table(player1, table1_1, stake));
+        BOOST_REQUIRE_NO_THROW(buy_out_table(player2, table1_1, stake));
 
         //room2 and room3 wait self rating grow up
 

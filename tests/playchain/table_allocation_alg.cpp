@@ -574,11 +574,8 @@ PLAYCHAIN_TEST_CASE(check_buy_in_reserving_allocation_alg_for_busy_will_free_tab
     //free 2 proposals
     generate_blocks(time + fc::seconds(params.pending_buyin_proposal_lifetime_limit_in_seconds));
 
-    table_alive(richregistrator, table1);
-    table_alive(richregistrator, table2);
-
-    BOOST_CHECK_EQUAL(table1_obj.get_pending_proposals(), 3u);
-    BOOST_CHECK_EQUAL(table1_obj.occupied_places, 3u);
+    BOOST_CHECK_EQUAL(table1_obj.get_pending_proposals(), 5u);
+    BOOST_CHECK_EQUAL(table1_obj.occupied_places, 5u);
     BOOST_CHECK_EQUAL(table2_obj.get_pending_proposals(), 5u);
     BOOST_CHECK_EQUAL(table2_obj.occupied_places, 5u);
 
