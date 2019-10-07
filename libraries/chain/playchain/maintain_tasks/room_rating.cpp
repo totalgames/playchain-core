@@ -273,8 +273,6 @@ void update_room_rating_simple_impl(database &d)
 
 void update_room_rating(database &d)
 {
-    remove_expired_room_rating_measurements(d);
-
     if (d.head_block_time() < HARDFORK_PLAYCHAIN_5_TIME)
     {
         return update_room_rating_simple_impl(d);
@@ -324,7 +322,7 @@ void update_room_rating(database &d)
     }
     average_room_rating = average_room_rating / updated_rooms.size();
 
-    d.modify(d.get_dynamic_global_properties(), [&](dynamic_global_property_object &obj) {
+    d.modify(get_dynamic_playchain_properties(d), [&](dynamic_playchain_property_object &obj) {
         obj.average_room_rating = average_room_rating;
     });
 }
@@ -375,6 +373,11 @@ void update_table_weight(database &d)
             });
         }
     }
+}
+
+void clenup_room_rating(database &d)
+{
+    remove_expired_room_rating_measurements(d);
 }
 
 }}

@@ -48,6 +48,7 @@ void process_maintain_tasks(database &d)
 
     update_room_rating(d);
     update_table_weight(d);
+    clenup_room_rating(d);
 
     playchain_committee_applying_database_impl ca(d);
     ca.update_active_members();

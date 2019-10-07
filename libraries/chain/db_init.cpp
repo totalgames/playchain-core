@@ -208,6 +208,7 @@ void database::initialize_indexes()
    add_index< primary_index<playchain_committee_member_index, 8> >();
    add_index< primary_index<table_alive_index> >();
    add_index< primary_index<room_rating_standby_measurement_index> >();
+   add_index< primary_index<simple_index<dynamic_playchain_property_object       >> >();
 }
 
 void database::init_genesis(const genesis_state_type& genesis_state)
@@ -730,7 +731,11 @@ void database::init_genesis(const genesis_state_type& genesis_state)
    FC_ASSERT( get_index<fba_accumulator_object>().get_next_id() == fba_accumulator_id_type( fba_accumulator_id_count ) );
 
    create<playchain_property_object>([&](playchain_property_object& ) {
-       //it is used only graphene genesis
+       //it is used only genesis
+   });
+
+   create<dynamic_playchain_property_object>([&](dynamic_playchain_property_object& ) {
+       //it is used only genesis
    });
 
    FC_ASSERT(create<player_object>([&](player_object& gamer) {

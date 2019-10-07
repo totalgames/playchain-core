@@ -46,6 +46,8 @@ namespace playchain { namespace chain {
 
     const playchain_property_object &get_playchain_properties(const database& d);
 
+    const dynamic_playchain_property_object &get_dynamic_playchain_properties(const database& d);
+
     const playchain_parameters  &get_playchain_parameters(const database& d);
 
     //Use this helper to iterate probably removing objects (will call d.remove(o) or break index in some branch of complex logic)

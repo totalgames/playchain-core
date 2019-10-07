@@ -83,6 +83,7 @@ namespace playchain {
         struct by_pending_buy_in;
         struct by_room;
         struct by_expiration;
+        struct by_greater_weight;
 
         /**
          * @ingroup object_index
@@ -99,6 +100,13 @@ namespace playchain {
 
                 ordered_non_unique< tag<by_room>,
                                 member<room_rating_kpi_measurement_object, room_id_type, &room_rating_kpi_measurement_object::room > >,
+
+                ordered_non_unique< tag<by_greater_weight>,
+                    composite_key<room_rating_kpi_measurement_object,
+                        member<room_rating_kpi_measurement_object, room_id_type, &room_rating_kpi_measurement_object::room>,
+                        member<room_rating_kpi_measurement_object, uint32_t, &room_rating_kpi_measurement_object::weight > >,
+                    composite_key_compare<std::less<room_id_type>,
+                                          std::greater<uint32_t>> >,
 
                 ordered_non_unique<tag<by_expiration>,
                                 member<room_rating_kpi_measurement_object, time_point_sec, &room_rating_kpi_measurement_object::expiration > >

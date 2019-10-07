@@ -30,5 +30,6 @@ namespace playchain { namespace chain {
 
 void update_room_rating(database &d);
 void update_table_weight(database &d);
+void clenup_room_rating(database &d);
 
 }}

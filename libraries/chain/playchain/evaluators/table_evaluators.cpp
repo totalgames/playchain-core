@@ -44,10 +44,10 @@ namespace playchain{ namespace chain{
         {
             auto room_id = table(d).room;
 
-            auto& measurements_by_room = d.get_index_type<room_rating_kpi_measurement_index>().indices().template get<by_room>();
+            auto& measurements_by_room = d.get_index_type<room_rating_kpi_measurement_index>().indices().template get<by_greater_weight>();
 
             auto range = measurements_by_room.equal_range(room_id);
-            if (range.first == range.second)
+            if (range.first == range.second || !range.first->weight)
             {
                 //Only for rooms without players
 

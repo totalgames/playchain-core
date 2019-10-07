@@ -50,10 +50,23 @@ namespace playchain { namespace chain {
 
          static const playchain_committee_member_object &get_committee_member(const database &, const game_witness_id_type &);
    };
+
+   class dynamic_playchain_property_object : public abstract_object<dynamic_playchain_property_object>
+   {
+     public:
+        static constexpr uint8_t space_id = implementation_for_playchain_ids;
+        static constexpr uint8_t type_id  = impl_dynamic_playchain_property_object_type;
+
+        int64_t average_room_rating = 0;
+   };
 }}
 
 FC_REFLECT_DERIVED( playchain::chain::playchain_property_object, (graphene::db::object),
                     (parameters)
                     (pending_parameters)
                     (active_games_committee_members)
+                  )
+
+FC_REFLECT_DERIVED( playchain::chain::dynamic_playchain_property_object, (graphene::db::object),
+                    (average_room_rating)
                   )

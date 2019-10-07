@@ -2,6 +2,7 @@
 
 #include <playchain/chain/schema/room_object.hpp>
 #include <playchain/chain/schema/table_object.hpp>
+#include <playchain/chain/schema/playchain_property_object.hpp>
 
 #include <boost/lambda/lambda.hpp>
 #include <boost/multi_index/detail/unbounded.hpp>
@@ -16,29 +17,80 @@ struct room_rating_fixture : public playchain_common::playchain_fixture
     const int64_t registrator_init_balance = 3000 * GRAPHENE_BLOCKCHAIN_PRECISION;
 
     DECLARE_ACTOR(richregistrator)
+    DECLARE_ACTOR(richregistrator2)
     DECLARE_ACTOR(temp)
 
     room_rating_fixture()
     {
         actor(richregistrator).supply(asset(registrator_init_balance));
+        actor(richregistrator2).supply(asset(registrator_init_balance));
         actor(temp).supply(asset(player_init_balance));
 
         init_fees();
 
-        //test only with latest voting algorithm!!!
         generate_blocks(HARDFORK_PLAYCHAIN_11_TIME);
     }
 
     table_id_type create_new_table(const Actor& owner, const room_id_type &room, const amount_type required_witnesses = 0u, const std::string &metadata = {})
     {
         table_id_type table = playchain_common::playchain_fixture::create_new_table(owner, room, required_witnesses, metadata);
-        table_alive(richregistrator, table);
+        table_alive(owner, table);
         return table;
+    }
+
+    void shrink_maintenance()
+    {
+        idump((db.get_global_properties().active_committee_members));
+
+        Actor member{"init0", init_account_priv_key, init_account_priv_key.get_public_key()};
+
+        actor(member).supply(asset(registrator_init_balance));
+
+        const chain_parameters& current_params = db.get_global_properties().parameters;
+        chain_parameters new_params = current_params;
+
+        auto expected_maintenance_interval = playchain::protocol::detail::get_config().table_alive_expiration_seconds / 2;
+
+        new_params.maintenance_interval = expected_maintenance_interval;
+
+        committee_member_update_global_parameters_operation update_op;
+        update_op.new_parameters = new_params;
+
+        proposal_create_operation prop_op;
+
+        prop_op.review_period_seconds = current_params.committee_proposal_review_period;
+        prop_op.expiration_time = db.head_block_time() + current_params.committee_proposal_review_period + (uint32_t)fc::minutes(1).to_seconds();
+        prop_op.fee_paying_account = get_account(member).id;
+
+        prop_op.proposed_ops.emplace_back( update_op );
+
+        object_id_type proposal_id;
+
+        try
+        {
+            proposal_id = actor(member).push_operation(prop_op).operation_results.front().get<object_id_type>();
+        }FC_LOG_AND_RETHROW()
+
+        proposal_update_operation prop_update_op;
+
+        prop_update_op.fee_paying_account = get_account(member).id;
+        prop_update_op.proposal = proposal_id;
+        prop_update_op.active_approvals_to_add.insert( get_account( member ).id );
+
+        try
+        {
+            actor(member).push_operation(prop_update_op);
+        }FC_LOG_AND_RETHROW()
+
+        generate_blocks(prop_op.expiration_time);
+
+        next_maintenance();
+
+        BOOST_REQUIRE_EQUAL(db.get_global_properties().parameters.maintenance_interval, expected_maintenance_interval);
     }
 };
 
 BOOST_FIXTURE_TEST_SUITE(room_rating_tests, room_rating_fixture)
-
 
 PLAYCHAIN_TEST_CASE(check_rating_changes_only_in_maintance)
 {
@@ -525,12 +577,12 @@ PLAYCHAIN_TEST_CASE(check_initial_room_rating_equals_avarage_rating_after_playch
     generate_blocks(db.get_dynamic_global_properties().next_maintenance_time);
 
     BOOST_REQUIRE_NE(0, room(db).rating);
-    BOOST_REQUIRE_NE(0, db.get_dynamic_global_properties().average_room_rating);
-    BOOST_REQUIRE_EQUAL(room(db).rating, db.get_dynamic_global_properties().average_room_rating);
+    BOOST_REQUIRE_NE(0, get_dynamic_playchain_properties(db).average_room_rating);
+    BOOST_REQUIRE_EQUAL(room(db).rating, get_dynamic_playchain_properties(db).average_room_rating);
 
 
     room_id_type room2 = create_new_room(richregistrator, "room2", protocol_version);
-    BOOST_REQUIRE_EQUAL(room2(db).rating, db.get_dynamic_global_properties().average_room_rating);
+    BOOST_REQUIRE_EQUAL(room2(db).rating, get_dynamic_playchain_properties(db).average_room_rating);
 }
 
 PLAYCHAIN_TEST_CASE(check_room_rake_changing)
@@ -606,6 +658,107 @@ PLAYCHAIN_TEST_CASE(check_room_rake_changing)
     BOOST_CHECK_EQUAL(table1_2(db).get_pending_proposals(), 0u);
     BOOST_CHECK_EQUAL(table2_1(db).get_pending_proposals(), 3u);
     BOOST_CHECK_EQUAL(table2_2(db).get_pending_proposals(), 0u);
+}
+
+PLAYCHAIN_TEST_CASE(check_room_rake_hf12_broke_monopoly)
+{
+    shrink_maintenance();
+
+    const std::string meta = "Game";
+    const std::string protocol_version = "1.0.0+20190223";
+
+    room_id_type room1 = create_new_room(richregistrator, "room1", protocol_version);
+
+    table_id_type table1_1 = create_new_table(richregistrator, room1, 0u, meta);
+    table_id_type table1_2 = create_new_table(richregistrator, room1, 0u, meta);
+
+    Actor player1 = create_new_player(richregistrator, "p1", asset(player_init_balance));
+
+    auto stake = asset(player_init_balance / 3);
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+
+    next_maintenance();
+
+    room_id_type room2 = create_new_room(richregistrator2, "room2", protocol_version);
+
+    table_id_type table2_1 = create_new_table(richregistrator2, room2, 0u, meta);
+    table_id_type table2_2 = create_new_table(richregistrator2, room2, 0u, meta);
+
+    next_maintenance();
+
+    idump((room1(db)));
+    idump((room2(db)));
+
+    BOOST_REQUIRE_GT(room1(db).rating, room2(db).rating);
+
+    generate_blocks(HARDFORK_PLAYCHAIN_12_TIME);
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+
+    stake = asset(player_init_balance / 3);
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+
+    next_maintenance();
+
+    Actor player2 = create_new_player(richregistrator, "p2", asset(player_init_balance));
+    stake = asset(player_init_balance / 3);
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player2)));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+
+    room_id_type room3 = create_new_room(richregistrator2, "room3", protocol_version);
+
+    table_id_type table3_1 = create_new_table(richregistrator2, room3, 0u, meta);
+    table_id_type table3_2 = create_new_table(richregistrator2, room3, 0u, meta);
+
+    int ci = 3; //depend on PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT
+    while(--ci > 0)
+    {
+        //room1 keeps service all the time
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+
+        //room2 and room3 wait self rating grow up
+
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_1));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_2));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_1));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_2));
+
+        next_maintenance();
+
+        idump((room1(db)));
+        idump((room2(db)));
+        idump((room3(db)));
+    }
+
+    BOOST_REQUIRE_LT(room1(db).rating, room2(db).rating);
+    BOOST_REQUIRE_LT(room1(db).rating, room3(db).rating);
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+struct room_rating_v2_fixture : public room_rating_fixture
+{
+    room_rating_v2_fixture()
+    {
+        generate_blocks(HARDFORK_PLAYCHAIN_12_TIME);
+    }
+};
+
+BOOST_FIXTURE_TEST_SUITE(room_rating_v2_tests, room_rating_v2_fixture)
+
+PLAYCHAIN_TEST_CASE(check_room_rake_cycle_one_different_owners)
+{
+    // TODO
 }
 
 BOOST_AUTO_TEST_SUITE_END()

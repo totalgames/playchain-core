@@ -105,6 +105,11 @@ namespace playchain { namespace chain {
             return pending_proposals.size();
         }
 
+        bool is_pending_at_table(const player_id_type &id) const
+        {
+            return pending_proposals.end() != pending_proposals.find(id);
+        }
+
         bool is_waiting_at_table(const player_id_type &id) const
         {
             return cash.end() != cash.find(id);

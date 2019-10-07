@@ -894,4 +894,118 @@ tables_alive_operation playchain_fixture::tables_alive(const Actor& room_owner,
     actor(room_owner).push_operation(op);
     return op;
 }
+
+const playchain_committee_member_object &playchain_fixture::get_playchain_committee_member(const Actor &member) const
+{
+    auto &&member_account_object = get_account(member);
+
+    using namespace playchain::chain;
+
+    BOOST_REQUIRE(is_game_witness(db, member_account_object.id));
+
+    auto &&witness = get_game_witness(db, member_account_object.id);
+
+    const auto& committee_members_by_witness = db.get_index_type<playchain_committee_member_index>().indices().get<by_game_witness>();
+    auto it = committee_members_by_witness.find(witness.id);
+    BOOST_REQUIRE(committee_members_by_witness.end() != it);
+
+    return (*it);
+}
+
+bool playchain_fixture::is_active_playchain_committee_member(const Actor &member) const
+{
+    auto account_id = get_account(member).id;
+    auto &&active = get_playchain_properties(db).active_games_committee_members;
+    auto lmb = [this, &account_id](const game_witness_id_type &w_id)
+    {
+        return w_id(db).account == account_id;
+    };
+    return active.end() != std::find_if(begin(active), end(active), lmb);
+}
+
+void playchain_fixture::vote_for_playchain_committee_member(const Actor &member, const Actor &voter, bool approve)
+{
+    auto vote_id = get_playchain_committee_member(member).vote_id;
+    vote_for(vote_id, voter, approve);
+}
+
+void playchain_fixture::approve_proposal(const object_id_type &proposal_id, const Actor &member, bool approve)
+{
+    BOOST_REQUIRE(db.find_object(proposal_id));
+
+    proposal_update_operation prop_update_op;
+
+    prop_update_op.fee_paying_account = get_account(member).id;
+    prop_update_op.proposal = proposal_id;
+    if (approve)
+    {
+        prop_update_op.active_approvals_to_add.insert( get_account( member ).id );
+    }
+    else
+    {
+        prop_update_op.active_approvals_to_remove.insert( get_account( member ).id );
+    }
+
+    try
+    {
+        actor(member).push_operation(prop_update_op);
+    }FC_LOG_AND_RETHROW()
+}
+
+void playchain_fixture::elect_member(const Actor &member)
+{
+    vote_for_playchain_committee_member(member, member);
+
+    next_maintenance();
+
+    BOOST_REQUIRE(is_active_playchain_committee_member(member));
+
+    ilog("Playchain Commitee: ${l}", ("l", get_playchain_properties(db).active_games_committee_members));
+}
+
+playchain_fixture::proposal_info playchain_fixture::propose_playchain_params_change(const Actor &member, const playchain_parameters &new_params,
+                                              bool review,
+                                              const fc::microseconds &ext_review)
+{
+    auto time = db.head_block_time();
+
+    playchain_committee_member_update_parameters_v4_operation update_op;
+    update_op.new_parameters = new_params;
+
+    proposal_create_operation prop_op;
+
+    const chain_parameters& current_params = db.get_global_properties().parameters;
+
+    if (review)
+    {
+        prop_op.review_period_seconds = current_params.committee_proposal_review_period;
+        prop_op.expiration_time = time + current_params.committee_proposal_review_period + (uint32_t)ext_review.to_seconds();
+    }else
+    {
+        prop_op.expiration_time = time + (uint32_t)ext_review.to_seconds();
+    }
+    prop_op.fee_paying_account = get_account(member).id;
+
+    prop_op.proposed_ops.emplace_back( update_op );
+
+    object_id_type proposal_id;
+
+    try
+    {
+        proposal_id = actor(member).push_operation(prop_op).operation_results.front().get<object_id_type>();
+    }FC_LOG_AND_RETHROW()
+
+    proposal_update_operation prop_update_op;
+
+    prop_update_op.fee_paying_account = get_account(member).id;
+    prop_update_op.proposal = proposal_id;
+    prop_update_op.active_approvals_to_add.insert( get_account( member ).id );
+
+    try
+    {
+        actor(member).push_operation(prop_update_op);
+    }FC_LOG_AND_RETHROW()
+
+    return {proposal_id, prop_op.expiration_time};
+}
 }

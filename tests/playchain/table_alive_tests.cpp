@@ -27,6 +27,41 @@ struct table_alive_fixture: public playchain_common::playchain_fixture
 
         init_fees();
     }
+
+    void set_playchain_parameters( const uint32_t buy_in_expiration_seconds,
+                                   const uint32_t table_alive_expiration_seconds )
+    {
+        playchain_parameters new_params = get_playchain_properties(db).parameters;
+        if (new_params.buy_in_expiration_seconds == buy_in_expiration_seconds &&
+            new_params.table_alive_expiration_seconds == table_alive_expiration_seconds)
+            return;
+
+        ilog("Playchain Commitee: ${l}", ("l", get_playchain_properties(db).active_games_committee_members));
+
+        create_witness(richregistrator);
+
+        BOOST_CHECK_NO_THROW(playchain_committee_member_create(richregistrator));
+
+        generate_block();
+
+        elect_member(richregistrator);
+
+        new_params.buy_in_expiration_seconds = buy_in_expiration_seconds;
+        new_params.table_alive_expiration_seconds = table_alive_expiration_seconds;
+
+        auto proposal_info = propose_playchain_params_change(richregistrator, new_params);
+
+        approve_proposal(proposal_info.id, richregistrator, true);
+        approve_proposal(proposal_info.id, richregistrator2, true);
+        approve_proposal(proposal_info.id, richregistrator3, true);
+
+        generate_blocks(proposal_info.expiration_time);
+
+        next_maintenance();
+
+        BOOST_REQUIRE_EQUAL(get_playchain_properties(db).parameters.buy_in_expiration_seconds, buy_in_expiration_seconds);
+        BOOST_REQUIRE_EQUAL(get_playchain_properties(db).parameters.table_alive_expiration_seconds, table_alive_expiration_seconds);
+    }
 };
 
 BOOST_FIXTURE_TEST_SUITE( table_alive_tests, table_alive_fixture)
@@ -142,6 +177,8 @@ PLAYCHAIN_TEST_CASE(check_table_update_when_alive)
 PLAYCHAIN_TEST_CASE(check_table_become_alive_while_operated)
 {
     generate_blocks(HARDFORK_PLAYCHAIN_2_TIME);
+
+    set_playchain_parameters((uint32_t)fc::minutes(5).to_seconds(), (uint32_t)fc::minutes(2).to_seconds());
 
     const auto& params = get_playchain_parameters(db);
 

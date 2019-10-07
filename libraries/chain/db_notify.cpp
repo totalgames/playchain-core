@@ -213,6 +213,8 @@ static void get_relevant_accounts(const object* obj, flat_set<account_id_type>& 
             break;
         case impl_room_rating_standby_measurement_object_type:
             break;
+        case impl_dynamic_playchain_property_object_type:
+            break;
         }
     }
 } // end get_relevant_accounts( const object* obj, flat_set<account_id_type>& accounts )

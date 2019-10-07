@@ -47,6 +47,11 @@ const playchain_property_object &get_playchain_properties(const database& d)
     return d.get( playchain_property_id_type() );
 }
 
+const dynamic_playchain_property_object &get_dynamic_playchain_properties(const database& d)
+{
+    return d.get( dynamic_playchain_property_id_type() );
+}
+
 const playchain_parameters  &get_playchain_parameters(const database& d)
 {
     return get_playchain_properties( d ).parameters;

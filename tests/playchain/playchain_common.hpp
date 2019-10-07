@@ -454,6 +454,28 @@ namespace playchain_common
 
         tables_alive_operation tables_alive(const Actor& room_owner,
                                           const std::set<table_id_type> &tables);
+
+        const playchain_committee_member_object &get_playchain_committee_member(const Actor &member) const;
+
+        bool is_active_playchain_committee_member(const Actor &member) const;
+
+        void vote_for_playchain_committee_member(const Actor &member, const Actor &voter, bool approve = true);
+
+        void approve_proposal(const object_id_type &proposal_id, const Actor &member, bool approve = true);
+
+        void elect_member(const Actor &member);
+
+        struct proposal_info
+        {
+            proposal_info() = default;
+
+            object_id_type id;
+            fc::time_point_sec expiration_time;
+        };
+
+        proposal_info propose_playchain_params_change(const Actor &member, const playchain_parameters &new_params,
+                                                      bool review = true,
+                                                      const fc::microseconds &ext_review = fc::minutes(1));
     };
 }
 

@@ -205,6 +205,8 @@ bool find_in_range(const Range &range, database &d, const pending_buy_in_object 
 {
     auto itr = range.first;
 
+    std::set<room_id_type> pending_rooms;
+
     bool found = false;
     while(itr != range.second)
     {
@@ -215,14 +217,24 @@ bool find_in_range(const Range &range, database &d, const pending_buy_in_object 
             continue;
         }
 
+        auto room_id = table.room;
+
+        if (pending_rooms.count(room_id))
+        {
+            // Required to place next proposal to different room
+            continue;
+        }
+
+        const auto &room = room_id(d);
+
         // if versions do not match by algorithm (maj.min.XXXX)
-        if (table.room(d).protocol_version != buy_in.protocol_version)
+        if (room.protocol_version != buy_in.protocol_version)
         {
             continue;
         }
 
         // if player is table owner
-        if (table.room(d).owner == buy_in.player)
+        if (room.owner == buy_in.player)
         {
             continue;
         }
@@ -239,6 +251,15 @@ bool find_in_range(const Range &range, database &d, const pending_buy_in_object 
             table.is_playing(buy_in.player_iternal))
         {
             continue;
+        }
+
+        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_12_TIME)
+        {
+            if (table.is_pending_at_table(buy_in.player_iternal))
+            {
+                pending_rooms.emplace(table.room);
+                continue;
+            }
         }
 
         pending_buy_in_id_type prev_proposal = allocate_table(d, buy_in, table);

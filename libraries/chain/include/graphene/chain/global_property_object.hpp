@@ -121,8 +121,6 @@ namespace graphene { namespace chain {
              */
             maintenance_flag = 0x01
          };
-
-         int64_t average_room_rating = 0;
    };
 }}
 

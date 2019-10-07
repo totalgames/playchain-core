@@ -25,6 +25,7 @@
 #include <playchain/chain/evaluators/room_evaluators.hpp>
 
 #include <playchain/chain/evaluators/validators.hpp>
+#include <playchain/chain/evaluators/db_helpers.hpp>
 
 #include <playchain/chain/schema/room_object.hpp>
 #include <playchain/chain/schema/game_witness_object.hpp>
@@ -83,7 +84,7 @@ object_id_type room_create_evaluator::do_apply(const operation_type& op)
 
                        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_5_TIME)
                        {
-                           room.rating = d.get_dynamic_global_properties().average_room_rating;
+                           room.rating = get_dynamic_playchain_properties(d).average_room_rating;
                        }
                        else
                        {
