@@ -377,9 +377,11 @@ namespace
                 d.modify(*itr, [&](room_rating_kpi_measurement_object &obj)
                 {
                     obj.waiting_resolve = false;
-                    obj.weight = 1; // in this case poker server works as expected, so we push its rating up by assigning mark with value 1
-                                    // If poker room does more useful work than only servicing client games(e.g it's also a poker witness for other rooms)
-                                    // we can reward it in the future by assigning greater value to obj.weight
+                    //TODO:
+                    // in this case poker server works as expected, so we push its rating up by assigning mark with value 1
+                    // If poker room does more useful work than only servicing client games(e.g it's also a poker witness for other rooms)
+                    // we can reward it in the future by assigning greater value to obj.weight
+                    obj.weight = get_playchain_parameters(d).kpi_weight_per_measurement;
                 });
             }
             else

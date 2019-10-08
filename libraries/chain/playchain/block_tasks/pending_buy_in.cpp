@@ -198,14 +198,17 @@ auto create_range(const database &d,
     }
 }
 
+using pending_rooms_type = std::set<std::pair<room_id_type, player_id_type>>;
+
 template<typename Range>
 bool find_in_range(const Range &range, database &d, const pending_buy_in_object &buy_in,
                    const int32_t min_allowed_table_weight_to_be_allocated,
-                   flat_set<pending_buy_in_id_type> &prev_proposals)
+                   flat_set<pending_buy_in_id_type> &prev_proposals,
+                   pending_rooms_type &pending_rooms)
 {
     auto itr = range.first;
 
-    std::set<room_id_type> pending_rooms;
+    pending_rooms_type::value_type pending_id;
 
     bool found = false;
     while(itr != range.second)
@@ -219,10 +222,14 @@ bool find_in_range(const Range &range, database &d, const pending_buy_in_object 
 
         auto room_id = table.room;
 
-        if (pending_rooms.count(room_id))
+        if (d.head_block_time() >= HARDFORK_PLAYCHAIN_12_TIME)
         {
-            // Required to place next proposal to different room
-            continue;
+            pending_id = std::make_pair(room_id, buy_in.player_iternal);
+            if (pending_rooms.count(pending_id))
+            {
+                // Required to place next proposal to different room
+                continue;
+            }
         }
 
         const auto &room = room_id(d);
@@ -257,7 +264,7 @@ bool find_in_range(const Range &range, database &d, const pending_buy_in_object 
         {
             if (table.is_pending_at_table(buy_in.player_iternal))
             {
-                pending_rooms.emplace(table.room);
+                pending_rooms.emplace(pending_id);
                 continue;
             }
         }
@@ -279,6 +286,7 @@ void allocation_of_vacancies(database &d)
     auto itr_buy_in = by_expiration.begin();
     size_t ci = 0;
     flat_set<pending_buy_in_id_type> prev_proposals;
+    pending_rooms_type pending_rooms;
     while( itr_buy_in != by_expiration.end() &&
            !itr_buy_in->is_allocated() &&
            itr_buy_in->expiration > d.head_block_time() &&
@@ -308,7 +316,7 @@ void allocation_of_vacancies(database &d)
                 print_tables_range(range.first, range.second, "first");
                 if (range.first != range.second)
                 {
-                    lookup_out_range = !find_in_range(range, d, buy_in, parameters.min_allowed_table_weight_to_be_allocated, prev_proposals);
+                    lookup_out_range = !find_in_range(range, d, buy_in, parameters.min_allowed_table_weight_to_be_allocated, prev_proposals, pending_rooms);
 
                     continue;
                 }else
@@ -326,7 +334,7 @@ void allocation_of_vacancies(database &d)
                                  reachable_maximum, parameters.min_allowed_table_weight_to_be_allocated);
             print_tables_range(range.first, range.second);
 
-            lookup_out_range = !find_in_range(range, d, buy_in, parameters.min_allowed_table_weight_to_be_allocated, prev_proposals);
+            lookup_out_range = !find_in_range(range, d, buy_in, parameters.min_allowed_table_weight_to_be_allocated, prev_proposals, pending_rooms);
 
         } while(lookup_out_range && !last_loop);
     }

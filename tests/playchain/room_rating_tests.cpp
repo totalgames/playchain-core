@@ -10,6 +10,8 @@
 #include <playchain/chain/evaluators/db_helpers.hpp>
 #include <graphene/chain/hardfork.hpp>
 
+#include <algorithm>
+
 namespace room_rating_tests
 {
 struct room_rating_fixture : public playchain_common::playchain_fixture
@@ -686,6 +688,9 @@ PLAYCHAIN_TEST_CASE(check_room_rake_hf12_broke_monopoly)
 
     table_id_type table2_1 = create_new_table(richregistrator2, room2, 0u, meta);
     table_id_type table2_2 = create_new_table(richregistrator2, room2, 0u, meta);
+    table_id_type table2_3 = create_new_table(richregistrator2, room2, 0u, meta);
+    table_id_type table2_4 = create_new_table(richregistrator2, room2, 0u, meta);
+    table_id_type table2_5 = create_new_table(richregistrator2, room2, 0u, meta);
 
     next_maintenance();
 
@@ -695,6 +700,9 @@ PLAYCHAIN_TEST_CASE(check_room_rake_hf12_broke_monopoly)
     BOOST_REQUIRE_GT(room1(db).rating, room2(db).rating);
 
     generate_blocks(HARDFORK_PLAYCHAIN_12_TIME);
+
+    BOOST_REQUIRE_EQUAL(get_playchain_properties(db).parameters.kpi_weight_per_measurement, 1u);
+    BOOST_REQUIRE_EQUAL(get_playchain_properties(db).parameters.standby_weight_per_measurement, 1u);
 
     BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
     BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
@@ -715,17 +723,27 @@ PLAYCHAIN_TEST_CASE(check_room_rake_hf12_broke_monopoly)
     BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
     BOOST_REQUIRE_NO_THROW(buy_out_table(player2, table1_1, stake));
 
+    table_id_type table1_3 = create_new_table(richregistrator, room1, 0u, meta);
+    table_id_type table1_4 = create_new_table(richregistrator, room1, 0u, meta);
+    table_id_type table1_5 = create_new_table(richregistrator, room1, 0u, meta);
+
     room_id_type room3 = create_new_room(richregistrator2, "room3", protocol_version);
 
     table_id_type table3_1 = create_new_table(richregistrator2, room3, 0u, meta);
     table_id_type table3_2 = create_new_table(richregistrator2, room3, 0u, meta);
+    table_id_type table3_3 = create_new_table(richregistrator2, room3, 0u, meta);
+    table_id_type table3_4 = create_new_table(richregistrator2, room3, 0u, meta);
+    table_id_type table3_5 = create_new_table(richregistrator2, room3, 0u, meta);
 
-    int ci = 2; //depend on PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT
-    while(--ci > 0)
+    int ci = 3; //depend on standby_weight_per_measurement, (room2-3) tables amount, buy_in resolve per maintenance
+    while(ci-- > 0)
     {
         //room1 keeps service all the time
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_3));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_4));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_5));
         BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
         BOOST_REQUIRE_NO_THROW(buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version));
         generate_block();
@@ -740,8 +758,14 @@ PLAYCHAIN_TEST_CASE(check_room_rake_hf12_broke_monopoly)
 
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_1));
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_2));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_3));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_4));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2_5));
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_1));
         BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_2));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_3));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_4));
+        BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_5));
 
         next_maintenance();
 
@@ -760,15 +784,268 @@ struct room_rating_v2_fixture : public room_rating_fixture
 {
     room_rating_v2_fixture()
     {
+        shrink_maintenance();
+
         generate_blocks(HARDFORK_PLAYCHAIN_12_TIME);
+
+        set_playchain_parameters(1u, 2u);
+    }
+
+    void set_playchain_parameters( const uint16_t kpi_weight_per_measurement,
+                                   const uint16_t standby_weight_per_measurement )
+    {
+        playchain_parameters new_params = get_playchain_properties(db).parameters;
+        if (new_params.kpi_weight_per_measurement == kpi_weight_per_measurement &&
+           new_params.standby_weight_per_measurement == standby_weight_per_measurement)
+           return;
+
+        create_witness(richregistrator);
+
+        BOOST_CHECK_NO_THROW(playchain_committee_member_create(richregistrator));
+
+        generate_block();
+
+        elect_member(richregistrator);
+
+        new_params.kpi_weight_per_measurement = kpi_weight_per_measurement;
+        new_params.standby_weight_per_measurement = standby_weight_per_measurement;
+
+        auto proposal_info = propose_playchain_params_change(richregistrator, new_params);
+
+        approve_proposal(proposal_info.id, richregistrator, true);
+
+        generate_blocks(proposal_info.expiration_time);
+
+        next_maintenance();
+
+        BOOST_REQUIRE_EQUAL(get_playchain_properties(db).parameters.kpi_weight_per_measurement, kpi_weight_per_measurement);
+        BOOST_REQUIRE_EQUAL(get_playchain_properties(db).parameters.standby_weight_per_measurement, standby_weight_per_measurement);
     }
 };
 
 BOOST_FIXTURE_TEST_SUITE(room_rating_v2_tests, room_rating_v2_fixture)
 
-PLAYCHAIN_TEST_CASE(check_room_rake_cycle_one_different_owners)
+PLAYCHAIN_TEST_CASE(check_room_rake_moving_to_free_rooms)
 {
-    // TODO
+    const std::string meta = "Game";
+    const std::string protocol_version = "1.0.0+20190223";
+
+    room_id_type room1 = create_new_room(richregistrator, "room1", protocol_version);
+
+    table_id_type table1 = create_new_table(richregistrator, room1, 0u, meta);
+
+    room_id_type room2 = create_new_room(richregistrator2, "room2", protocol_version);
+
+    table_id_type table2 = create_new_table(richregistrator2, room2, 0u, meta);
+
+    room_id_type room3 = create_new_room(richregistrator2, "room3", protocol_version);
+
+    table_id_type table3_1 = create_new_table(richregistrator2, room3, 0u, meta);
+    table_id_type table3_2 = create_new_table(richregistrator2, room3, 0u, meta);
+
+    Actor player1 = create_new_player(richregistrator, "p1", asset(player_init_balance));
+
+    auto stake = asset(player_init_balance / 3);
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version));
+    generate_block();
+    BOOST_REQUIRE(table1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1, table1(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player1, table1, stake));
+
+    next_maintenance();
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table3_2));
+
+    next_maintenance();
+
+    idump((room1(db)));
+    idump((room2(db)));
+    idump((room3(db)));
+
+    BOOST_REQUIRE_LT(room1(db).rating, room2(db).rating);
+    //room3 has more tables
+    BOOST_REQUIRE_LT(room2(db).rating, room3(db).rating);
+}
+
+PLAYCHAIN_TEST_CASE(check_select_different_rooms_with_swap)
+{
+    const std::string meta = "Game";
+    const std::string protocol_version = "1.0.0+20190223";
+
+    BOOST_REQUIRE_GT(get_playchain_properties(db).parameters.amount_reserving_places_per_user, 1u);
+
+    room_id_type room1 = create_new_room(richregistrator, "room1", protocol_version);
+
+    table_id_type table1_1 = create_new_table(richregistrator, room1, 0u, meta);
+    table_id_type table1_2 = create_new_table(richregistrator, room1, 0u, meta);
+
+    room_id_type room2 = create_new_room(richregistrator2, "room2", protocol_version);
+
+    table_id_type table2 = create_new_table(richregistrator2, room2, 0u, meta);
+
+    Actor player1 = create_new_player(richregistrator, "p1", asset(player_init_balance));
+
+    auto stake = asset(player_init_balance / 3);
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2));
+    std::string proposal2_uid;
+    try {
+        auto proposal1 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        proposal2_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player1)));
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_cancel(player1, proposal2_uid));
+
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player1, table1_1, stake));
+
+    next_maintenance();
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2));
+
+    idump((room1(db)));
+    idump((room2(db)));
+
+    try {
+        auto proposal1 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        proposal2_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player1)));
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator2, table2, table2(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_cancel(player1, proposal2_uid));
+
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player1, table2, stake));
+
+    next_maintenance();
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2));
+
+    idump((room1(db)));
+    idump((room2(db)));
+
+    try {
+        auto proposal1 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        proposal2_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player1)));
+}
+
+PLAYCHAIN_TEST_CASE(check_select_different_rooms_with_multyplaying)
+{
+    const std::string meta = "Game";
+    const std::string protocol_version = "1.0.0+20190223";
+
+    BOOST_REQUIRE_GT(get_playchain_properties(db).parameters.amount_reserving_places_per_user, 1u);
+
+    room_id_type room1 = create_new_room(richregistrator, "room1", protocol_version);
+
+    table_id_type table1_1 = create_new_table(richregistrator, room1, 0u, meta);
+    table_id_type table1_2 = create_new_table(richregistrator, room1, 0u, meta);
+
+    room_id_type room2 = create_new_room(richregistrator2, "room2", protocol_version);
+
+    table_id_type table2 = create_new_table(richregistrator2, room2, 0u, meta);
+
+    next_maintenance();
+
+    idump((room1(db)));
+    idump((room2(db)));
+
+    Actor player1 = create_new_player(richregistrator, "p1", asset(player_init_balance));
+    Actor player2 = create_new_player(richregistrator, "p2", asset(player_init_balance));
+
+    auto stake = asset(player_init_balance / 3);
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2));
+    std::string proposal_p1_uid;
+    try {
+        auto proposal1 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        proposal_p1_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    std::string proposal_p2_uid;
+    try {
+        auto proposal1 = buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version);
+        proposal_p2_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player2)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player2)));
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator, table1_1, table1_1(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_cancel(player1, proposal_p1_uid));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_cancel(player2, proposal_p2_uid));
+
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player1, table1_1, stake));
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player2, table1_1, stake));
+
+    next_maintenance();
+
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_1));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator, table1_2));
+    BOOST_REQUIRE_NO_THROW(table_alive(richregistrator2, table2));
+
+    idump((room1(db)));
+    idump((room2(db)));
+
+    try {
+        auto proposal1 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player1, get_next_uid(actor(player1)), stake, meta, protocol_version);
+        proposal_p1_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    try {
+        auto proposal1 = buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version);
+        auto proposal2 = buy_in_reserve(player2, get_next_uid(actor(player2)), stake, meta, protocol_version);
+        proposal_p2_uid = proposal2.uid;
+    } FC_LOG_AND_RETHROW()
+
+    generate_block();
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table1_1(db).is_pending_at_table(get_player(player2)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player1)));
+    BOOST_REQUIRE(table2(db).is_pending_at_table(get_player(player2)));
+
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator2, table2, table2(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_resolve(richregistrator2, table2, table2(db).pending_proposals.begin()->second));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_cancel(player1, proposal_p1_uid));
+    BOOST_REQUIRE_NO_THROW(buy_in_reserving_cancel(player2, proposal_p2_uid));
+
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player1, table2, stake));
+    BOOST_REQUIRE_NO_THROW(buy_out_table(player2, table2, stake));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

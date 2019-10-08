@@ -104,6 +104,7 @@ struct config
     const uint32_t buy_in_expiration_seconds;
     const uint32_t table_alive_expiration_seconds;
     const uint32_t room_rating_measurements_alive_periods;
+    const uint16_t kpi_weight_per_measurement;
     const uint16_t standby_weight_per_measurement;
 
     enum test_mode { test };
@@ -132,5 +133,6 @@ void override_config(std::unique_ptr<config> new_config);
 #define PLAYCHAIN_DEFAULT_BUY_IN_EXPIRATION_SECONDS (playchain::protocol::detail::get_config().buy_in_expiration_seconds)
 #define PLAYCHAIN_DEFAULT_TABLE_ALIVE_EXPIRATION_SECONDS (playchain::protocol::detail::get_config().table_alive_expiration_seconds)
 #define PLAYCHAIN_DEFAULT_ROOM_RATING_MEASUREMENTS_ALIVE_PERIODS (playchain::protocol::detail::get_config().room_rating_measurements_alive_periods)
+#define PLAYCHAIN_DEFAULT_KPI_WEIGHT_PER_MEASUREMENT (playchain::protocol::detail::get_config().kpi_weight_per_measurement)
 #define PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT (playchain::protocol::detail::get_config().standby_weight_per_measurement)
 

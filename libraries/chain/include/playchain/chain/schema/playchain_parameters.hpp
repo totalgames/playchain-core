@@ -91,6 +91,7 @@ namespace playchain { namespace chain {
    {
        using playchain_parameters_v3::playchain_parameters_v3;
 
+       uint16_t                kpi_weight_per_measurement = PLAYCHAIN_DEFAULT_KPI_WEIGHT_PER_MEASUREMENT;
        uint16_t                standby_weight_per_measurement = PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT;
    };
 
@@ -135,5 +136,6 @@ FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v3, (playchain::chain:
                    )
 
 FC_REFLECT_DERIVED(playchain::chain::playchain_parameters_v4, (playchain::chain::playchain_parameters_v3),
+                   (kpi_weight_per_measurement)
                    (standby_weight_per_measurement)
                    )

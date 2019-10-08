@@ -636,7 +636,7 @@ buy_in_reserving_cancel_operation playchain_fixture::buy_in_reserving_cancel_op(
     return op;
 }
 
-buy_in_reserving_cancel_operation playchain_fixture::buy_in_reserving_cancel(const Actor& player, const string& uid)
+buy_in_reserving_cancel_operation playchain_fixture:: buy_in_reserving_cancel(const Actor& player, const string& uid)
 {
     auto op = buy_in_reserving_cancel_op(actor(player), uid);
 
