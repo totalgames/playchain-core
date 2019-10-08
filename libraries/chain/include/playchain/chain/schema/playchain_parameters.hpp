@@ -82,14 +82,24 @@ namespace playchain { namespace chain {
 
    struct playchain_parameters_v3: public playchain_parameters_v2
    {
-       using playchain_parameters_v2::playchain_parameters_v2;
+       playchain_parameters_v3() = default;
+       template<typename V>
+       playchain_parameters_v3(const V &other)
+       {
+           static_cast<V &>(*this) = other;
+       }
 
        uint16_t                min_votes_for_playing = PLAYCHAIN_DEFAULT_MIN_VOTES_FOR_PLAYING;
    };
 
    struct playchain_parameters_v4: public playchain_parameters_v3
    {
-       using playchain_parameters_v3::playchain_parameters_v3;
+       playchain_parameters_v4() = default;
+       template<typename V>
+       playchain_parameters_v4(const V &other)
+       {
+           static_cast<V &>(*this) = other;
+       }
 
        uint16_t                kpi_weight_per_measurement = PLAYCHAIN_DEFAULT_KPI_WEIGHT_PER_MEASUREMENT;
        uint16_t                standby_weight_per_measurement = PLAYCHAIN_DEFAULT_STANDBY_WEIGHT_PER_MEASUREMENT;
