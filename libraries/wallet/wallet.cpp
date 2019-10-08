@@ -2974,37 +2974,37 @@ public:
       return sign_transaction(tx, broadcast);
    }
 
-                signed_transaction propose_playchain_parameter_change(
-                        const string& proposing_account,
-                        fc::time_point_sec expiration_time,
-                        const variant_object& changed_values,
-                        bool broadcast = false)
-                {
-                    const chain_parameters& core_params = get_global_properties().parameters;
-                    const playchain_parameters& current_params = get_playchain_properties().parameters;
-                    playchain_parameters new_params = current_params;
-                    fc::reflector<playchain_parameters>::visit(
-                            fc::from_variant_visitor<playchain_parameters>( changed_values, new_params, GRAPHENE_MAX_NESTED_OBJECTS )
-                    );
+    signed_transaction propose_playchain_parameter_change(
+            const string& proposing_account,
+            fc::time_point_sec expiration_time,
+            const variant_object& changed_values,
+            bool broadcast = false)
+    {
+        const chain_parameters& core_params = get_global_properties().parameters;
+        const playchain_parameters& current_params = get_playchain_properties().parameters;
+        playchain_parameters new_params = current_params;
+        fc::reflector<playchain_parameters>::visit(
+                fc::from_variant_visitor<playchain_parameters>( changed_values, new_params, GRAPHENE_MAX_NESTED_OBJECTS )
+        );
 
-                    playchain_committee_member_update_parameters_operation update_op;
-                    update_op.new_parameters = new_params;
+        playchain_committee_member_update_parameters_v4_operation update_op;
+        update_op.new_parameters = new_params;
 
-                    proposal_create_operation prop_op;
+        proposal_create_operation prop_op;
 
-                    prop_op.expiration_time = expiration_time;
-                    prop_op.review_period_seconds = core_params.committee_proposal_review_period;
-                    prop_op.fee_paying_account = get_account(proposing_account).id;
+        prop_op.expiration_time = expiration_time;
+        prop_op.review_period_seconds = core_params.committee_proposal_review_period;
+        prop_op.fee_paying_account = get_account(proposing_account).id;
 
-                    prop_op.proposed_ops.emplace_back( update_op );
+        prop_op.proposed_ops.emplace_back( update_op );
 
-                    signed_transaction tx;
-                    tx.operations.push_back(prop_op);
-                    set_operation_fees(tx, core_params.get_current_fees());
-                    tx.validate();
+        signed_transaction tx;
+        tx.operations.push_back(prop_op);
+        set_operation_fees(tx, core_params.get_current_fees());
+        tx.validate();
 
-                    return sign_transaction(tx, broadcast);
-                }
+        return sign_transaction(tx, broadcast);
+    }
 
    signed_transaction propose_fee_change(
       const string& proposing_account,
