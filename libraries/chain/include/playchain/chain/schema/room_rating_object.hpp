@@ -54,8 +54,6 @@ namespace playchain {
 
             room_id_type room;
 
-            table_id_type table;
-
             pending_buy_in_id_type associated_buyin;
 
             uint32_t weight;
