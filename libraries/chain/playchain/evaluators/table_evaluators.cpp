@@ -50,7 +50,12 @@ namespace playchain{ namespace chain{
             if (range.first == range.second || !range.first->weight)
             {
                 //Only for rooms without players
-
+#if defined(LOG_RATING)
+                if (d.head_block_time() >= fc::time_point_sec( LOG_RATING_BLOCK_TIMESTUMP_FROM ))
+                {
+                    ilog("${t} >> touch room_rating_standby_measurements: room = ${id}:", ("t", d.head_block_time())("id", room_id));
+                }
+#endif
                 const auto& idx = d.get_index_type<room_rating_standby_measurement_index>().indices().get<by_table>();
                 auto it = idx.find(table);
                 if (idx.end() != it)

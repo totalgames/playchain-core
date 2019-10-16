@@ -137,6 +137,13 @@ namespace
         while (measurements_by_expiration.begin() != measurements_by_expiration.end()
             && measurements_by_expiration.begin()->expiration <= d.head_block_time())
         {
+#if defined(LOG_RATING)
+            if (d.head_block_time() >= fc::time_point_sec( LOG_RATING_BLOCK_TIMESTUMP_FROM ))
+            {
+                const auto &m = *measurements_by_expiration.begin();
+                ilog("${t} >> remove_expired_room_rating_measurement: room = ${r}, m = ${id}", ("t", d.head_block_time())("r", m.room)("id", m.id));
+            }
+#endif
             // remove the db object
             d.remove(*measurements_by_expiration.begin());
         }
@@ -318,9 +325,23 @@ void update_room_rating(database &d)
     {
         recalculate_room_rating(d, room, constC_weight_sum_by_time_factor, constC_measurement_sum_by_time_factor);
 
+#if defined(LOG_RATING)
+        if (d.head_block_time() >= fc::time_point_sec( LOG_RATING_BLOCK_TIMESTUMP_FROM ))
+        {
+            ilog("${t} >> rating: ${id} - ${r}", ("t", d.head_block_time())("id", room.id)("r", room.rating));
+            idump((room));
+        }
+#endif
         average_room_rating += room.rating;
     }
     average_room_rating = average_room_rating / updated_rooms.size();
+
+#if defined(LOG_RATING)
+    if (d.head_block_time() >= fc::time_point_sec( LOG_RATING_BLOCK_TIMESTUMP_FROM ))
+    {
+        ilog("${t} >> average_room_rating = ${r}", ("t", d.head_block_time())("r", average_room_rating));
+    }
+#endif
 
     d.modify(get_dynamic_playchain_properties(d), [&](dynamic_playchain_property_object &obj) {
         obj.average_room_rating = average_room_rating;
